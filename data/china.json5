@@ -1,0 +1,355 @@
+{
+  "config": {
+    start : -2150, //横向起点
+    zoom : 0.5, //缩放
+    layout:"v",
+    o : {
+      vs:100, 
+    },
+    iconPath : "//cssass.com/public/flags/",
+    p:{
+      textAnchor : "middle", //start,middle,end
+      colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],
+    },
+    e:{ //事件
+      textAnchor : "start",
+    },
+    g:{
+      show: true,
+      colors: {
+        "北朝": "#D9E3E5",
+        "南朝": "#F0E8E0",
+        "三国": "#CDD8D1",  // 淡米色
+        "五代十国": "#D4EBD4",  // 苹果绿色
+        "official": "#EFE1D6",  // 杏色
+        "official": "#E0E7EA",  // 淡青灰色
+        "official": "#F4E3B1",  // 浅黄色
+        "official": "#CDD8D1",  // 浅灰绿色
+        "official": "#E8E6D4",  // 浅米色
+        "official": "#F1E9E6",  // 雾玫瑰色
+        "official": "#D9E3E5"   // 浅蓝灰色
+      }
+    }
+  },
+  "periods":[
+    {
+      "name":"商",
+      "desc": "",
+      "start": -1700,
+      "end": -1100
+    },
+    {
+      "name":"周",
+      "desc": "",
+      "start": -1100,
+      "end": -256
+    },{
+      "name":"秦",
+      "desc": "",
+      "start": -221,
+      "end": -207
+    },{
+      "name":"汉",
+      "desc": "",
+      "start": -202,
+      "end": 220
+    },{
+      "name":"晋",
+      "desc": "",
+      "start": 266,
+      "end": 420
+    },{
+      "name":"隋",
+      "desc": "",
+      "start": 581,
+      "end": 619
+    },{
+      "name":"唐",
+      "desc": "",
+      "start": 618,
+      "end": 907
+    },{
+      "name":"宋",
+      "desc": "",
+      "start": 960,
+      "end": 1279
+    },{
+      "name":"元",
+      "desc": "",
+      "start": 1271,
+      "end": 1368
+    },{
+      "name":"明",
+      "desc": "",
+      "start": 1368,
+      "end": 1644
+    },{
+      "name":"清",
+      "desc": "",
+      "start": 1636,
+      "end": 1912
+    }
+  ],
+  "events" : [
+  ],
+
+  "roles": [
+    {
+      "name":"夏",
+      "desc": "",
+      "start": -2100,
+      "end": -1700
+    },
+    {
+      "name":"商",
+      "desc": "",
+      "start": -1700,
+      "end": -1100
+    },
+    {
+      "name":"西周",
+      "desc": "",
+      "start": -1100,
+      "end": -771
+    },{
+      "name":"春秋",
+      "desc": "",
+      "start": -770,
+      "end": -476
+    },{
+      "name":"战国",
+      "desc": "",
+      "start": -475,
+      "end": -221
+    },
+    {
+      "name":"秦",
+      "desc": "",
+      "start": -221,
+      "end": -207
+    },{
+      "name":"西汉",
+      "desc": "",
+      "start": -202,
+      "end": 9
+    },{
+      "name":"新",
+      "desc": "",
+      "start": 9,
+      "end": 23
+    },{
+      "name":"东汉",
+      "desc": "",
+      "start": 25,
+      "end": 220
+    },
+    {
+      "name":"魏",
+      "desc": "",
+      "start": 220,
+      "end": 266,
+      "groups":['三国']
+    },{
+      "name":"蜀汉",
+      "desc": "",
+      "start": 221,
+      "end": 263,
+      "groups":['三国']
+    },{
+      "name":"吴",
+      "desc": "",
+      "start": 229,
+      "end": 280,
+      "groups":['三国']
+    },{
+      "name":"西晋",
+      "desc": "",
+      "start": 266,
+      "end": 316
+    },{
+      "name":"东晋",
+      "desc": "",
+      "start": 317,
+      "end": 420
+    },
+    {
+      "name":"五胡十六国",
+      "desc": ["前凉、成汉、前赵、后赵、北凉、西凉、后凉、南凉、","前燕、后燕、南燕、北燕、夏、前秦、西秦、后秦"],
+      "start": 304,
+      "end": 439
+    },{
+      "name":"宋",
+      "desc": "",
+      "groups":['南朝'],
+      "start": 420,
+      "end": 479
+    },{
+      "name":"齐",
+      "desc": "",
+      "groups":['南朝'],
+      "start": 479,
+      "end": 502
+    },{
+      "name":"梁",
+      "desc": "",
+      "groups":['南朝'],
+      "start": 502,
+      "end": 557
+    },{
+      "name":"陈",
+      "desc": "",
+      "groups":['南朝'],
+      "start": 557,
+      "end": 589
+    },
+    {
+      "name":"北魏",
+      "desc": "",
+      "groups":['北朝'],
+      "start": 386,
+      "end": 534
+    },
+    {
+      "name":"西魏",
+      "desc": "",
+      "groups":['北朝'],
+      "start": 535,
+      "end": 557
+    },{
+      "name":"东魏",
+      "desc": "",
+      "groups":['北朝'],
+      "start": 534,
+      "end": 550
+    },{
+      "name":"北周",
+      "desc": "",
+      "groups":['北朝'],
+      "start": 557,
+      "end": 581
+    },{
+      "name":"北齐",
+      "desc": "",
+      "groups":['北朝'],
+      "start": 550,
+      "end": 577
+    },{
+      "name":"隋",
+      "desc": "",
+      "start": 581,
+      "end": 619
+    },{
+      "name":"唐",
+      "desc": "",
+      "start": 618,
+      "end": 907,
+      "offset": 22,
+    },{
+      "name":"武周",
+      "desc": "",
+      "start": 690,
+      "end": 705
+    },{
+      "name":"后梁",
+      "desc": "",
+      "groups":['五代十国'],
+      "start": 907,
+      "end": 923
+    },{
+      "name":"后唐",
+      "desc": "",
+      "groups":['五代十国'],
+      "start": 923,
+      "end": 937
+    },{
+      "name":"后晋",
+      "desc": "",
+      "groups":['五代十国'],
+      "start": 936,
+      "end": 947
+    },{
+      "name":"后汉",
+      "desc": "",
+      "groups":['五代十国'],
+      "start": 947,
+      "end": 951
+    },{
+      "name":"后周",
+      "desc": "",
+      "groups":['五代十国'],
+      "start": 951,
+      "end": 960
+    },{
+      "name":"十国",
+      "desc": ["前蜀、后蜀、南吴（杨吴）、南唐、吴越、","闽国、南楚（马楚）、南汉、南平（荆南）、北汉"],
+      "groups":['五代十国'],
+      "start": 907,
+      "end": 979
+    },{
+      "name":"辽",
+      "desc": "",
+      "start": 916,
+      "end": 1125
+    },{
+      "name":"西辽",
+      "desc": "",
+      "start": 1124,
+      "end": 1218
+    },{
+      "name":"北宋",
+      "desc": "",
+      "start": 960,
+      "end": 1127
+    },{
+      "name":"南宋",
+      "desc": "",
+      "start": 1127,
+      "end": 1279
+    },{
+      "name":"西夏",
+      "desc": "",
+      "start": 1038,
+      "end": 1227
+    },{
+      "name":"金",
+      "desc": "",
+      "start": 1115,
+      "end": 1234
+    },{
+      "name":"大蒙古国",
+      "desc": "",
+      "start": 1206,
+      "end": 1635
+    },{
+      "name":"元",
+      "desc": "",
+      "start": 1271,
+      "end": 1368
+    },{
+      "name":"北元",
+      "desc": "",
+      "start": 1368,
+      "end": 1388
+    },{
+      "name":"明",
+      "desc": "",
+      "start": 1368,
+      "end": 1644
+    },{
+      "name":"南明",
+      "desc": "",
+      "start": 1644,
+      "end": 1662
+    },{
+      "name":"后金",
+      "desc": "",
+      "start": 1616,
+      "end": 1636
+    },{
+      "name":"清",
+      "desc": "",
+      "start": 1636,
+      "end": 1912
+    },
+  ]
+}

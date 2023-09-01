@@ -1,0 +1,96 @@
+{
+  "config": {
+    start : -70200, //横向起点
+    layout: "v",
+    zoom : 0.1, //缩放
+    o : {
+      vs:1000, //横向大刻度
+      vm:100, //横向小刻度
+    },
+    iconPath : "//cssass.com/public/flags/",
+    p:{
+      textAnchor : "middle", //start,middle,end
+      colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],
+    },
+    e:{ //事件
+      textAnchor : "middle",
+    },
+    g: {
+      colors : {
+        "forces": "#D9E3E5",
+        "royals": "#F4E3B1",
+        "official": "#E6DAC4",  // 淡米色
+        "general": "#D4EBD4",  // 苹果绿色
+        "jingnan": "#F0E8E0",  // 浅灰色
+        "official": "#EFE1D6",  // 杏色
+        "official": "#E0E7EA",  // 淡青灰色
+        "official": "#F4E3B1",  // 浅黄色
+        "official": "#CDD8D1",  // 浅灰绿色
+        "official": "#E8E6D4",  // 浅米色
+        "official": "#F1E9E6",  // 雾玫瑰色
+        "official": "#D9E3E5"   // 浅蓝灰色
+      },
+      show : false,
+    },
+  },
+  
+	"periods":[
+  {
+    "name":"石器时代",
+    "desc":"The Stone Age",
+    "start": -250000,
+    "end": -10000,
+    "level": 3,
+  },
+  {
+    "name":"青铜时代",
+    "desc":"The Bronze Age",
+    "start": -6000,
+    "end": -2000,
+    "level": 3,
+  },
+  {
+    "name":"铁器时代",
+    "desc":"The Iron Age",
+    "start": 250000,
+    "end": 10000,
+    "level": 3,
+  },
+
+],
+
+  "events" : [
+    {
+      "name": "“认知革命”(Cognitive Revolution)让历史正式启动",
+      "time": -70000
+    },
+    {
+      "name": "“农业革命”(Agricultural Revolution)让历史加速发展",
+      "time": -12000
+    },
+    {
+      "name": "“科学革命”(Scientific Revolution)另创新局",
+      "time": -500
+    },
+    {
+      "name": "工业革命",
+      "time": -200
+    },
+  ],
+
+	"roles": [
+  {
+    "name":"纽芬兰世",
+    "start": -541,
+    "end": -521,
+    "keypoints": [{
+      "t": -541,
+      "w": "幸运期"
+    },{
+      "t": -529,
+      "w": "第二期"
+    }],
+    offset: -6,
+  },
+]
+}

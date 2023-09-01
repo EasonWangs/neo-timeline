@@ -1,0 +1,72 @@
+{
+  "config": {
+    start : 1600, //横向起点
+    zoom : 4, //缩放
+    layout: "h",
+    o : {
+      hs:10, //横向大刻度
+    },
+    iconPath : "//cssass.com/public/flags/",
+    p:{
+      textAnchor : "start", //start,middle,end
+      colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],
+    },
+    e:{ //事件
+      textAnchor : "start",
+    },
+    g: {
+      colors : {
+        "forces": "#D9E3E5",
+        "royals": "#F4E3B1",
+        "official": "#E6DAC4",  // 淡米色
+        "general": "#D4EBD4",  // 苹果绿色
+        "jingnan": "#F0E8E0",  // 浅灰色
+        "official": "#EFE1D6",  // 杏色
+        "official": "#E0E7EA",  // 淡青灰色
+        "official": "#F4E3B1",  // 浅黄色
+        "official": "#CDD8D1",  // 浅灰绿色
+        "official": "#E8E6D4",  // 浅米色
+        "official": "#F1E9E6",  // 雾玫瑰色
+        "official": "#D9E3E5"   // 浅蓝灰色
+      },
+      show : false,
+    },
+  },
+ 
+	"periods":[
+	{
+		"name":"第二次数学危机",
+		"desc": "微积分的基础",
+		"start": 1730,
+		"end": 1870
+	},
+  {
+    "name":"第三次数学危机",
+    "desc": "罗素悖论",
+    "start": 1897,
+    "end": 1931
+  },
+],
+
+  "events" : [
+    {
+      "name": "解析几何的建立",
+      "time": 1637
+    },
+    {
+      "name": "微积分的发明",
+      "time": 1666
+    },
+    {
+      "name": "群理论形成",
+      "time": 1830
+    },
+    {
+      "name": "集合论的诞生",
+      "time": 1873
+    }
+  ],
+
+	"roles": [
+]
+}

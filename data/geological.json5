@@ -1,0 +1,528 @@
+{
+  "config": {
+    start : -4600, //横向起点
+    layout: "v",
+    direction: "desc", //asc
+    zoom : 1, //缩放
+    o : {
+      vs:100, //横向大刻度
+      vm:10, //横向小刻度
+    },
+    iconPath : "//cssass.com/public/flags/",
+    p:{
+      textAnchor : "middle", //start,middle,end
+      colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],
+      type: "part", //full, part
+      padding: 100,
+    },
+    e:{ //事件
+      textAnchor : "middle",
+    },
+    g: {
+      colors : {
+        "forces": "#D9E3E5",
+        "royals": "#F4E3B1",
+        "official": "#E6DAC4",  // 淡米色
+        "general": "#D4EBD4",  // 苹果绿色
+        "jingnan": "#F0E8E0",  // 浅灰色
+        "official": "#EFE1D6",  // 杏色
+        "official": "#E0E7EA",  // 淡青灰色
+        "official": "#F4E3B1",  // 浅黄色
+        "official": "#CDD8D1",  // 浅灰绿色
+        "official": "#E8E6D4",  // 浅米色
+        "official": "#F1E9E6",  // 雾玫瑰色
+        "official": "#D9E3E5"   // 浅蓝灰色
+      },
+      show : false,
+    },
+  },
+  
+	"periods":[
+	{
+		"name":"冥古宙",
+    "desc": "（Hadean Eon）",  
+		"start": -4570,
+		"end": -3800
+	},
+  {
+    "name":"隐生代",
+    "desc":"(Cryptozoic Era)",
+    "start": -4570,
+    "end": -4150,
+    "level": 2,
+  },
+  {
+    "name":"原生代",
+    "desc":"（Proterozoic Era）",
+    "start": -4150,
+    "end": -3920,
+    "level": 2,
+  },
+  {
+    "name":"酒神代",
+    "desc":"（Nectarian）",
+    "start": -3920,
+    "end": -3850,
+    "level": 2,
+  },
+  {
+    "name":"雨海代",
+    "desc":"出现细菌",
+    "start": -3850,
+    "end": -3800,
+    "level": 2,
+  },
+
+  {
+    "name":"太古宙",
+    "desc": "（Archean Eon）",
+    "start": -3800,
+    "end": -2500
+  },
+
+  {
+    "name":"始太古代",
+    "desc": "(Eoarchean Era)",
+    "start": -3800,
+    "end": -3600,
+    "level": 2,
+  },
+  {
+    "name":"古太古代",
+    "desc":"（Paleoarchean Era）",
+    "start": -3600,
+    "end": -3200,
+    "level": 2,
+  },
+  {
+    "name":"中太古代",
+    "desc": "(Mesoarchean Era)",
+    "start": -3200,
+    "end": -2800,
+    "level": 2,
+  },
+  {
+    "name":"新太古代",
+    "desc":"(Neoarchean)",
+    "start": -2800,
+    "end": -2500,
+    "level": 2,
+  },
+
+  {
+    "name":"元古宙",
+     "desc": "(Proterozoic Eon）",
+    "start": -2500,
+    "end": -541
+  },
+
+  {
+    "name":"古元古代",
+    "start": -2500,
+    "end": -1600,
+    "level": 2,
+  },
+  {
+    "name":"成铁纪",
+    "start": -2500,
+    "end": -2300,
+    "level": 3,
+  },
+  {
+    "name":"层侵纪",
+    "start": -2300,
+    "end": -2050,
+    "level": 3,
+  },
+  {
+    "name":"造山纪",
+    "start": -2050,
+    "end": -1800,
+    "level": 3,
+  },
+  {
+    "name":"固结纪",
+    "start": -1800,
+    "end": -1600,
+    "level": 3,
+  },
+  {
+    "name":"中元古代",
+    "start": -1600,
+    "end": -1000,
+    "level": 2,
+  },
+  {
+    "name":"盖层纪",
+    "start": -1600,
+    "end": -1400,
+    "level": 3,
+  },
+  {
+    "name":"延展纪",
+    "start": -1400,
+    "end": -1200,
+    "level": 3,
+  },
+  {
+    "name":"狭带纪",
+    "start": -1200,
+    "end": -1000,
+    "level": 3,
+  },
+  {
+    "name":"新元古代",
+    "start": -1000,
+    "end": -541,
+    "level": 2,
+  },
+  {
+    "name":"拉伸纪",
+    "start": -1000,
+    "end": -850,
+    "level": 3,
+  },
+  {
+    "name":"成冰纪(南华纪)",
+    "start": -850,
+    "end": -630,
+    "level": 3,
+  },
+  {
+    "name":"震旦纪",
+    "desc":"埃迪卡拉纪",
+    "start": -630,
+    "end": -541,
+    "level": 3,
+  },
+  {
+    "name":"显生宙",
+    "desc": "Phanerozoic",
+    "start": -541,
+    "end": -0.012
+  },
+  {
+    "name":"古生代",
+    "start": -541,
+    "end": -252,
+    "level": 2,
+  },
+
+  {
+    "name":"寒武纪",
+    "desc":"Cambrian—是因英国的寒武山脉（今译坎布连山脉）而得名",
+    "start": -541,
+    "end": -485.4,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"奥陶纪",
+     "desc":"Ordovician—名称来自大不列颠的古老部落（奥陶部落）",
+    "start": -485.4,
+    "end": -443.4,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"志留纪",
+     "desc":"Silurian—名称来自大不列颠的古老部落（志留部落）",
+    "start": -443.4,
+    "end": -419.2,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"泥盆纪",
+     "desc":"Devonian—是因英国西南部泥盆州（现译为德文郡）海相岩系而得名。也称“鱼类时代”。",
+    "start": -419.2,
+    "end": -358.9,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"石炭纪",
+     "desc":"Carboniferous—因英格兰的高山灰岩及其含煤层而得名。石炭纪早期也称“两栖动物时代”",
+    "start": -358.9,
+    "end": -299,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"二叠纪",
+     "desc":"Permian—最初得名于乌拉尔山西坡的彼尔姆州，“二叠”因该时代德国南部地层可分为上下两套而得名",
+    "start": -299,
+    "end": -251,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"中生代",
+    "start": -251,
+    "end": -66,
+    "level": 2,
+  },
+
+  {
+    "name":"三叠纪",
+    "desc":"Triassic—当初按德国南部地层的三分性特点而命名",
+    "start": -251,
+    "end": -199.6,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"侏罗纪",
+    "desc":"Jurassic—按法瑞交界地方侏罗山（现译为汝拉山）地层研究而命名",
+    "start": -199.6,
+    "end": -145.5,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"白垩纪",
+    "desc":"Cretaceous,按英吉利海峡两岸主要由白垩土地层构成而命名",
+    "start": -145.5,
+    "end": -66,
+    "level": 3,
+    "textTrun":true,
+  },
+
+
+  {
+    "name":"新生代",
+    "start": -66,
+    "end": -0.012,
+    "level": 2,
+  },
+
+  {
+    "name":"古近纪",
+    "desc":"Paleogene",
+    "start": -66,
+    "end": -23,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"新近纪",
+    "desc":"Neogene",
+    "start": -23,
+    "end": -2.588,
+    "level": 3,
+    "textTrun":true,
+  },
+  {
+    "name":"第四纪",
+    "desc":"Cenozoic",
+    "start": -2.588,
+    "end": -0.012,
+    "level": 3,
+    "textTrun":true,
+  },
+
+],
+
+  "events" : [
+    {
+      "name": "地球出现",
+      "time": -4570
+    },
+    {
+      "name": "出现海洋",
+      "time": -4150
+    },
+    {
+      "name": "古细菌出现",
+      "time": -3950
+    },
+    {
+      "name": "出现细菌",
+      "time": -3850
+    },
+    {
+      "name": "蓝绿藻出现",
+      "time": -3200
+    },
+    {
+      "name": "第一次冰河期",
+      "time": -2500
+    },
+
+    {
+      "name": "罗迪尼亚古陆形成",
+      "time": -1000
+    },
+    {
+      "name": "发生雪球事件",
+      "time": -850
+    },
+
+    {
+      "name": "多细胞生物出现",
+      "time": -630
+    },
+    {
+      "name": "寒武纪生命大爆炸，冈瓦纳大陆出现",
+      "time": -542
+    },
+    {
+      "name": "鱼类出现；海生藻类繁盛",
+      "time": -488.3
+    },
+    {
+      "name": "陆生的裸蕨植物出现",
+      "time": -443.7
+    },
+    {
+      "name": "鱼类繁荣,两栖动物、昆虫、种子植物、石松和木贼出现",
+      "time": -416.0
+    },
+    {
+      "name": "昆虫繁荣，爬行动物、煤炭森林、裸子植物出现",
+      "time": -359.2
+    },
+
+    {
+      "name": "二叠纪灭绝事件，95%生物灭绝。盘古大陆形成",
+      "time": -299.0
+    },
+    {
+      "name": "恐龙，卵生哺乳动物出现",
+      "time": -251
+    },
+    {
+      "name": "有袋类哺乳动物、被子植物、鸟类出现，裸子植物繁荣",
+      "time": -199.6
+    },
+    {
+      "name": "恐龙的繁荣和灭绝,白垩纪灭绝事件，45%生物灭绝。有胎盘的哺乳动物出现",
+      "time": -99.6
+    },
+    {
+      "name": "昆虫繁荣，爬行动物、煤炭森林、裸子植物出现",
+      "time": -359.2
+    },
+    {
+      "name": "大部份哺乳动物目崛起",
+      "time": -33.9
+    },
+    {
+      "name": "人类的人猿祖先出现",
+      "time": -5.33
+    },
+  ],
+
+	"roles": [
+  /*
+  {
+    "name":"纽芬兰世",
+    "start": -541,
+    "end": -521,
+    "keypoints": [{
+      "t": -541,
+      "w": "幸运期"
+    },{
+      "t": -529,
+      "w": "第二期"
+    }],
+    offset: -6,
+  },
+  {
+    "name":"第二世",
+    "start": -521,
+    "end": -509,
+    "keypoints": [{
+      "t": -521,
+      "w": "第三期"
+    },{
+      "t": -514,
+      "w": "第四期"
+    }]
+  },
+  {
+    "name":"第三世",
+    "start": -509,
+    "end": -497,
+    "keypoints": [{
+      "t": -509,
+      "w": "第五期"
+    },{
+      "t": -504.5,
+      "w": "鼓山期"
+    },{
+      "t": -500.5,
+      "w": "古丈期"
+    }]
+  },
+  {
+    "name":"芙蓉世",
+    "start": -497,
+    "end": -485.4,
+    "keypoints": [{
+      "t": -497,
+      "w": "排碧期"
+    },{
+      "t": -494,
+      "w": "江山期"
+    },{
+      "t": -489.5,
+      "w": "第十期"
+    }]
+  },
+
+  {
+    "name":"早奥陶世",
+    "start": -485.4,
+    "end": -470.0,
+    "keypoints": [{
+      "t": -485.4,
+      "w": "特马豆克期"
+    },{
+      "t": -477.7,
+      "w": "弗洛期"
+    }]
+  },
+  {
+    "name":"中奥陶世",
+    "start": -470.0,
+    "end": -458.4,
+    "keypoints": [{
+      "t": -470.0,
+      "w": "大坪期"
+    },{
+      "t": -467.3,
+      "w": "达瑞威尔期"
+    }]
+  },
+   {
+    "name":"晚奥陶世",
+    "start": -458.4,
+    "end": -443.4,
+    "keypoints": [{
+      "t": -458.4,
+      "w": "桑比期"
+    },{
+      "t": -453,
+      "w": "凯迪期"
+    },{
+      "t": -445.2,
+      "w": "赫南特期"
+    }]
+  },
+  
+  {
+    "name":"全新世",
+    "desc":"Holocene",
+    "start": -0.126,
+    "end": -0.012,
+  },
+  */
+  {
+    "name":"0",
+    "desc":"Pleistocene",
+    "start": -0.012,
+    "end": -0.012,
+  },
+]
+}

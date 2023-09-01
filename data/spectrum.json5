@@ -1,0 +1,70 @@
+{
+  "config": {
+    start : 0, //横向起点
+    layout: "v",
+    zoom : 1, //缩放
+    o : {
+      vs:100, //横向大刻度
+      vm:10, //横向小刻度
+    },
+    
+    iconPath : "//cssass.com/public/flags/",
+    p:{ //区域
+      textAnchor : "start", //start,middle,end
+      colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],
+    },
+    e:{ //事件
+      textAnchor : "middle",
+    },
+    g: {
+      colors : {
+        "forces": "#D9E3E5",
+        "royals": "#F4E3B1",
+        "official": "#E6DAC4",  // 淡米色
+        "general": "#D4EBD4",  // 苹果绿色
+        "jingnan": "#F0E8E0",  // 浅灰色
+        "official": "#EFE1D6",  // 杏色
+        "official": "#E0E7EA",  // 淡青灰色
+        "official": "#F4E3B1",  // 浅黄色
+        "official": "#CDD8D1",  // 浅灰绿色
+        "official": "#E8E6D4",  // 浅米色
+        "official": "#F1E9E6",  // 雾玫瑰色
+        "official": "#D9E3E5"   // 浅蓝灰色
+      },
+      show : false,
+    },
+  },
+  
+	"periods":[
+	{
+		"name":"紫",
+		"start": 400,
+		"end": 430
+	},
+  {
+    "name":"蓝",
+    "start": 430,
+    "end": 450
+  },{
+    "name":"青",
+    "start": 450,
+    "end": 500
+  },{
+    "name":"绿",
+    "start": 500,
+    "end": 570
+  },{
+    "name":"黄",
+    "start": 570,
+    "end": 600
+  },{
+    "name":"橙",
+    "start": 600,
+    "end": 630
+  },{
+    "name":"红",
+    "start": 630,
+    "end": 760
+  },
+]
+}

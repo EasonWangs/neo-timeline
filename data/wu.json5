@@ -1,0 +1,613 @@
+{
+  "config": {
+    start: -1200, //起点（最小值）
+    zoom : 0.8, //缩放
+    layout : "h", //纵版"v",横版"h"
+    o : {
+      hs:100, //纵向大刻度
+     hm:10, //纵向小刻度
+    },
+    iconPath : "//cssass.com/public/number/",
+    p:{
+      textAnchor : "middle", //start,middle,end
+      colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],
+    },
+    e:{ //事件
+      textAnchor : "start",
+    },
+    g: {
+      colors : {
+        "主祀": "#CDD8D1", 
+        "配享": "#D9E3E5",
+        "十哲(东)": "#F0E8E0",
+        "十哲(西)": "#CDD8D1",  // 淡米色
+        "二十九将(东)": "#D4EBD4",  // 苹果绿色
+        "三十二将(西)": "#EFE1D6",  // 杏色
+      },
+      show : true,
+    },
+  },
+  "periods":[
+    {
+      "name":"西周",
+      "desc": "",
+      "start": -1100,
+      "end": -771
+    },{
+      "name":"春秋",
+      "desc": "",
+      "start": -770,
+      "end": -476
+    },{
+      "name":"战国",
+      "desc": "",
+      "start": -475,
+      "end": -221
+    },{
+      "name":"西汉",
+      "desc": "",
+      "start": -202,
+      "end": 9
+    },{
+      "name":"东汉",
+      "desc": "",
+      "start": 25,
+      "end": 220
+    },{
+      "name":"西晋",
+      "desc": "",
+      "start": 266,
+      "end": 316
+    },{
+      "name":"东晋",
+      "desc": "",
+      "start": 317,
+      "end": 420
+    },{
+      "name":"隋",
+      "desc": "",
+      "start": 581,
+      "end": 619
+    },{
+      "name":"唐",
+      "desc": "",
+      "start": 618,
+      "end": 907
+    },
+  ],
+  "events" : [
+   
+  ],
+
+  "roles": [
+  {
+    "name": "姜尚",
+    "start": "-1128",
+    "end": "-1016",
+    groups: ["主祀"],
+    icon:"1",
+    offset:-1,
+  },
+  {
+    "name": "张良",
+    "start": "-250",
+    "end": "-186",
+    groups: ["配享"],
+    icon:"2",
+    offset:1,
+  },
+    {
+    "name": "管仲",
+    "start": "-725",
+    "end": "-645",
+    groups: ["十哲(东)"],
+    icon:"1",
+    offset:-1,
+  },
+  {
+    "name": "孙武",
+    "start": "-544",
+    "end": "-496",
+    groups: ["十哲(东)"],
+    icon:"2",
+    offset:1,
+  },
+  {
+    "name": "乐毅",
+    "start": "-300",
+    "end": "-260",
+    groups: ["十哲(东)"],
+    icon:"3",
+    offset:1,
+  },
+  {
+    "name": "诸葛亮",
+    "start": "181",
+    "end": "234",
+    groups: ["十哲(东)"],
+    icon:"4",
+    offset:1,
+  },
+  {
+    "name": "李𪟝",
+    "start": "594",
+    "end": "669",
+    groups: ["十哲(东)"],
+    icon:"5",
+    offset:1,
+  },
+  {
+    "name": "田穰苴",
+    "start": null,
+    "end": "-500",
+    groups: ["十哲(西)"],
+    icon:"1",
+    offset:-1,
+  },
+  {
+    "name": "范蠡",
+    "start": "-536",
+    "end": "-448",
+    groups: ["十哲(西)"],
+    icon:"2"
+  },
+  {
+    "name": "韩信",
+    "start": "-231",
+    "end": "-196",
+    groups: ["十哲(西)"],
+    icon:"3",
+    offset:1,
+  },
+  {
+    "name": "李靖",
+    "start": "571",
+    "end": "649",
+    groups: ["十哲(西)"],
+    icon:"4",
+    offset:1,
+  },
+  {
+    "name": "郭子仪",
+    "start": "697",
+    "end": "781",
+    groups: ["十哲(西)"],
+    icon:"5",
+    offset:1,
+  },
+  {
+    "name": "白起",
+    "start": null,
+    "end": "-257",
+    groups: ["二十九将(东)"],
+    icon:"1",
+    offset:-1,
+  },
+  {
+    "name": "孙膑",
+    "start": null,
+    "end": "-284",
+    groups: ["二十九将(东)"],
+    icon:"2"
+  },
+  {
+    "name": "廉颇",
+    "start": null,
+    "end": "-262",
+    groups: ["二十九将(东)"],
+    icon:"3"
+  },
+  {
+    "name": "李牧",
+    "start": null,
+    "end": "-229",
+    groups: ["二十九将(东)"],
+    icon:"4"
+  },
+  {
+    "name": "曹参",
+    "start": null,
+    "end": "-189",
+    groups: ["二十九将(东)"],
+    icon:"5"
+  },
+  {
+    "name": "周勃",
+    "start": null,
+    "end": "-169",
+    groups: ["二十九将(东)"],
+    icon:"6"
+  },
+  {
+    "name": "李广",
+    "start": null,
+    "end": "-119",
+    groups: ["二十九将(东)"],
+    icon:"7"
+  },
+  {
+    "name": "霍去病",
+    "start": "-140",
+    "end": "-117",
+    groups: ["二十九将(东)"],
+    icon:"8"
+  },
+  {
+    "name": "邓禹",
+    "start": "2",
+    "end": "58",
+    groups: ["二十九将(东)"],
+    icon:"9",
+    offset:7,
+  },
+  {
+    "name": "冯异",
+    "start": null,
+    "end": "34",
+    groups: ["二十九将(东)"],
+    icon:"10"
+  },{
+    "name": "吴汉",
+    "start": null,
+    "end": "44",
+    groups: ["二十九将(东)"],
+    icon:"11"
+  },
+  {
+    "name": "马援",
+    "start": "-14",
+    "end": "49",
+    groups: ["二十九将(东)"],
+    icon:"12"
+  },
+  {
+    "name": "皇甫嵩",
+    "start": null,
+    "end": "195",
+    groups: ["二十九将(东)"],
+    icon:"13",
+    offset:4,
+  },
+  {
+    "name": "邓艾",
+    "start": "197",
+    "end": "264",
+    groups: ["二十九将(东)"],
+    icon:"14"
+  },
+  {
+    "name": "张飞",
+    "start": null,
+    "end": "221",
+    groups: ["二十九将(东)"],
+    icon:"15"
+  },
+  {
+    "name": "吕蒙",
+    "start": "178",
+    "end": "219",
+    groups: ["二十九将(东)"],
+    icon:"16"
+  },
+  {
+    "name": "陆抗",
+    "start": "226",
+    "end": "274",
+    groups: ["二十九将(东)"],
+    icon:"17"
+  },
+  {
+    "name": "杜预",
+    "start": "222",
+    "end": "285",
+    groups: ["二十九将(东)"],
+    icon:"18"
+  },
+  {
+    "name": "陶侃",
+    "start": "259",
+    "end": "334",
+    groups: ["二十九将(东)"],
+    icon:"19"
+  },
+  {
+    "name": "慕容恪",
+    "start": null,
+    "end": "367",
+    groups: ["二十九将(东)"],
+    icon:"20"
+  },
+  {
+    "name": "宇文宪",
+    "start": "545",
+    "end": "578",
+    groups: ["二十九将(东)"],
+    icon:"21",
+    offset:8,
+  },
+  {
+    "name": "韦孝宽",
+    "start": "509",
+    "end": "580",
+    groups: ["二十九将(东)"],
+    icon:"22"
+  },
+  {
+    "name": "杨素",
+    "start": null,
+    "end": "606",
+    groups: ["二十九将(东)"],
+    icon:"23"
+  },
+  {
+    "name": "贺若弼",
+    "start": "544",
+    "end": "607",
+    groups: ["二十九将(东)"],
+    icon:"24"
+  },
+  {
+    "name": "李孝恭",
+    "start": "591",
+    "end": "640",
+    groups: ["二十九将(东)"],
+    icon:"25"
+  },
+  {
+    "name": "苏定方",
+    "start": "592",
+    "end": "667",
+    groups: ["二十九将(东)"],
+    icon:"26"
+  },
+  {
+    "name": "王孝杰",
+    "start": null,
+    "end": "697",
+    groups: ["二十九将(东)"],
+    icon:"27"
+  },
+  {
+    "name": "王晙",
+    "start": null,
+    "end": "732",
+    groups: ["二十九将(东)"],
+    icon:"28"
+  },
+  {
+    "name": "李光弼",
+    "start": "708",
+    "end": "764",
+    groups: ["二十九将(东)"],
+    icon:"29"
+  },
+  {
+    "name": "吴起",
+    "start": "-440",
+    "end": "-381",
+    groups: ["三十二将(西)"],
+    icon:"1",
+    offset:-1,
+  },
+  {
+    "name": "田单",
+    "start": null,
+    "end": "-263",
+    groups: ["三十二将(西)"],
+    icon:"2"
+  },
+  {
+    "name": "赵奢",
+    "start": null,
+    "end": "-261",
+    groups: ["三十二将(西)"],
+    icon:"3"
+  },
+  {
+    "name": "王翦",
+    "start": null,
+    "end": "-215",
+    groups: ["三十二将(西)"],
+    icon:"4"
+  },
+  {
+    "name": "彭越",
+    "start": null,
+    "end": "-169",
+    groups: ["三十二将(西)"],
+    icon:"5"
+  },
+  {
+    "name": "周亚夫",
+    "start": null,
+    "end": "-143",
+    groups: ["三十二将(西)"],
+    icon:"6"
+  },
+  {
+    "name": "卫青",
+    "start": null,
+    "end": -106,
+    groups: ["三十二将(西)"],
+    icon:"7"
+  },
+  {
+    "name": "赵充国",
+    "start": -137,
+    "end": -52,
+    groups: ["三十二将(西)"],
+    icon:"8"
+  },
+  {
+    "name": "寇恂",
+    "start": null,
+    "end": "36",
+    groups: ["三十二将(西)"],
+    icon:"9",
+    offset:7,
+  },
+  {
+    "name": "贾复",
+    "start": "9",
+    "end": "55",
+    groups: ["三十二将(西)"],
+    icon:"10"
+  },
+  {
+    "name": "耿弇",
+    "start": "3",
+    "end": "58",
+    groups: ["三十二将(西)"],
+    icon:"11"
+  },
+  {
+    "name": "段颎",
+    "start": null,
+    "end": "179",
+    groups: ["三十二将(西)"],
+    icon:"12",
+    offset:3,
+  },
+  {
+    "name": "张辽",
+    "start": "169",
+    "end": "222",
+    groups: ["三十二将(西)"],
+    icon:"13"
+  },
+  {
+    "name": "关羽",
+    "start": null,
+    "end": "220",
+    groups: ["三十二将(西)"],
+    icon:"14"
+  },
+  {
+    "name": "周瑜",
+    "start": "175",
+    "end": "210",
+    groups: ["三十二将(西)"],
+    icon:"15"
+  },
+  {
+    "name": "陆逊",
+    "start": "183",
+    "end": "245",
+    groups: ["三十二将(西)"],
+    icon:"16"
+  },
+  {
+    "name": "羊祜",
+    "start": "221",
+    "end": "278",
+    groups: ["三十二将(西)"],
+    icon:"17"
+  },
+  {
+    "name": "王濬",
+    "start": "206",
+    "end": "286",
+    groups: ["三十二将(西)"],
+    icon:"18"
+  },
+  {
+    "name": "谢玄",
+    "start": "343",
+    "end": "388",
+    groups: ["三十二将(西)"],
+    icon:"19"
+  },
+  {
+    "name": "王猛",
+    "start": "325",
+    "end": "375",
+    groups: ["三十二将(西)"],
+    icon:"20"
+  },
+  {
+    "name": "王镇恶",
+    "start": "373",
+    "end": "418",
+    groups: ["三十二将(西)"],
+    icon:"21"
+  },
+  {
+    "name": "斛律光",
+    "start": "515",
+    "end": "572",
+    groups: ["三十二将(西)"],
+    icon:"22",
+    offset:10,
+  },
+  {
+    "name": "王僧辩",
+    "start": null,
+    "end": "555",
+    groups: ["三十二将(西)"],
+    icon:"23"
+  },
+  {
+    "name": "于谨",
+    "start": "493",
+    "end": "568",
+    groups: ["三十二将(西)"],
+    icon:"24"
+  },
+  {
+    "name": "吴明彻",
+    "start": "512",
+    "end": "578",
+    groups: ["三十二将(西)"],
+    icon:"25"
+  },
+  {
+    "name": "韩擒虎",
+    "start": "538",
+    "end": "592",
+    groups: ["三十二将(西)"],
+    icon:"26"
+  },
+  {
+    "name": "史万岁",
+    "start": 549,
+    "end": 600,
+    groups: ["三十二将(西)"],
+    icon:"27"
+  },
+  {
+    "name": "尉迟敬德",
+    "start": "585",
+    "end": "658",
+    groups: ["三十二将(西)"],
+    icon:"28"
+  },
+  {
+    "name": "裴行俭",
+    "start": "619",
+    "end": "682",
+    groups: ["三十二将(西)"],
+    icon:"29"
+  },
+  {
+    "name": "张仁亶",
+    "start": null,
+    "end": "714",
+    groups: ["三十二将(西)"],
+    icon:"30"
+  },
+  {
+    "name": "郭元振",
+    "start": "656",
+    "end": "713",
+    groups: ["三十二将(西)"],
+    icon:"31"
+  },
+  {
+    "name": "李晟",
+    "start": "727",
+    "end": "793",
+    groups: ["三十二将(西)"],
+    icon:"32"
+  }
+  ]
+}
