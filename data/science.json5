@@ -675,6 +675,8 @@
 	},
 	{
 		"name": "达尔文",
+		"icon":"gb",
+		"iconText":"英国",
 		"start": 1809,
 		"end": 1882
 	},
@@ -751,6 +753,14 @@
     "iconText":"德国",
 		"start": 1857,
 		"end": 1894
+	},
+	{
+		"name": "亨德里克·洛伦兹",
+		"groups": ["电磁学"],
+		"icon":"ne",
+		"iconText":"荷兰",
+		"start": 1853,
+		"end": 1928
 	},
 	{
 		"name": "普朗克",
