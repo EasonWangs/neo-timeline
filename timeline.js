@@ -87,9 +87,11 @@ function drawRuler(w,h) {
     o.vm = o.hm;
     o.vs = o.hs;
   }
+  
+  console.log(w,h)
 
   // 纵向栅格线
-  for (var i = 0; i < h; i += o.hm) {
+  for (var i = 0; i < w/Cfg.zoom; i += o.hm) {
     let line = svgBg.line(i * Cfg.zoom, 0, i * Cfg.zoom, "100%").attr({
         stroke:  (i % o.hs == 0) ? "#f0ebdc" : "#f5f0e0",
         class : (i % o.hs == 0) ? "thickLine" : "thinLine"
@@ -97,7 +99,7 @@ function drawRuler(w,h) {
   }
 
   // 横向栅格线
-  for (var i = 0; i < w; i+= o.vm) {
+  for (var i = 0; i < h/Cfg.zoom; i+= o.vm) {
     let line = svgBg.line(0,  i * Cfg.zoom, "100%",  i * Cfg.zoom).attr({
         stroke:  (i % o.vs == 0) ? "#f0ebdc" : "#f5f0e0",
         class : (i % o.vs == 0) ? "thickLine" : "thinLine"
@@ -106,10 +108,10 @@ function drawRuler(w,h) {
   $id("wapper").appendChild(svgBg.node);
 }
 
-// 区块
+// 时期范围
 function drawPeriod(pers){
-  period = Snap("#period");
-
+	period = Snap("#period");
+	if(Cfg.p.position) period.node.style.position = Cfg.p.position;
   let p = (Cfg.p.padding || 50) * Cfg.zoom;
   for (var i = 0; i < pers.length; i++) {
       var l = pers[i].level || 1,
@@ -142,7 +144,7 @@ function drawPeriod(pers){
       tY += 2;
     }
      
-    //区块
+    //时期
     var rect = period.paper.rect(x, y, w, h).attr({
       fill:  Cfg.p.colors[i % Cfg.p.colors.length], 
       fillOpacity: 0.2,
@@ -157,7 +159,7 @@ function drawPeriod(pers){
     });
  
  
-    //区块文字
+    //时期文字
     var text = period.text(tX , tY,  pers[i].name).attr({
           class: 'text',
           writingMode : wm,
@@ -280,9 +282,6 @@ function drawList(data){
 function drawItem(board,item,i,color,points){
  var itemBox = board.paper.g().attr({
     class:'item'
-  }).click(function(e){
-    show(this);
-    e.stopPropagation(); 
   });
 
   if(item.offset) offset += item.offset;
@@ -317,6 +316,10 @@ function drawItem(board,item,i,color,points){
     class: "name",
     style: "text-shadow: 1px 1px "+ color + ", -1px -1px "+ color
   });
+  name.click(function(e){
+    show(this.parent());
+    e.stopPropagation(); 
+  })
   itemBox.add(name)
 
    //图标
@@ -399,40 +402,48 @@ function drawItem(board,item,i,color,points){
          x4 = (point.t - Cfg.start) * Cfg.zoom;
          x5 = x4
        }
+	   
+	   //keypoints信息
+	   let desc = point.t ;
+	       desc += item.start ? "[" + (point.t - item.start)+ "]" : "";
+	   if(point.w) {
+	     if(typeof(point.w) == 'string'){
+	       desc += point.w
+	     }else{
+	       point.w[0] = desc + point.w[0];
+	       desc = point.w;
+	     }
+	   }
+	   
+	   //绘制点
+	   let title = Snap.parse('<title>'+desc+'</title>');
+	   let dot = board.paper.circle(x4, y4, 2).attr({
+	     stroke:"#f00",
+	     fill:"#fff",
+	     strokeWidth: 1,
+	   });
+	   dot.append(title);
+	   dotBox.append(dot);
+	   dotBox.click(function(e){
+	     show(this.parent());
+		 console.log(222)
+	     e.stopPropagation(); 
+	   })
+	   
+	   //绘制线
+	    if(Cfg.layout == "v"){
+	      x5 -= 18 //x - (points.length - 1 - i) * 18 - 10;
+	    }else if(Cfg.layout == "h"){
+	      y5 += 18//y + (points.length - i) * 18;
+	    }
+	   
+	   let line = board.paper.line(x4, y4, x5, y5).attr({
+	     stroke:"#000",
+	     strokeWidth: 2,
+	   });
+	   contBox.add(line);
 
-      //点
-      let dot = board.paper.circle(x4, y4, 2).attr({
-        stroke:"#f00",
-        fill:"#fff",
-        strokeWidth: 1,
-      });
-      dotBox.append(dot);
-
-      //线
-       if(Cfg.layout == "v"){
-         x5 -= 18 //x - (points.length - 1 - i) * 18 - 10;
-       }else if(Cfg.layout == "h"){
-         y5 += 18//y + (points.length - i) * 18;
-       }
-
-      let line = board.paper.line(x4, y4, x5, y5).attr({
-        stroke:"#000",
-        strokeWidth: 2,
-      });
-
-       //点内容
-      let desc = point.t ;
-          desc += item.start ? "[" + (point.t - item.start)+ "]" : "";
-
-      if(point.w) {
-        if(typeof(point.w) == 'string'){
-          desc += point.w
-        }else{
-          point.w[0] = desc + point.w[0];
-          desc = point.w;
-        }
-      }
-
+      //显示信息
       let text = board.paper.text(x5, y5, desc).attr({
         class:"dotText",
       });
@@ -446,12 +457,13 @@ function drawItem(board,item,i,color,points){
              })
             if(Cfg.layout == "v"){
                x5 -= 16
+			   y5 -= 136
              }else if(Cfg.layout == "h"){
                y5 += 16
              }
           }
       }
-      contBox.add(line,text);
+      contBox.add(text);
     }
     itemBox.add(dotBox);
     itemBox.add(contBox)
@@ -528,6 +540,36 @@ function zoom(z){
   });
 }
 
+function save(){
+	var svgStr = period.outerSVG();
+	console.log(svgStr)
+	var image1 = new Image();
+	image1.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgStr)));
+	var image2 = new Image();
+	image2.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(board.outerSVG())));
+	var image3 = new Image();
+	image3.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(eventsBox.outerSVG())));
+	var image4 = new Image();
+	image4.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(rh.outerSVG())));
+	var image5 = new Image();
+	image5.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgBg.outerSVG())));
+	var canvas = document.createElement("canvas");
+	canvas.width = board.node.clientWidth;
+	canvas.height = board.node.clientHeight;
+	setTimeout(function(){
+		var ctx = canvas.getContext("2d");
+		ctx.drawImage(image5, 0, 0);
+		ctx.drawImage(image4, 0, 0);
+		 //    ctx.drawImage(image1, 0, 0);
+			// ctx.drawImage(image2, 0, 0);
+			// ctx.drawImage(image3, 0, 0);
+		    var a = document.createElement('a');
+		    a.href = canvas.toDataURL('image/png'); // 转换Canvas为PNG图片数据
+		    a.download = 'your-image-name.png'; // 定义下载文件名
+		    a.click(); // 触发下载
+	},1000)
+}
+
 function resize(){
   size = board.getBBox();
   var w = Math.max(size.w + size.x + 100, document.documentElement.offsetWidth - 16),
@@ -557,12 +599,17 @@ function resize(){
 }
 
 
-function show(that){
+function show(that,i){
   if(board.select(".show")) {
       board.select(".show").attr({
         class:"item"
       })
     };
+	let pointNode = that.selectAll(".dotText").items;
+	console.log(pointNode[2])
+	// that.select(".dotText")[i].attr({
+	//   class:"currPoint"
+	// });
     that.attr({
       class:"item show"
     });
@@ -572,7 +619,7 @@ function show(that){
 }
 
 function hide(){
-  board.attr({
+	board.attr({
       class:"content"
     })
     if(board.select(".show")) {

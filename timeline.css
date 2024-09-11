@@ -3,7 +3,7 @@ html,body{padding: 0;margin: 0;width: 100%;height: 100%}
   zoom: 1;
   position: relative;
   font-size: 13px;
-
+height:100%;
 }
 
 .content, .svgBg, .period, .events, .ruler{
@@ -43,9 +43,10 @@ html,body{padding: 0;margin: 0;width: 100%;height: 100%}
   position: fixed;
   top: 0;
   z-index: 2;
+  overflow:visible;
 }
 .period .text{
-  fill: #444;
+  fill: #36c;
   text-shadow: 1px 1px #fff, -1px -1px #fff, -1px 1px #fff, 1px -1px #fff;
   font-family: "cursive";
   font-weight: bold;
@@ -111,6 +112,8 @@ html,body{padding: 0;margin: 0;width: 100%;height: 100%}
 .content.focus .show{
   opacity: 1;
 }
+
+.currPoint{}
 
 .vertical .name,.vertical .descBox, .vertical .dotText{
   writing-mode: tb-rl
