@@ -216,17 +216,17 @@
       "start": 535,
       "end": 557
     },{
-      "name":"东魏",
-      "desc": "",
-      "groups":['北朝'],
-      "start": 534,
-      "end": 550
-    },{
       "name":"北周",
       "desc": "",
       "groups":['北朝'],
       "start": 557,
       "end": 581
+    },{
+      "name":"东魏",
+      "desc": "",
+      "groups":['北朝'],
+      "start": 534,
+      "end": 550
     },{
       "name":"北齐",
       "desc": "",

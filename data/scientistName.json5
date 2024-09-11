@@ -145,12 +145,37 @@
 		}]
 	},
 	{
+		"name": "路德维希·洛伦茨 Ludvig Valentin Lorenz",
+		"icon":"dk",
+		"iconText":"丹麦",
+		"start": 1829,
+		"end": 1891,
+		"desc": "Lorentz-Lorenz方程"
+	},
+	{
 		"name": "亨德里克·洛伦兹 Hendrik Antoon Lorentz",
 		"icon":"ne",
 		"iconText":"荷兰",
 		"start": 1853,
-		"end": 1928
+		"end": 1928,
+		"desc": "洛伦兹力"
 	},
+	{
+		"name": "彼得·塞曼 Pieter Zeeman",
+		"icon":"ne",
+		"iconText":"荷兰",
+		"start": 1865,
+		"end": 1943,
+		"desc":"亨德里克·洛伦兹的学生",
+		keypoints:[{
+			"t": 1896,
+			"w": ["发现了原子光谱在磁场中的分裂现象(塞曼效应)"]
+		},{
+			"t": 1902,
+			"w": ["与亨德里克·洛伦兹获得诺贝尔物理学"]
+		}]
+	},
+	
 	{
 		"name": "马克斯·普朗克 Max Karl Ernst Ludwig Planck",
 		"desc": "量子力学的创始人",
@@ -199,6 +224,18 @@
 				"w": "因“在量子力学领域的基础研究，特别是对波函数的统计诠释”而获得诺贝尔物理学奖"
 			}
 		]
+	},
+	{
+		"name": "劳伦斯",
+		"icon":"us",
+		"iconText":"美国",
+		"desc": ["“原子弹之父”","吴健雄的导师"],
+		"start": 1901,
+		"end": 1958,
+		"keypoints": [{
+			"t": 1939,
+			"w": "因发明了回旋加速器，获得诺贝尔物理学奖"
+		}],
 	},
 	{
 		"name": "恩里科·费米 Enrico Fermi",
