@@ -88,8 +88,6 @@ function drawRuler(w,h) {
     o.vs = o.hs;
   }
   
-  console.log(w,h)
-
   // 纵向栅格线
   for (var i = 0; i < w/Cfg.zoom; i += o.hm) {
     let line = svgBg.line(i * Cfg.zoom, 0, i * Cfg.zoom, "100%").attr({
@@ -560,9 +558,9 @@ function save(){
 		var ctx = canvas.getContext("2d");
 		ctx.drawImage(image5, 0, 0);
 		ctx.drawImage(image4, 0, 0);
-		 //    ctx.drawImage(image1, 0, 0);
-			// ctx.drawImage(image2, 0, 0);
-			// ctx.drawImage(image3, 0, 0);
+		    ctx.drawImage(image1, 0, 0);
+			ctx.drawImage(image2, 0, 0);
+			ctx.drawImage(image3, 0, 0);
 		    var a = document.createElement('a');
 		    a.href = canvas.toDataURL('image/png'); // 转换Canvas为PNG图片数据
 		    a.download = 'your-image-name.png'; // 定义下载文件名
