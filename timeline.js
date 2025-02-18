@@ -154,7 +154,7 @@ function drawPeriod(pers){
         this.animate({
            fillOpacity: 0.2    
         },300); 
-    });
+    }); 
  
  
     //时期文字
@@ -282,10 +282,26 @@ function drawItem(board,item,i,color,points){
     class:'item'
   });
 
+  // 检查是否为近似值（包括纯~和~1992这样的形式）
+  function isApproxDate(date) {
+    return typeof date === 'string' && date.startsWith('~');
+  }
+  
+  // 处理近似值，提取~后面的数字
+  function parseApproxDate(date) {
+    if (isApproxDate(date)) {
+      let num = parseInt(date.substring(1));
+      return isNaN(num) ? null : num;
+    }
+    return date;
+  }
+  
   if(item.offset) offset += item.offset;
   var y = (i - offset) * 20 + 45,
-      x = ((item.start ? item.start : item.end - 60) - Cfg.start) * Cfg.zoom,
-      w = ((item.end ? item.end : item.start + 90) - Cfg.start) * Cfg.zoom - x,
+      startDate = parseApproxDate(item.start),
+      endDate = parseApproxDate(item.end),
+      x = ((startDate && startDate != "~" ? startDate : endDate - 60) - Cfg.start) * Cfg.zoom,
+      w = ((endDate && endDate != "~" ? endDate : startDate + 90) - Cfg.start) * Cfg.zoom - x,
       h = 2;
 
    if(Cfg.layout == "v"){
@@ -293,10 +309,11 @@ function drawItem(board,item,i,color,points){
    }
 
    let fill = "#000";
-   if(!item.start){
+   // 使用isApproxDate检查是否为近似值（包括~1992）
+   if(isApproxDate(item.start) || !item.start){
       fill = (Cfg.layout == "v") ?  "url(#gradT)" : "url(#gradL)"
    }
-   if(!item.end){
+   if(isApproxDate(item.end) || !item.end){
       fill = (Cfg.layout == "v") ?  "url(#gradB)" : "url(#gradR)"
    }
   var rect = board.paper.rect(x, y, w, h, 2).attr({
@@ -338,7 +355,7 @@ function drawItem(board,item,i,color,points){
   }
 
    //绘制name的desc
-  let desc = "("+ item.start + "~"+ item.end +")";
+  let desc = "("+ item.start + "-"+ item.end +")";
   if(item.iconText){
     desc += "["+item.iconText+"]"
   }
