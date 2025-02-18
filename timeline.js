@@ -484,14 +484,14 @@ function drawItemGroup(color){
   for(var i in area) {
     let itemBox = area[i].getBBox(),
         x = itemBox.x - 2,
-        y = itemBox.y - 2,
+        y = itemBox.y + 1,
         w = itemBox.width + 4,
-        h = itemBox.height + 4;
+        h = itemBox.height - 1;
     let rect = board.paper.rect(x,y,w,h,5).attr({
         class: "block",
         stroke: "#fff",
         fill: color[i],
-        strokeWidth: 1,
+        strokeWidth: 0.8,
         fillOpacity: 0.2
     }).hover(function() {
         this.animate({
