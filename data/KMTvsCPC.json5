@@ -1,0 +1,221 @@
+{
+  "config": {
+      start : 1880, //横向起点
+      zoom : 11, //缩放
+      layout:"h",//横标尺"v",纵标尺"h",横纵标尺"vh" 
+      o : {
+        hs:10, //纵向大刻度
+      },
+      iconPath : "//cssass.com/public/flags/",
+      p:{
+        textAnchor : "start", //start,middle,end
+        colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],
+        textAnchor : "middle",
+        type: "part", //full, part
+        padding: 500,
+		position:"absolute",
+      },
+      e:{ //事件
+        textAnchor : "start",
+      },
+      g : {
+        colors : {
+          
+        },
+        show : false,
+      },
+    },
+	"periods":[
+      {
+        "name":"全面抗战",
+        "desc": "",
+        "start": 1937,
+        "end": 1945
+      },
+      {
+        "name":"解放战争",
+        "desc": "",
+        "start": 1945,
+        "end": 1950
+      },
+      {
+        "name":"朝鲜战争",
+        "desc": "",
+        "start": 1950,
+        "end": 1953
+      },
+      {
+        "name":"对越自卫反击战",
+        "desc": "",
+        "start": 1979,
+        "end": 1989
+      }
+  ],
+
+  "events": [{
+  	"name": "北伐战争开始",
+  	"time": 1928
+  },{
+  	"name": "918事变",
+  	"time": 1931
+  },{
+  	"name": "长征开始",
+  	"time": 1934
+  },{
+  	"name": "七七事变",
+  	"time": 1937
+  },{
+  	"name": "中印边界自卫反击战",
+  	"time": 1962
+  }
+  ],
+
+	"roles": [
+	  {
+		"name":"毛泽东",
+		"desc": "",
+		"start": 1893,
+		"end": 1976
+	  },{
+		"name":"蒋介石",
+		"desc": "",
+		"start": 1887,
+		"end": 1975
+	  },{
+		"name":"林彪",
+		"desc": "",
+		"start": 1907,
+		"end": 1971
+	  },{
+		"name":"罗荣桓",
+		"desc": "",
+		"start": 1902,
+		"end": 1963
+	  },{
+		"name":"刘伯承",
+		"desc": "",
+		"start": 1892,
+		"end": 1986
+	  },{
+		"name":"刘亚楼",
+		"desc": "",
+		"start": 1910,
+		"end": 1965
+	  },{
+		"name":"陈毅",
+		"desc": "",
+		"start": 1901,
+		"end": 1972
+	  },{
+		"name":"粟裕",
+		"desc": "",
+		"start": 1907,
+		"end": 1984
+	  },{
+		"name":"邓小平",
+		"desc": "",
+		"start": 1904,
+		"end": 1997
+	  },{
+		"name":"聂荣臻",
+		"desc": "",
+		"start": 1899,
+		"end": 1992
+	  },{
+		"name":"卫立煌",
+		"desc": "",
+		"start": 1897,
+		"end": 1960
+	  },{
+		"name":"张治中",
+		"desc": "",
+		"start": 1890,
+		"end": 1969
+	  },{
+		"name":"熊式辉",
+		"desc": "",
+		"start": 1893,
+		"end": 1974
+	  },{
+		"name":"杜聿明",
+		"desc": "",
+		"start": 1904,
+		"end": 1981
+	  },{
+		"name":"郑洞国",
+		"desc": "",
+		"start": 1903,
+		"end": 1991
+	  },{
+		"name":"廖耀湘",
+		"desc": "",
+		"start": 1906,
+		"end": 1968
+	  },{
+		"name":"刘峙",
+		"desc": "",
+		"start": 1892,
+		"end": 1971
+	  },{
+		"name":"白崇禧",
+		"desc": "",
+		"start": 1893,
+		"end": 1966
+	  },{
+		"name":"黄百韬",
+		"desc": "",
+		"start": 1900,
+		"end": 1948
+	  },{
+		"name":"黄维",
+		"desc": "",
+		"start": 1904,
+		"end": 1989
+	  },{
+		"name":"邱清泉",
+		"desc": "",
+		"start": 1902,
+		"end": 1949
+	  },{
+		"name":"李弥",
+		"desc": "",
+		"start": 1902,
+		"end": 1973
+	  },{
+		"name":"孙元良",
+		"desc": "",
+		"start": 1904,
+		"end": 2007
+	  },{
+		"name":"傅作义",
+		"desc": "",
+		"start": 1895,
+		"end": 1974
+	  },{
+		"name":"陈长捷",
+		"desc": "",
+		"start": 1892,
+		"end": 1968
+	  },{
+		"name":"孙元良",
+		"desc": "",
+		"start": 1904,
+		"end": 2007
+	  },{
+		"name":"孙元良",
+		"desc": "",
+		"start": 1904,
+		"end": 2007
+	  },{
+		"name":"孙元良",
+		"desc": "",
+		"start": 1904,
+		"end": 2007
+	  },{
+		"name":"孙元良",
+		"desc": "",
+		"start": 1904,
+		"end": 2007
+	  },
+  ]
+}
