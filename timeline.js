@@ -308,13 +308,20 @@ function drawItem(board,item,i,color,points){
       [x, y, w, h ] = [y, x, h, w ];
    }
 
-   let fill = "#000";
-   // 使用isApproxDate检查是否为近似值（包括~1992）
-   if(isApproxDate(item.start) || !item.start){
-      fill = (Cfg.layout == "v") ?  "url(#gradT)" : "url(#gradL)"
-   }
-   if(isApproxDate(item.end) || !item.end){
-      fill = (Cfg.layout == "v") ?  "url(#gradB)" : "url(#gradR)"
+   let fill;
+   // 根据start和end的近似值状态设置填充样式
+   if(isApproxDate(item.start) && isApproxDate(item.end)){
+      // 当两端都是近似值时
+      fill = (Cfg.layout == "v") ? "url(#gradTB)" : "url(#gradLR)";
+   } else if(isApproxDate(item.start)){
+      // 只有start是近似值时
+      fill = (Cfg.layout == "v") ? "url(#gradT)" : "url(#gradL)";
+   } else if(isApproxDate(item.end)){
+      // 只有end是近似值时
+      fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
+   } else {
+      // 都不是近似值时
+      fill = "#000";
    }
   var rect = board.paper.rect(x, y, w, h, 2).attr({
     fill: fill,
