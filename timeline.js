@@ -37,6 +37,15 @@ function drawRuler(w,h) {
           stroke: "#8f9292",
           strokeWidth: 1,
         });
+        // 检查相邻大标之间的空间
+        let spaceToNextMark = o.hs * Cfg.zoom;
+        if(spaceToNextMark >= 100) { // 如果空间大于100px，显示小标值
+          let text = (Cfg.start + i) + '';
+          rh.text(x + 2, 12.5, text).attr({
+            fill: "#b1b4b4",
+            fontSize: "0.8em" // 小标文字稍小
+          });
+        }
       }
     }
     $id("wapper").appendChild(rh.node);
@@ -69,6 +78,15 @@ function drawRuler(w,h) {
           stroke: "#8f9292",
           strokeWidth: 1,
         });
+        // 检查相邻大标之间的空间
+        let spaceToNextMark = o.vs * Cfg.zoom;
+        if(spaceToNextMark >= 100) { // 如果空间大于100px，显示小标值
+          let text = (Cfg.start + i) + '';
+          rv.text(0, y - 2, text).attr({
+            fill: "#b1b4b4",
+            fontSize: "0.8em" // 小标文字稍小
+          });
+        }
       }
     }
     $id("wapper").appendChild(rv.node);
