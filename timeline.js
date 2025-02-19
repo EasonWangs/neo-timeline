@@ -15,7 +15,12 @@ function drawRuler(w,h) {
    //绘制标尺[横]
   var o = Cfg.o;
   if(o.hs){
-    o.hm = o.hm || Math.ceil(o.hs/5);
+    // 动态计算合适的小标间隔
+    let spacePerUnit = Cfg.zoom; // 每单位的像素空间
+    let minSpaceBetweenMarks = 30; // 小标之间的最小像素间隔
+    let suggestedDivisions = Math.floor((o.hs * spacePerUnit) / minSpaceBetweenMarks);
+    o.hm = o.hm || Math.max(1, Math.ceil(o.hs / suggestedDivisions));
+    
     rh = Snap(w, 25).attr({
       id:"ruler-h",
       class:"ruler"
@@ -53,7 +58,12 @@ function drawRuler(w,h) {
 
   //绘制标尺[竖]
   if(o.vs){
-    o.vm = o.vm || Math.ceil(o.vs/5)
+    // 同样应用动态计算逻辑到垂直标尺
+    let spacePerUnit = Cfg.zoom;
+    let minSpaceBetweenMarks = 20;
+    let suggestedDivisions = Math.floor((o.vs * spacePerUnit) / minSpaceBetweenMarks);
+    o.vm = o.vm || Math.max(1, Math.ceil(o.vs / suggestedDivisions));
+    
     rv = Snap(25, h).attr({
       id:"ruler-v",
       class:"ruler"
