@@ -52,6 +52,24 @@ function drawRuler(w,h) {
           });
         }
       }
+      if(o.hs == 1){
+        for(var j = 1; j < 12; j ++) { // 每个小标之间绘制12个下标,作为月标
+          let posx = x + j/12 * 140;
+          // 月份标记
+          rh.line(posx, 16, posx, 25).attr({
+            stroke: "#8f9292",
+            strokeWidth: 1,
+          });
+    
+          // 计算月份
+          let monthNum = j + 1; // 计算月份
+          console.log(monthNum);
+          rh.text(posx + 2, 20, monthNum).attr({
+            fill: "#b1b4b4",
+            fontSize: "0.7em" // 月份标记文字稍小
+          });
+        }
+      }
     }
     $id("wapper").appendChild(rh.node);
    }
