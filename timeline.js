@@ -16,10 +16,10 @@ function drawRuler(w,h) {
   var o = Cfg.o;
   if(o.hs){
     // 动态计算合适的小标间隔
-    let spacePerUnit = Cfg.zoom; // 每单位的像素空间
-    let minSpaceBetweenMarks = 30; // 小标之间的最小像素间隔
-    let suggestedDivisions = Math.floor((o.hs * spacePerUnit) / minSpaceBetweenMarks);
-    o.hm = o.hm || Math.max(1, Math.ceil(o.hs / suggestedDivisions));
+    const mainMarkWidth = o.hs * Cfg.zoom; // 主刻度之间的像素宽度
+    const MIN_SPACE = 25; // 最小文字间隔
+    const suggestedDivisions = Math.floor(mainMarkWidth / MIN_SPACE); // 建议划分次数
+    o.hm = Math.max(1, Math.ceil(o.hs / suggestedDivisions));
     
     rh = Snap(w, 25).attr({
       id:"ruler-h",
@@ -53,8 +53,9 @@ function drawRuler(w,h) {
         }
       }
       if(o.hs == 1){
-        for(var j = 1; j < 12; j ++) { // 每个小标之间绘制12个下标,作为月标
-          let posx = x + j/12 * 140;
+        let len = suggestedDivisions;
+        for(var j = 1; j < len; j ++) { // 每个小标之间绘制12个下标,作为月标
+          let posx = x + j/len * Cfg.zoom;
           // 月份标记
           rh.line(posx, 16, posx, 25).attr({
             stroke: "#8f9292",
@@ -62,8 +63,7 @@ function drawRuler(w,h) {
           });
     
           // 计算月份
-          let monthNum = j + 1; // 计算月份
-          console.log(monthNum);
+          let monthNum = j*(12/len) + 1; // 计算月份
           rh.text(posx + 2, 20, monthNum).attr({
             fill: "#b1b4b4",
             fontSize: "0.7em" // 月份标记文字稍小
