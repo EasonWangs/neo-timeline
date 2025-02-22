@@ -694,7 +694,6 @@ function drawItem(board, item, i, color, points) {
 	   dotBox.append(dot);
 	   dotBox.click(function(e){
 	     show(this.parent());
-		 console.log(222)
 	     e.stopPropagation(); 
 	   })
 	   
@@ -843,7 +842,6 @@ function resize(){
     width : w,
     height : h,
   });
-
   if(Cfg.layout == "v"){
       period.attr({
         height : h,
