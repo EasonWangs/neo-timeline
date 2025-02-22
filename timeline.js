@@ -410,7 +410,7 @@ function drawPeriod(pers){
 
 // 事件清单
 function drawEvents(evts){
-  eventsBox = Snap("#events");
+ 
   for (var i = 0; i < evts.length; i++) {
     var x1 = (evts[i].time - Cfg.start) * Cfg.zoom,
         y1 = 0,
@@ -437,20 +437,22 @@ function drawEvents(evts){
     }
   
 
-    var line = eventsBox.paper.line(x1, y1, x2, y2).attr({
+    var line = board.paper.line(x1, y1, x2, y2).attr({
       strokeWidth: 1,
       stroke:"#aaa",
       strokeDasharray:"5,5",
     })
 
-    var text = eventsBox.text(tX , tY,  evts[i].name).attr({
+    var text = board.text(tX , tY,  evts[i].name).attr({
           class: 'text',
           textAnchor : Cfg.e.textAnchor,
         });;
     let desc = evts[i].time + (evts[i].desc? evts[i].desc : "");
     let title = Snap.parse('<title>'+ desc +'</title>');
         text.append(title);
-    var g = eventsBox.paper.g( line,text);
+    var g = board.paper.g( line,text).attr({
+      class: 'events'
+    });
   }
 }
 
@@ -798,9 +800,6 @@ function zoom(z){
   svgBg.attr({
     style: "transform: scale("+ z + ")"
   });
-  eventsBox.attr({
-    style: "transform: scale("+ z + ")"
-  });
   period.attr({
     style: "transform: scale("+ z + ")"
   });
@@ -813,8 +812,6 @@ function save(){
 	image1.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgStr)));
 	var image2 = new Image();
 	image2.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(board.outerSVG())));
-	var image3 = new Image();
-	image3.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(eventsBox.outerSVG())));
 	var image4 = new Image();
 	image4.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(rh.outerSVG())));
 	var image5 = new Image();
@@ -851,14 +848,8 @@ function resize(){
       period.attr({
         height : h,
       });
-      eventsBox.attr({
-        height : h,
-      });
    }else{
      period.attr({
-        width : w,
-      });
-      eventsBox.attr({
         width : w,
       });
    }
