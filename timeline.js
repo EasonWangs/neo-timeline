@@ -19,7 +19,7 @@ function drawRuler(w,h) {
     const mainMarkWidth = o.hs * Cfg.zoom; // 主刻度之间的像素宽度
     const MIN_SPACE = 25; // 最小文字间隔
     const suggestedDivisions = Math.floor(mainMarkWidth / MIN_SPACE); // 建议划分次数
-    o.hm = Math.max(1, Math.floor(o.hs / suggestedDivisions));
+    o.hm = o.hm || Math.max(1, Math.floor(o.hs / suggestedDivisions));
     rh = Snap(w, 25).attr({
       id:"ruler-h",
       class:"ruler"
@@ -54,7 +54,7 @@ function drawRuler(w,h) {
       }
       if(o.hs == 1){
         // 当 hs：1 时。额外绘制月标
-        let len = Math.min(suggestedDivisions, 12);
+        let len =[12, 6, 4, 3, 2, 1].find(m => m <= Math.max(suggestedDivisions, 1))
         for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
           let posx = x + j/len * Cfg.zoom;
           // 月份标记
@@ -78,10 +78,10 @@ function drawRuler(w,h) {
   //绘制标尺[竖]
   if(o.vs){
     // 同样应用动态计算逻辑到垂直标尺
-    let spacePerUnit = Cfg.zoom;
-    let minSpaceBetweenMarks = 20;
-    let suggestedDivisions = Math.floor((o.vs * spacePerUnit) / minSpaceBetweenMarks);
-    o.vm = o.vm || Math.max(1, Math.ceil(o.vs / suggestedDivisions));
+    const mainMarkWidth = o.vs * Cfg.zoom; // 主刻度之间的像素宽度
+    let MIN_SPACE = 20;// 最小文字间v
+    let suggestedDivisions = Math.floor((mainMarkWidth) / MIN_SPACE);
+    o.vm = o.vm || Math.max(1, Math.floor(o.vs / suggestedDivisions));
     
     rv = Snap(25, h).attr({
       id:"ruler-v",
@@ -114,6 +114,24 @@ function drawRuler(w,h) {
           rv.text(0, y - 2, text).attr({
             fill: "#b1b4b4",
             fontSize: "0.8em" // 小标文字稍小
+          });
+        }
+      }
+      if(o.vs == 1){
+        // 当 vs：1 时。额外绘制月标
+        let len =[12, 6, 4, 3, 2, 1].find(m => m <= Math.max(suggestedDivisions, 1))
+        for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
+          let posy = y + j/len * Cfg.zoom;
+          // 月份标记
+          rv.line(16, posy, 25, posy).attr({
+            stroke: "#8f9292",
+            strokeWidth: 1,
+          });
+          // 计算月份
+          let monthNum = j*(12/len) + 1; // 计算月份
+          rv.text(16, posy-2, monthNum).attr({
+            fill: "#b1b4b4",
+            fontSize: "0.7em" // 月份标记文字稍小
           });
         }
       }
