@@ -19,8 +19,7 @@ function drawRuler(w,h) {
     const mainMarkWidth = o.hs * Cfg.zoom; // 主刻度之间的像素宽度
     const MIN_SPACE = 25; // 最小文字间隔
     const suggestedDivisions = Math.floor(mainMarkWidth / MIN_SPACE); // 建议划分次数
-    o.hm = Math.max(1, Math.ceil(o.hs / suggestedDivisions));
-    
+    o.hm = Math.max(1, Math.floor(o.hs / suggestedDivisions));
     rh = Snap(w, 25).attr({
       id:"ruler-h",
       class:"ruler"
@@ -55,8 +54,8 @@ function drawRuler(w,h) {
       }
       if(o.hs == 1){
         // 当 hs：1 时。额外绘制月标
-        let len = suggestedDivisions;
-        for(var j = 1; j < len; j ++) { // 每个小标之间绘制12个下标,作为月标
+        let len = Math.min(suggestedDivisions, 12);
+        for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
           let posx = x + j/len * Cfg.zoom;
           // 月份标记
           rh.line(posx, 16, posx, 25).attr({
