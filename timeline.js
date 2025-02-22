@@ -171,6 +171,125 @@ function drawRuler(w,h) {
   $id("wapper").appendChild(svgBg.node);
 }
 
+// 检查是否为近似值（包括纯~和~1992这样的形式）
+function isApproxDate(date) {
+  return typeof date === 'string' && date.startsWith('~');
+}
+
+// 处理近似值，提取~后面的数字
+function parseApproxDate(date) {
+  if (isApproxDate(date)) {
+    let num = parseInt(date.substring(1));
+    return isNaN(num) ? null : num;
+  }
+  return date;
+}
+
+// 日期解析函数增强
+const parseDate = (dateStr) => {
+  if (!dateStr) return null;
+  
+  try {
+    // 确保输入是字符串类型
+    dateStr = String(dateStr);
+    dateStr = dateStr.trim();
+    
+    // 处理近似值
+    const isApprox = isApproxDate(dateStr);
+    if (isApprox) {
+      dateStr = parseApproxDate(dateStr);
+      if (!dateStr) return null;
+    }
+    
+    // 处理完整日期格式 "1904-02-12" 或年月格式 "1904-02"
+    if (typeof dateStr === 'string' && dateStr.includes('-')) {
+      const parts = dateStr.split('-');
+      
+      // 解析年份（必需）
+      const year = parseInt(parts[0]);
+      if (isNaN(year)) {
+        console.error('Invalid year:', dateStr);
+        return null;
+      }
+      
+      // 解析月份（可选）
+      const month = parts.length > 1 ? parseInt(parts[1]) : 1;
+      if (isNaN(month) || month < 1 || month > 12) {
+        console.error('Invalid month:', dateStr);
+        return null;
+      }
+      
+      // 解析日期（可选）
+      const day = parts.length > 2 ? parseInt(parts[2]) : 1;
+      if (isNaN(day) || day < 1 || day > 31) {
+        console.error('Invalid day:', dateStr);
+        return null;
+      }
+      
+      // 构建格式化的日期字符串
+      let formattedDate = `${year}/${month.toString().padStart(2, '0')}`;
+      if (parts.length > 2) {
+        formattedDate += `/${day.toString().padStart(2, '0')}`;
+      }
+      
+      return {
+        year: year,
+        month: month - 1,  // 转换为0-11
+        day: day,
+        isApprox: isApprox,
+        original: isApprox ? '~' + formattedDate : formattedDate
+      };
+    }
+    
+    // 处理纯年份格式
+    const parsedYear = parseInt(dateStr);
+    if (isNaN(parsedYear)) {
+      console.error('Invalid year:', dateStr);
+      return null;
+    }
+    
+    return {
+      year: parsedYear,
+      month: 0,
+      day: 1,
+      isApprox: isApprox,
+      original: isApprox ? '~' + parsedYear : String(parsedYear)
+    };
+    
+  } catch (e) {
+    console.error('Date parse error:', dateStr, e);
+    return null;
+  }
+};
+
+// 计算日期在时间轴上的位置
+const getDatePosition = (date, zoom) => {
+  if (!date) return 0;
+  
+  try {
+    // 确保所有输入都是有效数字
+    const year = parseInt(date.year) || 0;
+    const month = parseInt(date.month) || 0;
+    const day = parseInt(date.day) || 1;
+    const start = parseInt(Cfg.start) || 0;
+    
+    // 计算年份偏移
+    const yearOffset = year - start;
+    
+    // 计算月份和日期的小数部分
+    const monthFraction = month / 12;
+    const dayFraction = day / (12 * 30); // 简化为每月30天
+    
+    const position = (yearOffset + monthFraction + dayFraction) * zoom;
+    
+    // 确保返回有效数字
+    return isFinite(position) ? position : 0;
+  } catch (e) {
+    console.error('Position calculation error:', date, e);
+    return 0;
+  }
+};
+
 // 时期范围
 function drawPeriod(pers){
 	period = Snap("#period");
@@ -241,7 +360,29 @@ function drawPeriod(pers){
         matrix.rotate(angle, tX, tY); // 旋转文字
         text.transform(matrix);
 
-    let desc = "(" + pers[i].start + "-"+ pers[i].end + ")" + (pers[i].desc? pers[i].desc : "");
+    let desc = "";
+    // 解析日期
+    const startDate = parseDate(pers[i].start);
+    const endDate = parseDate(pers[i].end);
+    
+    // 使用原始日期字符串显示
+    if (startDate && endDate) {
+      desc = `(${startDate.original}-${endDate.original})`;
+    } else if (startDate) {
+      desc = `(${startDate.original}-)`;
+    } else if (endDate) {
+      desc = `(-${endDate.original})`;
+    }
+
+    if(pers[i].desc) {
+      if(typeof(pers[i].desc) == 'string'){
+        desc += pers[i].desc;
+      }else{
+        pers[i].desc[0] = desc + pers[i].desc[0];
+        desc = pers[i].desc;
+      }
+    }
+
     let title = Snap.parse('<title>'+ desc +'</title>');
         text.append(title);
     var g = period.paper.g(rect, text);
@@ -342,56 +483,86 @@ function drawList(data){
 }
 
 //绘制个体
-function drawItem(board,item,i,color,points){
- var itemBox = board.paper.g().attr({
-    class:'item'
-  });
+function drawItem(board, item, i, color, points) {
+  if (!item || !board) {
+    console.error('Invalid parameters:', {board, item, i, color});
+    return;
+  }
 
-  // 检查是否为近似值（包括纯~和~1992这样的形式）
-  function isApproxDate(date) {
-    return typeof date === 'string' && date.startsWith('~');
-  }
-  
-  // 处理近似值，提取~后面的数字
-  function parseApproxDate(date) {
-    if (isApproxDate(date)) {
-      let num = parseInt(date.substring(1));
-      return isNaN(num) ? null : num;
-    }
-    return date;
-  }
+  var itemBox = board.paper.g().attr({
+    class: 'item'
+  });
   
   if(item.offset) offset += item.offset;
-  var y = (i - offset) * 20 + 45,
-      startDate = parseApproxDate(item.start),
-      endDate = parseApproxDate(item.end),
-      x = ((startDate && startDate != "~" ? startDate : endDate - 60) - Cfg.start) * Cfg.zoom,
-      w = ((endDate && endDate != "~" ? endDate : startDate + 90) - Cfg.start) * Cfg.zoom - x,
-      h = 2;
+  var y = (i - offset) * 20 + 45;
 
-   if(Cfg.layout == "v"){
-      [x, y, w, h ] = [y, x, h, w ];
-   }
+  // 解析日期并获取位置
+  const startDate = parseDate(item.start);
+  const endDate = parseDate(item.end);
+  
+  // 计算x坐标和宽度
+  let x, w, h = 2;
+  
+  if (startDate) {
+    x = getDatePosition(startDate, Cfg.zoom);
+  } else if (endDate) {
+    x = getDatePosition(endDate, Cfg.zoom) - (60 * Cfg.zoom);
+  } else {
+    x = 0;
+  }
 
-   let fill;
-   // 根据start和end的近似值状态设置填充样式
-   if(isApproxDate(item.start) && isApproxDate(item.end)){
-      // 当两端都是近似值时
-      fill = (Cfg.layout == "v") ? "url(#gradTB)" : "url(#gradLR)";
-   } else if(isApproxDate(item.start)){
-      // 只有start是近似值时
-      fill = (Cfg.layout == "v") ? "url(#gradT)" : "url(#gradL)";
-   } else if(isApproxDate(item.end)){
-      // 只有end是近似值时
-      fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
-   } else {
-      // 都不是近似值时
-      fill = "#000";
-   }
-  var rect = board.paper.rect(x, y, w, h, 2).attr({
-    fill: fill,
+  if (endDate) {
+    w = getDatePosition(endDate, Cfg.zoom) - x;
+  } else if (startDate) {
+    w = 90 * Cfg.zoom;
+  } else {
+    w = Cfg.zoom;
+  }
+
+  // 确保x和w是有效数值
+  x = isFinite(x) ? x : 0;
+  w = isFinite(w) ? Math.max(w, 1) : Cfg.zoom;
+
+  // 布局转换
+  if (Cfg.layout == "v") {
+    const temp = h;
+    h = w;
+    w = temp;
+    const tempX = x;
+    x = y;
+    y = tempX;
+  }
+
+  // 最终验证
+  if (!isFinite(x) || !isFinite(y) || !isFinite(w) || !isFinite(h)) {
+    console.error('Invalid dimensions:', {x, y, w, h}, 'for item:', item);
+    return;
+  }
+
+  // 创建矩形，处理近似日期的渐变
+  var rect;
+  let fill;
+  
+  // 根据start和end的近似值状态设置填充样式
+  if (startDate && startDate.isApprox && endDate && endDate.isApprox) {
+    // 当两端都是近似值时
+    fill = (Cfg.layout == "v") ? "url(#gradTB)" : "url(#gradLR)";
+  } else if (startDate && startDate.isApprox) {
+    // 只有start是近似值时
+    fill = (Cfg.layout == "v") ? "url(#gradT)" : "url(#gradL)";
+  } else if (endDate && endDate.isApprox) {
+    // 只有end是近似值时
+    fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
+  } else {
+    // 都不是近似值时
+    fill = "#000";
+  }
+
+  // 创建矩形并应用填充样式
+  rect = board.paper.rect(x, y, w, h, 2).attr({
+    fill: fill
   });
-  itemBox.add(rect)
+  itemBox.add(rect);
 
   //绘制name
   let x1 = x, y1 = y - 3;
@@ -427,13 +598,21 @@ function drawItem(board,item,i,color,points){
   }
 
    //绘制name的desc
-  let desc = "("+ item.start + "-"+ item.end +")";
+  let desc = "";
+  if (startDate && endDate) {
+    desc = `(${startDate.original}-${endDate.original})`;
+  } else if (startDate) {
+    desc = `(${startDate.original}-)`;
+  } else if (endDate) {
+    desc = `(-${endDate.original})`;
+  }
+
   if(item.iconText){
-    desc += "["+item.iconText+"]"
+    desc += "["+item.iconText+"]";
   }
   if(item.desc) {
     if(typeof(item.desc) == 'string'){
-      desc += item.desc
+      desc += item.desc;
     }else{
       item.desc[0] = desc + item.desc[0];
       desc = item.desc;
@@ -714,4 +893,33 @@ function hide(){
         class:"item"
       })
     };
+}
+
+// 格式化日期显示
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  // 将所有的'-'替换为'/'
+  return dateStr.replace(/-/g, '/');
+};
+
+// 更新日期描述显示
+let desc = "";
+if (startDate && endDate) {
+  desc = `(${formatDate(startDate.original)}-${formatDate(endDate.original)})`;
+} else if (startDate) {
+  desc = `(${formatDate(startDate.original)}-)`;
+} else if (endDate) {
+  desc = `(-${formatDate(endDate.original)})`;
+}
+
+if(item.iconText){
+  desc += "["+item.iconText+"]";
+}
+if(item.desc) {
+  if(typeof(item.desc) == 'string'){
+    desc += item.desc;
+  }else{
+    item.desc[0] = desc + item.desc[0];
+    desc = item.desc;
+  }
 }
