@@ -28,7 +28,7 @@ function drawRuler(w,h) {
     for(var i = 0; i < w / Cfg.zoom; i += o.hm){
       let x =  i * Cfg.zoom;
       if(i % o.hs == 0){
-        //大标
+        //此时是大标
         rh.line(x, 0, x, 25).attr({
           stroke: "#8f9292",
           strokeWidth: 1,
@@ -37,7 +37,8 @@ function drawRuler(w,h) {
         rh.text(x + 2, 12.5, text).attr({
           fill: "#b1b4b4"
         });
-      }else{ //小标
+      }else{ 
+        //其他情况是小标
         rh.line(x,15, x, 25).attr({
           stroke: "#8f9292",
           strokeWidth: 1,
@@ -53,6 +54,7 @@ function drawRuler(w,h) {
         }
       }
       if(o.hs == 1){
+        // 当 hs：1 时。额外绘制月标
         let len = suggestedDivisions;
         for(var j = 1; j < len; j ++) { // 每个小标之间绘制12个下标,作为月标
           let posx = x + j/len * Cfg.zoom;
