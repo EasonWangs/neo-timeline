@@ -171,16 +171,15 @@ function drawRuler(w,h) {
   $id("wapper").appendChild(svgBg.node);
 }
 
-// 检查是否为近似值（包括纯~和~1992这样的形式）
+// 检查是否为近似值
 function isApproxDate(date) {
   return typeof date === 'string' && date.startsWith('~');
 }
 
-// 处理近似值，提取~后面的数字
+// 处理近似值，提取~后面的内容
 function parseApproxDate(date) {
   if (isApproxDate(date)) {
-    let num = parseInt(date.substring(1));
-    return isNaN(num) ? null : num;
+    return date.substring(1).trim();
   }
   return date;
 }
@@ -201,9 +200,10 @@ const parseDate = (dateStr) => {
       if (!dateStr) return null;
     }
     
-    // 处理完整日期格式 "1904-02-12" 或年月格式 "1904-02"
-    if (typeof dateStr === 'string' && dateStr.includes('-')) {
-      const parts = dateStr.split('-');
+   
+    // 检查是否包含日期分隔符
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
       
       // 解析年份（必需）
       const year = parseInt(parts[0]);
@@ -1176,10 +1176,3 @@ function hide(){
       })
     };
 }
-
-// 格式化日期显示
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  // 将所有的'-'替换为'/'
-  return dateStr.replace(/-/g, '/');
-};
