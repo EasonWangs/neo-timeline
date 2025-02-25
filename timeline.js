@@ -720,7 +720,8 @@ function drawEvents(evts, roles){
         // 创建文本
         var connText = board.paper.text(0, 0, "").attr({
           class: 'text',
-          fill: "#f55"
+          fill: "#f55",
+          opacity: 0
         });
         
         // 创建textPath元素
