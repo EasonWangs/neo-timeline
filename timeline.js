@@ -509,53 +509,159 @@ function drawEvents(evts, roles){
         }
       }
       
-      // 如果找到了两个点，绘制折线连接
+      // 如果找到了两个点，绘制曲线连接
       if (fromPoint && toPoint) {
-        // 创建折线路径
+        // 创建曲线路径
         let pathStr;
         let textPathStr;
         let textPathId = `text-path-${i}`;
         
         if (Cfg.layout == "v") {
-          // 垂直布局的折线 - 先横向，再纵向，再横向
-          const midX = (fromPoint.x + toPoint.x) / 2; // 中间点的x坐标
+          // 垂直布局的曲线
+          // 计算控制点
+          const dx = Math.abs(toPoint.x - fromPoint.x);
+          const dy = Math.abs(toPoint.y - fromPoint.y);
+          const midX = (fromPoint.x + toPoint.x) / 2;
           
-          // 创建路径：从起点横向延展到中点，然后纵向到目标点的y坐标，最后横向连接到目标点
-          pathStr = `M${fromPoint.x},${fromPoint.y} L${midX},${fromPoint.y} L${midX},${toPoint.y} L${toPoint.x},${toPoint.y}`;
-          
-          // 计算垂直文本路径的长度
-          const verticalLength = Math.abs(toPoint.y - fromPoint.y);
-          // 确保文本路径足够长，至少100px或更长
-          const minPathLength = 100;
-          const textY1 = Math.min(fromPoint.y, toPoint.y);
-          const textY2 = Math.max(fromPoint.y, toPoint.y);
-          
-          // 如果路径太短，则延长路径
-          if (verticalLength < minPathLength) {
-            const extraLength = (minPathLength - verticalLength) / 2;
-            textPathStr = `M${midX},${textY1 - extraLength} L${midX},${textY2 + extraLength}`;
+          // 处理 x 值相同的情况
+          if (Math.abs(fromPoint.x - toPoint.x) < 1) {
+            // 如果 x 值几乎相同，强制添加水平偏移
+            const offset = 30; // 水平偏移量
+            
+            // 创建 S 形曲线
+            pathStr = `M${fromPoint.x},${fromPoint.y} ` +
+                      `C${fromPoint.x + offset},${fromPoint.y + dy/4} ` +
+                      `${toPoint.x + offset},${toPoint.y - dy/4} ` +
+                      `${toPoint.x},${toPoint.y}`;
+            
+            // 为文本创建平滑的曲线路径
+            const steps = 10; // 路径分段数
+            textPathStr = "M";
+            
+            for (let step = 0; step <= steps; step++) {
+              const t = step / steps;
+              // 三次贝塞尔曲线的参数方程
+              const x = Math.pow(1-t, 3) * fromPoint.x + 
+                        3 * Math.pow(1-t, 2) * t * (fromPoint.x + offset) + 
+                        3 * (1-t) * Math.pow(t, 2) * (toPoint.x + offset) + 
+                        Math.pow(t, 3) * toPoint.x;
+              const y = Math.pow(1-t, 3) * fromPoint.y + 
+                        3 * Math.pow(1-t, 2) * t * (fromPoint.y + dy/4) + 
+                        3 * (1-t) * Math.pow(t, 2) * (toPoint.y - dy/4) + 
+                        Math.pow(t, 3) * toPoint.y;
+              
+              textPathStr += (step === 0 ? "" : " L") + `${x},${y}`;
+            }
           } else {
-            textPathStr = `M${midX},${textY1} L${midX},${textY2}`;
+            // 正常情况下的控制点偏移量
+            const ctrlOffset = Math.min(dx * 0.8, 50); // 最大偏移50px
+            
+            // 创建三次贝塞尔曲线
+            pathStr = `M${fromPoint.x},${fromPoint.y} ` +
+                      `C${fromPoint.x + ctrlOffset},${fromPoint.y} ` +
+                      `${toPoint.x - ctrlOffset},${toPoint.y} ` +
+                      `${toPoint.x},${toPoint.y}`;
+            
+            // 为文本创建平滑的曲线路径
+            const steps = 10; // 路径分段数
+            textPathStr = "M";
+            
+            for (let step = 0; step <= steps; step++) {
+              const t = step / steps;
+              // 三次贝塞尔曲线的参数方程
+              const x = Math.pow(1-t, 3) * fromPoint.x + 
+                        3 * Math.pow(1-t, 2) * t * (fromPoint.x + ctrlOffset) + 
+                        3 * (1-t) * Math.pow(t, 2) * (toPoint.x - ctrlOffset) + 
+                        Math.pow(t, 3) * toPoint.x;
+              const y = Math.pow(1-t, 3) * fromPoint.y + 
+                        3 * Math.pow(1-t, 2) * t * fromPoint.y + 
+                        3 * (1-t) * Math.pow(t, 2) * toPoint.y + 
+                        Math.pow(t, 3) * toPoint.y;
+              
+              textPathStr += (step === 0 ? "" : " L") + `${x},${y}`;
+            }
           }
         } else {
-          // 水平布局的折线
-          const midY = Math.min(fromPoint.y, toPoint.y) - 10;
-          pathStr = `M${fromPoint.x},${fromPoint.y} L${fromPoint.x},${midY} L${toPoint.x},${midY} L${toPoint.x},${toPoint.y}`;
+          // 水平布局的曲线
+          // 计算控制点
+          const dx = Math.abs(toPoint.x - fromPoint.x);
+          const dy = Math.abs(toPoint.y - fromPoint.y);
           
-          // 计算水平文本路径的长度
-          const horizontalLength = Math.abs(toPoint.x - fromPoint.x);
-          // 确保文本路径足够长，至少100px或更长
-          const minPathLength = 100;
-          const textX1 = Math.min(fromPoint.x, toPoint.x);
-          const textX2 = Math.max(fromPoint.x, toPoint.x);
-          
-          // 如果路径太短，则延长路径
-          if (horizontalLength < minPathLength) {
-            const extraLength = (minPathLength - horizontalLength) / 2;
-            textPathStr = `M${textX1 - extraLength},${midY} L${textX2 + extraLength},${midY}`;
+          // 处理 y 值相同的情况
+          if (Math.abs(fromPoint.y - toPoint.y) < 1) {
+            // 如果 y 值几乎相同，强制添加垂直偏移
+            const offset = 30; // 垂直偏移量
+            
+            // 创建 S 形曲线
+            pathStr = `M${fromPoint.x},${fromPoint.y} ` +
+                      `C${fromPoint.x + dx/4},${fromPoint.y - offset} ` +
+                      `${toPoint.x - dx/4},${toPoint.y - offset} ` +
+                      `${toPoint.x},${toPoint.y}`;
+            
+            // 为文本创建平滑的曲线路径
+            const steps = 10; // 路径分段数
+            textPathStr = "M";
+            
+            for (let step = 0; step <= steps; step++) {
+              const t = step / steps;
+              // 三次贝塞尔曲线的参数方程
+              const x = Math.pow(1-t, 3) * fromPoint.x + 
+                        3 * Math.pow(1-t, 2) * t * (fromPoint.x + dx/4) + 
+                        3 * (1-t) * Math.pow(t, 2) * (toPoint.x - dx/4) + 
+                        Math.pow(t, 3) * toPoint.x;
+              const y = Math.pow(1-t, 3) * fromPoint.y + 
+                        3 * Math.pow(1-t, 2) * t * (fromPoint.y - offset) + 
+                        3 * (1-t) * Math.pow(t, 2) * (toPoint.y - offset) + 
+                        Math.pow(t, 3) * toPoint.y;
+              
+              textPathStr += (step === 0 ? "" : " L") + `${x},${y}`;
+            }
           } else {
-            textPathStr = `M${textX1},${midY} L${textX2},${midY}`;
+            // 正常情况下的控制点偏移量
+            const ctrlOffset = Math.min(dy * 0.8, 50); // 最大偏移50px
+            
+            // 创建三次贝塞尔曲线
+            pathStr = `M${fromPoint.x},${fromPoint.y} ` +
+                      `C${fromPoint.x},${fromPoint.y - ctrlOffset} ` +
+                      `${toPoint.x},${toPoint.y - ctrlOffset} ` +
+                      `${toPoint.x},${toPoint.y}`;
+            
+            // 为文本创建平滑的曲线路径
+            const steps = 10; // 路径分段数
+            textPathStr = "M";
+            
+            for (let step = 0; step <= steps; step++) {
+              const t = step / steps;
+              // 三次贝塞尔曲线的参数方程
+              const x = Math.pow(1-t, 3) * fromPoint.x + 
+                        3 * Math.pow(1-t, 2) * t * fromPoint.x + 
+                        3 * (1-t) * Math.pow(t, 2) * toPoint.x + 
+                        Math.pow(t, 3) * toPoint.x;
+              const y = Math.pow(1-t, 3) * fromPoint.y + 
+                        3 * Math.pow(1-t, 2) * t * (fromPoint.y - ctrlOffset) + 
+                        3 * (1-t) * Math.pow(t, 2) * (toPoint.y - ctrlOffset) + 
+                        Math.pow(t, 3) * toPoint.y;
+              
+              textPathStr += (step === 0 ? "" : " L") + `${x},${y}`;
+            }
           }
+        }
+        
+        // 确保文本路径足够长
+        const pathLength = Math.sqrt(Math.pow(toPoint.x - fromPoint.x, 2) + Math.pow(toPoint.y - fromPoint.y, 2));
+        const minPathLength = 100;
+        
+        if (pathLength < minPathLength) {
+          // 如果路径太短，使用直线延长路径
+          const angle = Math.atan2(toPoint.y - fromPoint.y, toPoint.x - fromPoint.x);
+          const extraLength = (minPathLength - pathLength) / 2;
+          
+          const startX = fromPoint.x - extraLength * Math.cos(angle);
+          const startY = fromPoint.y - extraLength * Math.sin(angle);
+          const endX = toPoint.x + extraLength * Math.cos(angle);
+          const endY = toPoint.y + extraLength * Math.sin(angle);
+          
+          textPathStr = `M${startX},${startY} ` + textPathStr.substring(1) + ` L${endX},${endY}`;
         }
         
         // 创建路径
