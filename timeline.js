@@ -409,50 +409,199 @@ function drawPeriod(pers){
 
 
 // 事件清单
-function drawEvents(evts){
+function drawEvents(evts, roles){
+  if (!evts) {
+    console.error('Missing events for drawing');
+    return;
+  }
  
   for (var i = 0; i < evts.length; i++) {
-    var x1 = (evts[i].time - Cfg.start) * Cfg.zoom,
-        y1 = 0,
-        x2 = x1,
-        y2 = "100%",
-        tX = x1,
-        tY = 40;
+    // 处理普通事件
+    if (evts[i].time) {
+      var x1 = (evts[i].time - Cfg.start) * Cfg.zoom,
+          y1 = 0,
+          x2 = x1,
+          y2 = "100%",
+          tX = x1,
+          tY = 40;
 
-    switch(Cfg.e.textAnchor){
-      case 'middle': 
-        tY = "50%";
-        break;
-      case 'end':
-        tY = "100%";
-        break;
-      case 'start':
-      default:
-        tY = 40 ;
-        break;
-    }
+      switch(Cfg.e.textAnchor){
+        case 'middle': 
+          tY = "50%";
+          break;
+        case 'end':
+          tY = "100%";
+          break;
+        case 'start':
+        default:
+          tY = 40 ;
+          break;
+      }
 
-    if(Cfg.layout == "v"){
-      [ x1, y1, x2, y2, tX, tY] = [y1, x1, y2,x2, tY, tX];
-    }
-  
+      if(Cfg.layout == "v"){
+        [ x1, y1, x2, y2, tX, tY] = [y1, x1, y2, x2, tY, tX];
+      }
+    
+      var line = board.paper.line(x1, y1, x2, y2).attr({
+        strokeWidth: 1,
+        stroke:"#aaa",
+        strokeDasharray:"5,5",
+      })
 
-    var line = board.paper.line(x1, y1, x2, y2).attr({
-      strokeWidth: 1,
-      stroke:"#aaa",
-      strokeDasharray:"5,5",
-    })
-
-    var text = board.text(tX , tY,  evts[i].name).attr({
+      var text = board.text(tX, tY, evts[i].name).attr({
+            class: 'text',
+            textAnchor : Cfg.e.textAnchor,
+          });
+      let desc = evts[i].time + (evts[i].desc ? evts[i].desc : "");
+      let title = Snap.parse('<title>'+ desc +'</title>');
+          text.append(title);
+      var g = board.paper.g(line, text).attr({
+        class: 'events common'
+      });
+    } 
+    // 处理关联事件
+    else if (evts[i].from && evts[i].to) {
+      // 查找源点和目标点
+      let fromPoint = null;
+      let toPoint = null;
+      
+      // 遍历所有角色查找点
+      if (roles) {
+        for (let r = 0; r < roles.length; r++) {
+          const role = roles[r];
+          if (role.keypoints) {
+            for (let k = 0; k < role.keypoints.length; k++) {
+              const kp = role.keypoints[k];
+              if (kp.id === evts[i].from) {
+                if (Cfg.layout == "v") {
+                  // 垂直布局时交换x和y坐标
+                  fromPoint = {
+                    x: (r - offset) * 20 + 45,
+                    y: (kp.t - Cfg.start) * Cfg.zoom,
+                    t: kp.t
+                  };
+                } else {
+                  fromPoint = {
+                    x: (kp.t - Cfg.start) * Cfg.zoom,
+                    y: (r - offset) * 20 + 45,
+                    t: kp.t
+                  };
+                }
+              }
+              if (kp.id === evts[i].to) {
+                if (Cfg.layout == "v") {
+                  // 垂直布局时交换x和y坐标
+                  toPoint = {
+                    x: (r - offset) * 20 + 45,
+                    y: (kp.t - Cfg.start) * Cfg.zoom,
+                    t: kp.t
+                  };
+                } else {
+                  toPoint = {
+                    x: (kp.t - Cfg.start) * Cfg.zoom,
+                    y: (r - offset) * 20 + 45,
+                    t: kp.t
+                  };
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // 如果找到了两个点，绘制折线连接
+      if (fromPoint && toPoint) {
+        // 创建折线路径
+        let pathStr;
+        let textPathStr;
+        let textPathId = `text-path-${i}`;
+        
+        if (Cfg.layout == "v") {
+          // 垂直布局的折线 - 先横向，再纵向，再横向
+          const midX = (fromPoint.x + toPoint.x) / 2; // 中间点的x坐标
+          
+          // 创建路径：从起点横向延展到中点，然后纵向到目标点的y坐标，最后横向连接到目标点
+          pathStr = `M${fromPoint.x},${fromPoint.y} L${midX},${fromPoint.y} L${midX},${toPoint.y} L${toPoint.x},${toPoint.y}`;
+          
+          // 计算垂直文本路径的长度
+          const verticalLength = Math.abs(toPoint.y - fromPoint.y);
+          // 确保文本路径足够长，至少100px或更长
+          const minPathLength = 100;
+          const textY1 = Math.min(fromPoint.y, toPoint.y);
+          const textY2 = Math.max(fromPoint.y, toPoint.y);
+          
+          // 如果路径太短，则延长路径
+          if (verticalLength < minPathLength) {
+            const extraLength = (minPathLength - verticalLength) / 2;
+            textPathStr = `M${midX},${textY1 - extraLength} L${midX},${textY2 + extraLength}`;
+          } else {
+            textPathStr = `M${midX},${textY1} L${midX},${textY2}`;
+          }
+        } else {
+          // 水平布局的折线
+          const midY = Math.min(fromPoint.y, toPoint.y) - 10;
+          pathStr = `M${fromPoint.x},${fromPoint.y} L${fromPoint.x},${midY} L${toPoint.x},${midY} L${toPoint.x},${toPoint.y}`;
+          
+          // 计算水平文本路径的长度
+          const horizontalLength = Math.abs(toPoint.x - fromPoint.x);
+          // 确保文本路径足够长，至少100px或更长
+          const minPathLength = 100;
+          const textX1 = Math.min(fromPoint.x, toPoint.x);
+          const textX2 = Math.max(fromPoint.x, toPoint.x);
+          
+          // 如果路径太短，则延长路径
+          if (horizontalLength < minPathLength) {
+            const extraLength = (minPathLength - horizontalLength) / 2;
+            textPathStr = `M${textX1 - extraLength},${midY} L${textX2 + extraLength},${midY}`;
+          } else {
+            textPathStr = `M${textX1},${midY} L${textX2},${midY}`;
+          }
+        }
+        
+        // 创建路径
+        var connPath = board.paper.path(pathStr).attr({
+          fill: "none",
+          stroke: "#f55",
+          strokeWidth: 1,
+          strokeDasharray: "5,5",
+          id: `conn-path-${i}`
+        });
+        
+        // 创建文本路径
+        board.paper.path(textPathStr).attr({
+          id: textPathId,
+          fill: "none",
+          stroke: "none" // 不可见路径
+        });
+        
+        // 创建文本
+        var connText = board.paper.text(0, 0, "").attr({
           class: 'text',
-          textAnchor : Cfg.e.textAnchor,
-        });;
-    let desc = evts[i].time + (evts[i].desc? evts[i].desc : "");
-    let title = Snap.parse('<title>'+ desc +'</title>');
-        text.append(title);
-    var g = board.paper.g( line,text).attr({
-      class: 'events'
-    });
+          fill: "#f55"
+        });
+        
+        // 创建textPath元素
+        var textPath = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+        textPath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${textPathId}`);
+        textPath.textContent = evts[i].name;
+        textPath.setAttribute("startOffset", "50%");
+        textPath.setAttribute("text-anchor", "middle");
+        
+        // 将textPath添加到文本元素
+        connText.node.appendChild(textPath);
+        
+        // 添加描述
+        let desc = `${fromPoint.t} → ${toPoint.t}`;
+        if (evts[i].desc) desc += ": " + evts[i].desc;
+        let title = Snap.parse('<title>'+ desc +'</title>');
+        connText.append(title);
+        
+        // 创建组
+        var g = board.paper.g(connPath, connText).attr({
+          class: 'events connection'
+        });
+      }
+    }
   }
 }
 
@@ -481,7 +630,7 @@ function drawList(data){
 
   //画事件线
   var events = data.events;
-  if(events) drawEvents(events)
+  if(events) drawEvents(events, data.roles);
 }
 
 //绘制个体

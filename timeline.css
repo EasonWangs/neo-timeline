@@ -58,10 +58,16 @@ height:100%;
 }
 .events .text{
   fill: #fff;
-  letter-spacing: 0.8em; 
-  writing-mode: vertical-rl;
+ 
   text-shadow: 1px 1px 1px #333, -1px -1px 1px #333, -1px 1px 1px #333, 1px -1px 1px #333;
   pointer-events: auto 
+}
+
+.events.common .text{ 
+  letter-spacing: 0.8em; 
+}
+.events.common .text, .vertical .events.connection .text{
+  writing-mode: vertical-rl;
 }
 
 .content{
@@ -118,7 +124,7 @@ height:100%;
 .vertical .name,.vertical .descBox, .vertical .dotText{
   writing-mode: tb-rl
 }
-.vertical .title, .vertical .events .text{
+.vertical .title{
   writing-mode: horizontal-tb
 }
 
