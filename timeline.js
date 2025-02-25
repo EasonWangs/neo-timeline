@@ -704,8 +704,54 @@ function drawEvents(evts, roles){
           stroke: "none"
         });
         
-        // 创建终点圆形
-        var endCircle = board.paper.circle(tp.x, tp.y, 2).attr({
+        // 计算曲线终点的切线方向
+        let arrowAngle = 0;
+        
+        // 根据贝塞尔曲线类型计算终点切线方向
+        if (Cfg.layout == "v") {
+          if (Math.abs(fp.y - tp.y) < 1) {
+            // S形曲线，水平方向
+            const direction = (i % 2 === 0) ? 1 : -1;
+            const offset = 30; // 垂直偏移量
+            // 计算终点处的切线方向
+            const dx_tangent = tp.x - (tp.x - dx/4);
+            const dy_tangent = tp.y - (tp.y + offset * direction);
+            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+          } else {
+            // 正常曲线
+            const direction = (i % 2 === 0) ? -1 : 1;
+            const ctrlOffset = Math.min(dx * 0.8, 40); // 最大偏移40px
+            // 计算终点处的切线方向
+            const dx_tangent = tp.x - (tp.x + ctrlOffset * direction);
+            const dy_tangent = tp.y - tp.y;
+            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+          }
+        } else {
+          if (Math.abs(fp.x - tp.x) < 1) {
+            // S形曲线，垂直方向
+            const direction = (i % 2 === 0) ? -1 : 1;
+            const offset = 30; // 水平偏移量
+            const dy_local = Math.abs(tp.y - fp.y);
+            // 计算终点处的切线方向
+            const dx_tangent = tp.x - (tp.x + offset * direction);
+            const dy_tangent = tp.y - (tp.y - dy_local/4);
+            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+          } else {
+            // 正常曲线
+            const direction = (i % 2 === 0) ? 1 : -1;
+            const dy_local = Math.abs(tp.y - fp.y);
+            const ctrlOffset = Math.min(dy_local * 0.8, 40); // 最大偏移40px
+            // 计算终点处的切线方向
+            const dx_tangent = tp.x - tp.x;
+            const dy_tangent = tp.y - (tp.y + ctrlOffset * direction);
+            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+          }
+        }
+        
+        // 创建箭头
+        let arrowSize = 6; // 箭头大小
+        let arrowPath = createArrow(tp.x, tp.y, arrowSize, arrowAngle);
+        var endArrow = board.paper.path(arrowPath).attr({
           fill: "#666",
           stroke: "none"
         });
@@ -741,12 +787,48 @@ function drawEvents(evts, roles){
         };
         
         // 创建组
-        var g = board.paper.g(connPath, startCircle, endCircle, connText).attr({
+        var g = board.paper.g(connPath, startCircle, endArrow, connText).attr({
           class: 'events connection'
         });
       }
     }
   }
+}
+
+// 创建箭头路径
+function createArrow(x, y, size, angle) {
+  // 调整箭头形状参数
+  const arrowWidth = size * 0.6; // 减小箭头宽度，使其更窄
+  const arrowLength = size * 1.2; // 增加箭头长度，使其更尖锐
+  
+  // 计算箭头的三个点坐标
+  let points = [
+    {x: x, y: y}, // 箭头尖端
+    {x: x - arrowLength, y: y - arrowWidth/2}, // 左侧点
+    {x: x - arrowLength, y: y + arrowWidth/2}  // 右侧点
+  ];
+  
+  // 如果需要旋转箭头
+  if (angle !== 0) {
+    // 将角度转换为弧度
+    const rad = angle * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    
+    // 旋转除了尖端以外的点
+    for (let i = 1; i < points.length; i++) {
+      // 计算相对于尖端的偏移
+      const dx = points[i].x - x;
+      const dy = points[i].y - y;
+      
+      // 应用旋转变换
+      points[i].x = x + dx * cos - dy * sin;
+      points[i].y = y + dx * sin + dy * cos;
+    }
+  }
+  
+  // 生成SVG路径
+  return `M${points[0].x},${points[0].y} L${points[1].x},${points[1].y} L${points[2].x},${points[2].y} Z`;
 }
 
 //绘制列表
