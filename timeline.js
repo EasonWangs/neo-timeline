@@ -890,25 +890,3 @@ const formatDate = (dateStr) => {
   // 将所有的'-'替换为'/'
   return dateStr.replace(/-/g, '/');
 };
-
-// 更新日期描述显示
-let desc = "";
-if (startDate && endDate) {
-  desc = `(${formatDate(startDate.original)}-${formatDate(endDate.original)})`;
-} else if (startDate) {
-  desc = `(${formatDate(startDate.original)}-)`;
-} else if (endDate) {
-  desc = `(-${formatDate(endDate.original)})`;
-}
-
-if(item.iconText){
-  desc += "["+item.iconText+"]";
-}
-if(item.desc) {
-  if(typeof(item.desc) == 'string'){
-    desc += item.desc;
-  }else{
-    item.desc[0] = desc + item.desc[0];
-    desc = item.desc;
-  }
-}
