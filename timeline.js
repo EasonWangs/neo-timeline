@@ -698,6 +698,18 @@ function drawEvents(evts, roles){
           id: `conn-path-${i}`
         });
         
+        // 创建起点圆形
+        var startCircle = board.paper.circle(fp.x, fp.y, 2).attr({
+          fill: "#666",
+          stroke: "none"
+        });
+        
+        // 创建终点圆形
+        var endCircle = board.paper.circle(tp.x, tp.y, 2).attr({
+          fill: "#666",
+          stroke: "none"
+        });
+        
         // 创建文本路径
         board.paper.path(textPathStr).attr({
           id: textPathId,
@@ -708,8 +720,7 @@ function drawEvents(evts, roles){
         // 创建文本
         var connText = board.paper.text(0, 0, "").attr({
           class: 'text',
-          fill: "#f55",
-          dy: "-5" // 文本垂直偏移
+          fill: "#f55"
         });
         
         // 创建textPath元素
@@ -729,7 +740,7 @@ function drawEvents(evts, roles){
         };
         
         // 创建组
-        var g = board.paper.g(connPath, connText).attr({
+        var g = board.paper.g(connPath, startCircle, endCircle, connText).attr({
           class: 'events connection'
         });
       }
