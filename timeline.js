@@ -530,120 +530,28 @@ function drawEvents(evts, roles){
           tp = fromPoint;
         }
         
+        // 计算水平和垂直距离
+        const dx_dist = Math.abs(tp.x - fp.x);
+        const dy_dist = Math.abs(tp.y - fp.y);
+        
         if (Cfg.layout == "v") {
-          // 垂直布局的曲线
-          const dy = Math.abs(tp.y - fp.y);
-          const dx = Math.abs(tp.x - fp.x);
-          const textOffset = 15; // 文本额外偏移量
-          
-          // 处理 y 值相同的情况
           if (Math.abs(fp.y - tp.y) < 1) {
-            // 如果 y 值几乎相同，强制添加垂直偏移
+            // S形曲线，水平方向
+            const direction = (i % 2 === 0) ? 1 : -1;
             const offset = 30; // 垂直偏移量
             
-            // 确定偏移方向（向上或向下）- 反转方向
-            const direction = (i % 2 === 0) ? 1 : -1; // 交替使用不同方向
-            
             // 创建 S 形曲线
             pathStr = `M${fp.x},${fp.y} ` +
-                      `C${fp.x + dx/4},${fp.y + offset * direction} ` +
-                      `${tp.x - dx/4},${tp.y + offset * direction} ` +
+                      `C${fp.x + dx_dist/4},${fp.y + offset * direction} ` +
+                      `${tp.x - dx_dist/4},${tp.y + offset * direction} ` +
                       `${tp.x},${tp.y}`;
             
-            // 为文本创建平滑的曲线路径，增加额外偏移
-            const steps = 10; // 路径分段数
-            textPathStr = "M";
-            
-            for (let step = 0; step <= steps; step++) {
-              const t = step / steps;
-              // 三次贝塞尔曲线的参数方程，增加额外偏移
-              const x = Math.pow(1-t, 3) * fp.x + 
-                        3 * Math.pow(1-t, 2) * t * (fp.x + dx/4) + 
-                        3 * (1-t) * Math.pow(t, 2) * (tp.x - dx/4) + 
-                        Math.pow(t, 3) * tp.x;
-              const y = Math.pow(1-t, 3) * fp.y + 
-                        3 * Math.pow(1-t, 2) * t * (fp.y + (offset + textOffset) * direction) + 
-                        3 * (1-t) * Math.pow(t, 2) * (tp.y + (offset + textOffset) * direction) + 
-                        Math.pow(t, 3) * tp.y;
-              
-              textPathStr += (step === 0 ? "" : " L") + `${x},${y}`;
-            }
+            // 为文本创建平滑的曲线路径
+            textPathStr = pathStr;
           } else {
-            // 正常情况下的控制点偏移量
-            const ctrlOffset = Math.min(dx * 0.8, 40); // 最大偏移50px
-            
-            // 确定偏移方向（向左或向右）- 反转方向
-            const direction = (i % 2 === 0) ? -1 : 1; // 交替使用不同方向
-            
-            // 创建三次贝塞尔曲线
-            pathStr = `M${fp.x},${fp.y} ` +
-                      `C${fp.x + ctrlOffset * direction},${fp.y} ` +
-                      `${tp.x + ctrlOffset * direction},${tp.y} ` +
-                      `${tp.x},${tp.y}`;
-            
-            // 为文本创建平滑的曲线路径，增加额外偏移
-            const steps = 10; // 路径分段数
-            textPathStr = "M";
-            
-            for (let step = 0; step <= steps; step++) {
-              const t = step / steps;
-              // 三次贝塞尔曲线的参数方程，增加额外偏移
-              const x = Math.pow(1-t, 3) * fp.x + 
-                        3 * Math.pow(1-t, 2) * t * (fp.x + (ctrlOffset + textOffset) * direction) + 
-                        3 * (1-t) * Math.pow(t, 2) * (tp.x + (ctrlOffset + textOffset) * direction) + 
-                        Math.pow(t, 3) * tp.x;
-              const y = Math.pow(1-t, 3) * fp.y + 
-                        3 * Math.pow(1-t, 2) * t * fp.y + 
-                        3 * (1-t) * Math.pow(t, 2) * tp.y + 
-                        Math.pow(t, 3) * tp.y;
-              
-              textPathStr += (step === 0 ? "" : " L") + `${x},${y}`;
-            }
-          }
-        } else {
-          // 水平布局的曲线
-          const dx = Math.abs(tp.x - fp.x);
-          const dy = Math.abs(tp.y - fp.y);
-          const textOffset = 15; // 文本额外偏移量
-          
-          // 处理 x 值相同的情况
-          if (Math.abs(fp.x - tp.x) < 1) {
-            // 如果 x 值几乎相同，强制添加水平偏移
-            const offset = 30; // 水平偏移量
-            
-            // 确定偏移方向（向左或向右）- 反转方向
-            const direction = (i % 2 === 0) ? -1 : 1; // 交替使用不同方向
-            
-            // 创建 S 形曲线
-            pathStr = `M${fp.x},${fp.y} ` +
-                      `C${fp.x + offset * direction},${fp.y + dy/4} ` +
-                      `${tp.x + offset * direction},${tp.y - dy/4} ` +
-                      `${tp.x},${tp.y}`;
-            
-            // 为文本创建平滑的曲线路径，增加额外偏移
-            const steps = 10; // 路径分段数
-            textPathStr = "M";
-            
-            for (let step = 0; step <= steps; step++) {
-              const t = step / steps;
-              // 三次贝塞尔曲线的参数方程，增加额外偏移
-              const x = Math.pow(1-t, 3) * fp.x + 
-                        3 * Math.pow(1-t, 2) * t * (fp.x + (offset + textOffset) * direction) + 
-                        3 * (1-t) * Math.pow(t, 2) * (tp.x + (offset + textOffset) * direction) + 
-                        Math.pow(t, 3) * tp.x;
-              const y = Math.pow(1-t, 3) * fp.y + 
-                        3 * Math.pow(1-t, 2) * t * (fp.y + dy/4) + 
-                        3 * (1-t) * Math.pow(t, 2) * (tp.y - dy/4) + 
-                        Math.pow(t, 3) * tp.y;
-              
-              textPathStr += (step === 0 ? "" : " L") + `${x},${y}`;
-            }
-          } else {
-            // 正常情况下的控制点偏移量
-            const ctrlOffset = Math.min(dy * 0.8, 40); // 最大偏移50px
-            
-            // 确定偏移方向（向上或向下）- 反转方向
-            const direction = (i % 2 === 0) ? 1 : -1; // 交替使用不同方向
+            // 正常曲线
+            const direction = (i % 2 === 0) ? -1 : 1;
+            const ctrlOffset = Math.min(dx_dist * 0.8, 40); // 最大偏移40px
             
             // 创建三次贝塞尔曲线
             pathStr = `M${fp.x},${fp.y} ` +
@@ -651,42 +559,79 @@ function drawEvents(evts, roles){
                       `${tp.x},${tp.y + ctrlOffset * direction} ` +
                       `${tp.x},${tp.y}`;
             
-            // 为文本创建平滑的曲线路径，增加额外偏移
-            const steps = 10; // 路径分段数
-            textPathStr = "M";
+            // 为文本创建平滑的曲线路径
+            textPathStr = pathStr;
+          }
+        } else {
+          if (Math.abs(fp.x - tp.x) < 1) {
+            // S形曲线，垂直方向
+            const direction = (i % 2 === 0) ? -1 : 1;
+            const offset = 30; // 水平偏移量
             
-            for (let step = 0; step <= steps; step++) {
-              const t = step / steps;
-              // 三次贝塞尔曲线的参数方程，增加额外偏移
-              const x = Math.pow(1-t, 3) * fp.x + 
-                        3 * Math.pow(1-t, 2) * t * fp.x + 
-                        3 * (1-t) * Math.pow(t, 2) * tp.x + 
-                        Math.pow(t, 3) * tp.x;
-              const y = Math.pow(1-t, 3) * fp.y + 
-                        3 * Math.pow(1-t, 2) * t * (fp.y + (ctrlOffset + textOffset) * direction) + 
-                        3 * (1-t) * Math.pow(t, 2) * (tp.y + (ctrlOffset + textOffset) * direction) + 
-                        Math.pow(t, 3) * tp.y;
-              
-              textPathStr += (step === 0 ? "" : " L") + `${x},${y}`;
-            }
+            // 创建 S 形曲线
+            pathStr = `M${fp.x},${fp.y} ` +
+                      `C${fp.x + offset * direction},${fp.y + dy_dist/4} ` +
+                      `${tp.x + offset * direction},${tp.y - dy_dist/4} ` +
+                      `${tp.x},${tp.y}`;
+            
+            // 为文本创建平滑的曲线路径
+            textPathStr = pathStr;
+          } else {
+            // 正常曲线
+            const direction = (i % 2 === 0) ? 1 : -1;
+            const ctrlOffset = Math.min(dy_dist * 0.8, 40); // 最大偏移40px
+            
+            // 创建三次贝塞尔曲线
+            pathStr = `M${fp.x},${fp.y} ` +
+                      `C${fp.x},${fp.y + ctrlOffset * direction} ` +
+                      `${tp.x},${tp.y + ctrlOffset * direction} ` +
+                      `${tp.x},${tp.y}`;
+            
+            // 为文本创建平滑的曲线路径
+            textPathStr = pathStr;
           }
         }
         
-        // 确保文本路径足够长
-        const pathLength = Math.sqrt(Math.pow(tp.x - fp.x, 2) + Math.pow(tp.y - fp.y, 2));
-        const minPathLength = 100;
+        // 计算曲线终点的切线方向
+        let arrowAngle = 0;
         
-        if (pathLength < minPathLength) {
-          // 如果路径太短，使用直线延长路径
-          const angle = Math.atan2(tp.y - fp.y, tp.x - fp.x);
-          const extraLength = (minPathLength - pathLength) / 2;
-          
-          const startX = fp.x - extraLength * Math.cos(angle);
-          const startY = fp.y - extraLength * Math.sin(angle);
-          const endX = tp.x + extraLength * Math.cos(angle);
-          const endY = tp.y + extraLength * Math.sin(angle);
-          
-          textPathStr = `M${startX},${startY} ` + textPathStr.substring(1) + ` L${endX},${endY}`;
+        // 根据贝塞尔曲线类型计算终点切线方向
+        if (Cfg.layout == "v") {
+          if (Math.abs(fp.y - tp.y) < 1) {
+            // S形曲线，水平方向
+            const direction = (i % 2 === 0) ? 1 : -1;
+            const offset = 30; // 垂直偏移量
+            // 计算终点处的切线方向
+            const dx_tangent = tp.x - (tp.x - dx_dist/4);
+            const dy_tangent = tp.y - (tp.y + offset * direction);
+            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+          } else {
+            // 正常曲线
+            const direction = (i % 2 === 0) ? -1 : 1;
+            const ctrlOffset = Math.min(dx_dist * 0.8, 40); // 最大偏移40px
+            // 计算终点处的切线方向
+            const dx_tangent = tp.x - (tp.x + ctrlOffset * direction);
+            const dy_tangent = tp.y - tp.y;
+            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+          }
+        } else {
+          if (Math.abs(fp.x - tp.x) < 1) {
+            // S形曲线，垂直方向
+            const direction = (i % 2 === 0) ? -1 : 1;
+            const offset = 30; // 水平偏移量
+            // 计算终点处的切线方向
+            const dx_tangent = tp.x - (tp.x + offset * direction);
+            const dy_tangent = tp.y - (tp.y - dy_dist/4);
+            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+          } else {
+            // 正常曲线
+            const direction = (i % 2 === 0) ? 1 : -1;
+            const ctrlOffset = Math.min(dy_dist * 0.8, 40); // 最大偏移40px
+            // 计算终点处的切线方向
+            const dx_tangent = tp.x - tp.x;
+            const dy_tangent = tp.y - (tp.y + ctrlOffset * direction);
+            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+          }
         }
         
         // 创建路径
@@ -703,50 +648,6 @@ function drawEvents(evts, roles){
           fill: "#666",
           stroke: "none"
         });
-        
-        // 计算曲线终点的切线方向
-        let arrowAngle = 0;
-        
-        // 根据贝塞尔曲线类型计算终点切线方向
-        if (Cfg.layout == "v") {
-          if (Math.abs(fp.y - tp.y) < 1) {
-            // S形曲线，水平方向
-            const direction = (i % 2 === 0) ? 1 : -1;
-            const offset = 30; // 垂直偏移量
-            // 计算终点处的切线方向
-            const dx_tangent = tp.x - (tp.x - dx/4);
-            const dy_tangent = tp.y - (tp.y + offset * direction);
-            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-          } else {
-            // 正常曲线
-            const direction = (i % 2 === 0) ? -1 : 1;
-            const ctrlOffset = Math.min(dx * 0.8, 40); // 最大偏移40px
-            // 计算终点处的切线方向
-            const dx_tangent = tp.x - (tp.x + ctrlOffset * direction);
-            const dy_tangent = tp.y - tp.y;
-            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-          }
-        } else {
-          if (Math.abs(fp.x - tp.x) < 1) {
-            // S形曲线，垂直方向
-            const direction = (i % 2 === 0) ? -1 : 1;
-            const offset = 30; // 水平偏移量
-            const dy_local = Math.abs(tp.y - fp.y);
-            // 计算终点处的切线方向
-            const dx_tangent = tp.x - (tp.x + offset * direction);
-            const dy_tangent = tp.y - (tp.y - dy_local/4);
-            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-          } else {
-            // 正常曲线
-            const direction = (i % 2 === 0) ? 1 : -1;
-            const dy_local = Math.abs(tp.y - fp.y);
-            const ctrlOffset = Math.min(dy_local * 0.8, 40); // 最大偏移40px
-            // 计算终点处的切线方向
-            const dx_tangent = tp.x - tp.x;
-            const dy_tangent = tp.y - (tp.y + ctrlOffset * direction);
-            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-          }
-        }
         
         // 创建箭头
         let arrowSize = 6; // 箭头大小
