@@ -1041,10 +1041,10 @@ function drawItem(board, item, i, color, points) {
     // 使用g()方法创建点和连接线的组
     let dotBox = board.g().attr({
         class:'dotBox'
-      });
+    });
     let contBox = board.g().attr({
         class:'contBox'
-      });
+    });
 
     let [x4,y4,x5,y5] = [x,y,x,y];
     for(let i = points.length - 1; i >= 0; i--){
@@ -1075,6 +1075,7 @@ function drawItem(board, item, i, color, points) {
 	     stroke:"#f00",
 	     fill:"#fff",
 	     strokeWidth: 1,
+       id: point.id || '' // 为每个点添加 id 属性
 	   });
 	   dot.append(title);
 	   // 直接将点添加到dotBox组中
