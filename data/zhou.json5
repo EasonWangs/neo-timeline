@@ -52,121 +52,7 @@
 	},
 	],
 	"events": [
-        {
-            "name": "秦灭韩",
-            "desc": "秦灭韩",
-            "from": "qin1",
-            "to": "han2"
-        },
-        {
-            "name": "秦灭魏",
-            "desc": "秦灭魏",
-            "from": "qin3",
-            "to": "wei1"
-        },
-		{
-            "name": "秦灭赵",
-            "desc": "秦灭赵",
-            "from": "qin2",
-            "to": "zhao1"
-        },
-		{
-            "name": "秦灭楚",
-            "desc": "秦灭楚",
-            "from": "qin4",
-            "to": "chu5"
-        },
-		{
-            "name": "秦灭燕",
-            "desc": "秦灭燕",
-            "from": "qin5",
-            "to": "yan1"
-        },
-		{
-            "name": "秦灭卫",
-            "desc": "秦灭卫",
-            "from": "qin7",
-            "to": "awei1"
-        },
-        {
-            "name": "秦灭齐",
-            "desc": "秦灭齐",
-            "from": "qin6",
-            "to": "bqi3"
-        },
-		{
-            "name": "越灭吴",
-            "desc": "越灭吴",
-            "from": "yue1",
-            "to": "wu1"
-        },
-		{
-            "name": "楚灭越",
-            "desc": "楚灭越",
-            "from": "chu3",
-            "to": "yue2"
-        },
-		{
-            "name": "楚灭陈",
-            "desc": "楚灭陈",
-            "from": "chu1",
-            "to": "chen1"
-        },
-		{
-            "name": "楚灭蔡",
-            "desc": "楚灭蔡",
-            "from": "chu2",
-            "to": "cai1"
-        },
-		{
-            "name": "楚灭鲁",
-            "desc": "楚灭鲁",
-            "from": "chu4",
-            "to": "lu1"
-        },  
-        {
-            "name": "宋灭曹",
-            "desc": "宋灭曹",
-            "from": "song1",
-            "to": "cao1"
-        },
-		{
-            "name": "齐灭宋",
-            "desc": "齐灭宋",
-            "from": "bqi2",
-            "to": "song2"
-        },
-        {
-            "name": "韩灭郑",
-            "desc": "韩灭郑",
-            "from": "han1",
-            "to": "zheng1"
-        },
-        {
-            "name": "田氏代齐",
-            "desc": "田氏代齐",
-            "from": "bqi1",
-            "to": "aqi1"
-        },
-        {
-            "name": "三家分晋",
-            "desc": "三家分晋",
-            "from": "zhao0",
-            "to": "jin1"
-        },{
-            "name": "三家分晋",
-            "desc": "三家分晋",
-            "from": "han0",
-            "to": "jin1"
-        },{
-            "name": "三家分晋",
-            "desc": "三家分晋",
-            "from": "wei0",
-            "to": "jin1"
-        },
-        
-		
-
+       
     ],
 	"roles": [
     {
@@ -181,30 +67,37 @@
 		"keypoints": [{
             id: "qin1",
 			"t": -230,
-			"w": "灭韩"
+			"w": "灭韩",
+             "to": "han2"
 		},{
             id: "qin2",
 			"t": -228,
+            "to": "zhao1",
 			"w": "灭赵"
 		},{
             id: "qin3",
 			"t": -225,
+             "to": "wei1",
 			"w": "灭魏"
 		},{
             id: "qin4",
 			"t": -223,
+            "to": "chu5",
 			"w": "灭楚"
 		},{
             id: "qin5",
 			"t": -222,
-			"w": "灭燕"
+			"w": "灭燕",
+            "to": "yan1"
 		},{
             id: "qin6",
 			"t": -221,
-			"w": "灭齐"
+			"w": "灭齐",
+             "to": "bqi3"
 		},{
             id: "qin7",
 			"t": -209,
+            "to": "awei1",
 			"w": "灭卫"
 		},]
     },
@@ -263,6 +156,7 @@
 		"keypoints": [{
             id: "zhao0",
 			"t": -349,
+             "to": "jin1",
 			"w": "三家分晋"
 		},{
             id: "zhao1",
@@ -277,10 +171,12 @@
 		"keypoints": [{
             id: "han1",
 			"t": -375,
+             "to": "zheng1",
 			"w": "灭郑"
 		},{
             id: "han0",
 			"t": -349,
+             "to": "jin1",
 			"w": "三家分晋"
 		},{
             id: "han2",
@@ -295,6 +191,7 @@
 		"keypoints": [{
             id: "wei0",
 			"t": -349,
+             "to": "jin1",
 			"w": "三家分晋"
 		},{
             id: "wei1",
@@ -330,6 +227,7 @@
 		"keypoints": [{
             id: "song1",
 			"t": -487,
+            "to": "cao1",
 			"w": "灭曹"
 		},{
             id: "song2",
@@ -396,6 +294,7 @@
 		"keypoints": [{
             id: "aqi1",
 			"t": -386,
+             "to": "aqi1",
 			"w": "田氏代齐"
 		},]
     },{
@@ -410,6 +309,7 @@
 		},{
             id: "bqi2",
 			"t": -286,
+            "to": "song2",
 			"w": "灭宋"
 		},{
             id: "bqi3",
@@ -429,18 +329,22 @@
 		"keypoints": [{
             id: "chu1",
 			"t": -478,
+            "to": "chen1",
 			"w": "灭陈"
 		},{
             id: "chu2",
 			"t": -447,
+             "to": "cai1",
 			"w": "灭蔡"
 		},{
             id: "chu3",
 			"t": -306,
+            "to": "yue2",
 			"w": "楚破越"
 		},{
             id: "chu4",
 			"t": -256,
+             "to": "lu1",
 			"w": "灭鲁"
 		},{
             id: "chu5",
@@ -448,6 +352,9 @@
 			"w": "被秦灭亡"
 		},]
     },
+
+
+
     {
         "name": "越国",
         "desc": "姒姓",
@@ -460,6 +367,7 @@
 		"keypoints": [{
             id: "yue1",
 			"t": -473,
+            "to": "wu1",
 			"w": "灭吴"
 		},{
             id: "yue2",

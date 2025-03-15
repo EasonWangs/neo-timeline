@@ -52,20 +52,30 @@ height:100%;
   font-weight: bold;
 }
 .events{
-  position: absolute;
+  position: fixed;
   z-index: 2;
   pointer-events: none 
 }
 .events .text{
   fill: #fff;
   text-shadow: 1px 1px 1px #333, -1px -1px 1px #333, -1px 1px 1px #333, 1px -1px 1px #333;
-  pointer-events: auto 
+  letter-spacing: 0.8em; 
+  top:100px;
+  pointer-events: auto ;
+  writing-mode: vertical-rl;
 }
 
-.events.common .text{ 
-  letter-spacing: 0.8em; 
+
+
+.connection{
+  position: absolute;
+  z-index: 2;
+  pointer-events: none 
 }
-.events.common .text, .vertical .events.connection .text{
+
+
+.connection .text{
+  pointer-events: auto ;
   writing-mode: vertical-rl;
 }
 

@@ -415,6 +415,10 @@ function drawEvents(evts, roles){
     return;
   }
  
+  // 创建普通事件和关联事件的SVG容器
+  const eventsBoard = Snap("#events");
+  
+  // 只处理普通事件
   for (var i = 0; i < evts.length; i++) {
     // 处理普通事件
     if (evts[i].time) {
@@ -442,257 +446,284 @@ function drawEvents(evts, roles){
         [ x1, y1, x2, y2, tX, tY] = [y1, x1, y2, x2, tY, tX];
       }
     
-      var line = board.paper.line(x1, y1, x2, y2).attr({
+      var line = eventsBoard.paper.line(x1, y1, x2, y2).attr({
         strokeWidth: 1,
         stroke:"#aaa",
         strokeDasharray:"5,5",
       })
 
-      var text = board.text(tX, tY, evts[i].name).attr({
+      var text = eventsBoard.text(tX, tY, evts[i].name).attr({
             class: 'text',
             textAnchor : Cfg.e.textAnchor,
           });
       let desc = evts[i].time + (evts[i].desc ? evts[i].desc : "");
       let title = Snap.parse('<title>'+ desc +'</title>');
           text.append(title);
-      var g = board.paper.g(line, text).attr({
+      var g = eventsBoard.paper.g(line, text).attr({
         class: 'events common'
       });
-    } 
-    // 处理关联事件
-    else if (evts[i].from && evts[i].to) {
-      // 查找源点和目标点
-      let fromPoint = null;
-      let toPoint = null;
-      
-      // 遍历所有角色查找点
-      if (roles) {
-        for (let r = 0; r < roles.length; r++) {
-          const role = roles[r];
-          if (role.keypoints) {
-            for (let k = 0; k < role.keypoints.length; k++) {
-              const kp = role.keypoints[k];
-              if (kp.id === evts[i].from) {
-                if (Cfg.layout == "v") {
-                  // 垂直布局时交换x和y坐标
-                  fromPoint = {
-                    x: (r - offset) * 20 + 45,
-                    y: (kp.t - Cfg.start) * Cfg.zoom,
-                    t: kp.t
-                  };
-                } else {
-                  fromPoint = {
-                    x: (kp.t - Cfg.start) * Cfg.zoom,
-                    y: (r - offset) * 20 + 45,
-                    t: kp.t
-                  };
-                }
-              }
-              if (kp.id === evts[i].to) {
-                if (Cfg.layout == "v") {
-                  // 垂直布局时交换x和y坐标
-                  toPoint = {
-                    x: (r - offset) * 20 + 45,
-                    y: (kp.t - Cfg.start) * Cfg.zoom,
-                    t: kp.t
-                  };
-                } else {
-                  toPoint = {
-                    x: (kp.t - Cfg.start) * Cfg.zoom,
-                    y: (r - offset) * 20 + 45,
-                    t: kp.t
-                  };
-                }
-              }
-            }
-          }
+    }
+  }
+  
+  // 处理关联事件（从角色的关键点中获取）
+  if (roles) {
+    drawConnectionEvents(roles);
+  }
+}
+
+// 从角色的关键点中绘制关联事件
+function drawConnectionEvents(roles) {
+  const contentBoard = Snap("#content");
+  let connectionCount = 0;
+  
+  // 首先创建一个映射，用于存储所有关键点
+  const keypointMap = {};
+  
+  // 遍历所有角色和关键点，建立映射
+  for (let r = 0; r < roles.length; r++) {
+    const role = roles[r];
+    if (role.keypoints) {
+      for (let k = 0; k < role.keypoints.length; k++) {
+        const kp = role.keypoints[k];
+        if (kp.id) {
+          keypointMap[kp.id] = {
+            roleIndex: r,
+            keypoint: kp,
+            roleName: role.name
+          };
         }
-      }
-      
-      // 如果找到了两个点，绘制曲线连接
-      if (fromPoint && toPoint) {
-        // 创建曲线路径
-        let pathStr;
-        let textPathStr;
-        let textPathId = `text-path-${i}`;
-        
-        // 确保点的顺序是从上到下或从左到右
-        let fp = fromPoint;
-        let tp = toPoint;
-        
-        if (Cfg.layout == "v" && fp.y > tp.y) {
-          // 垂直布局中，确保从上到下
-          fp = toPoint;
-          tp = fromPoint;
-        } else if (Cfg.layout != "v" && fp.x > tp.x) {
-          // 水平布局中，确保从左到右
-          fp = toPoint;
-          tp = fromPoint;
-        }
-        
-        // 计算水平和垂直距离
-        const dx_dist = Math.abs(tp.x - fp.x);
-        const dy_dist = Math.abs(tp.y - fp.y);
-        
-        if (Cfg.layout == "v") {
-          if (Math.abs(fp.y - tp.y) < 1) {
-            // S形曲线，水平方向
-            const direction = (i % 2 === 0) ? 1 : -1;
-            const offset = 30; // 垂直偏移量
-            
-            // 创建 S 形曲线
-            pathStr = `M${fp.x},${fp.y} ` +
-                      `C${fp.x + dx_dist/4},${fp.y + offset * direction} ` +
-                      `${tp.x - dx_dist/4},${tp.y + offset * direction} ` +
-                      `${tp.x},${tp.y}`;
-            
-            // 为文本创建平滑的曲线路径
-            textPathStr = pathStr;
-          } else {
-            // 正常曲线
-            const direction = (i % 2 === 0) ? -1 : 1;
-            const ctrlOffset = Math.min(dx_dist * 0.8, 40); // 最大偏移40px
-            
-            // 创建三次贝塞尔曲线
-            pathStr = `M${fp.x},${fp.y} ` +
-                      `C${fp.x},${fp.y + ctrlOffset * direction} ` +
-                      `${tp.x},${tp.y + ctrlOffset * direction} ` +
-                      `${tp.x},${tp.y}`;
-            
-            // 为文本创建平滑的曲线路径
-            textPathStr = pathStr;
-          }
-        } else {
-          if (Math.abs(fp.x - tp.x) < 1) {
-            // S形曲线，垂直方向
-            const direction = (i % 2 === 0) ? -1 : 1;
-            const offset = 30; // 水平偏移量
-            
-            // 创建 S 形曲线
-            pathStr = `M${fp.x},${fp.y} ` +
-                      `C${fp.x + offset * direction},${fp.y + dy_dist/4} ` +
-                      `${tp.x + offset * direction},${tp.y - dy_dist/4} ` +
-                      `${tp.x},${tp.y}`;
-            
-            // 为文本创建平滑的曲线路径
-            textPathStr = pathStr;
-          } else {
-            // 正常曲线
-            const direction = (i % 2 === 0) ? 1 : -1;
-            const ctrlOffset = Math.min(dy_dist * 0.8, 40); // 最大偏移40px
-            
-            // 创建三次贝塞尔曲线
-            pathStr = `M${fp.x},${fp.y} ` +
-                      `C${fp.x},${fp.y + ctrlOffset * direction} ` +
-                      `${tp.x},${tp.y + ctrlOffset * direction} ` +
-                      `${tp.x},${tp.y}`;
-            
-            // 为文本创建平滑的曲线路径
-            textPathStr = pathStr;
-          }
-        }
-        
-        // 计算曲线终点的切线方向
-        let arrowAngle = 0;
-        
-        // 根据贝塞尔曲线类型计算终点切线方向
-        if (Cfg.layout == "v") {
-          if (Math.abs(fp.y - tp.y) < 1) {
-            // S形曲线，水平方向
-            const direction = (i % 2 === 0) ? 1 : -1;
-            const offset = 30; // 垂直偏移量
-            // 计算终点处的切线方向
-            const dx_tangent = tp.x - (tp.x - dx_dist/4);
-            const dy_tangent = tp.y - (tp.y + offset * direction);
-            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-          } else {
-            // 正常曲线
-            const direction = (i % 2 === 0) ? -1 : 1;
-            const ctrlOffset = Math.min(dx_dist * 0.8, 40); // 最大偏移40px
-            // 计算终点处的切线方向
-            const dx_tangent = tp.x - (tp.x + ctrlOffset * direction);
-            const dy_tangent = tp.y - tp.y;
-            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-          }
-        } else {
-          if (Math.abs(fp.x - tp.x) < 1) {
-            // S形曲线，垂直方向
-            const direction = (i % 2 === 0) ? -1 : 1;
-            const offset = 30; // 水平偏移量
-            // 计算终点处的切线方向
-            const dx_tangent = tp.x - (tp.x + offset * direction);
-            const dy_tangent = tp.y - (tp.y - dy_dist/4);
-            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-          } else {
-            // 正常曲线
-            const direction = (i % 2 === 0) ? 1 : -1;
-            const ctrlOffset = Math.min(dy_dist * 0.8, 40); // 最大偏移40px
-            // 计算终点处的切线方向
-            const dx_tangent = tp.x - tp.x;
-            const dy_tangent = tp.y - (tp.y + ctrlOffset * direction);
-            arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-          }
-        }
-        
-        // 创建路径
-        var connPath = board.paper.path(pathStr).attr({
-          fill: "none",
-          stroke: "#aaa",
-          strokeWidth: 1,
-          strokeDasharray: "2,2",
-          id: `conn-path-${i}`
-        });
-        
-        // 创建起点圆形
-        var startCircle = board.paper.circle(fp.x, fp.y, 2).attr({
-          fill: "#666",
-          stroke: "none"
-        });
-        
-        // 创建箭头
-        let arrowSize = 6; // 箭头大小
-        let arrowPath = createArrow(tp.x, tp.y, arrowSize, arrowAngle);
-        var endArrow = board.paper.path(arrowPath).attr({
-          fill: "#666",
-          stroke: "none"
-        });
-        
-        // 创建文本路径
-        board.paper.path(textPathStr).attr({
-          id: textPathId,
-          fill: "none",
-          stroke: "none" // 不可见路径
-        });
-        
-        // 创建文本
-        var connText = board.paper.text(0, 0, "").attr({
-          class: 'text',
-          fill: "#f55",
-          opacity: 0
-        });
-        
-        // 创建textPath元素
-        var textPath = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
-        textPath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${textPathId}`);
-        textPath.textContent = evts[i].name;
-        textPath.setAttribute("startOffset", "50%");
-        textPath.setAttribute("text-anchor", "middle");
-        
-        // 将textPath添加到文本元素
-        connText.node.appendChild(textPath);
-        
-        // 添加描述
-        if (evts[i].desc) {
-          let title = Snap.parse('<title>'+ evts[i].desc +'</title>');
-          connText.append(title);
-        };
-        
-        // 创建组
-        var g = board.paper.g(connPath, startCircle, endArrow, connText).attr({
-          class: 'events connection'
-        });
       }
     }
+  }
+  
+  // 再次遍历所有角色和关键点，查找带有 to 字段的关键点
+  for (let r = 0; r < roles.length; r++) {
+    const role = roles[r];
+    if (role.keypoints) {
+      for (let k = 0; k < role.keypoints.length; k++) {
+        const kp = role.keypoints[k];
+        if (kp.to) {
+          // 找到了一个关联事件
+          const fromPoint = {
+            roleIndex: r,
+            keypoint: kp,
+            roleName: role.name
+          };
+          
+          const toPoint = keypointMap[kp.to];
+          
+          if (toPoint) {
+            // 绘制关联事件
+            drawConnection(contentBoard, fromPoint, toPoint, connectionCount, kp.w);
+            connectionCount++;
+          } else {
+            console.error(`Target keypoint not found: ${kp.to}`);
+          }
+        }
+      }
+    }
+  }
+}
+
+// 绘制两个关键点之间的连接
+function drawConnection(board, fromPoint, toPoint, index, name) {
+  // 计算起点和终点的坐标
+  let fp = calculatePointCoordinates(fromPoint.roleIndex, fromPoint.keypoint.t);
+  let tp = calculatePointCoordinates(toPoint.roleIndex, toPoint.keypoint.t);
+  
+  // 确保点的顺序是从上到下或从左到右
+  if (Cfg.layout == "v" && fp.y > tp.y) {
+    // 垂直布局中，确保从上到下
+    [fp, tp] = [tp, fp];
+  } else if (Cfg.layout != "v" && fp.x > tp.x) {
+    // 水平布局中，确保从左到右
+    [fp, tp] = [tp, fp];
+  }
+  
+  // 计算水平和垂直距离
+  const dx_dist = Math.abs(tp.x - fp.x);
+  const dy_dist = Math.abs(tp.y - fp.y);
+  
+  // 创建曲线路径
+  let pathStr;
+  let textPathStr;
+  let textPathId = `text-path-${index}`;
+  let arrowAngle = 0;
+  
+  if (Cfg.layout == "v") {
+    if (Math.abs(fp.y - tp.y) < 1) {
+      // S形曲线，水平方向
+      const direction = (index % 2 === 0) ? 1 : -1;
+      const offset = 30; // 垂直偏移量
+      
+      // 创建 S 形曲线
+      pathStr = `M${fp.x},${fp.y} ` +
+                `C${fp.x + dx_dist/4},${fp.y + offset * direction} ` +
+                `${tp.x - dx_dist/4},${tp.y + offset * direction} ` +
+                `${tp.x},${tp.y}`;
+      
+      // 为文本创建平滑的曲线路径
+      textPathStr = pathStr;
+      
+      // 计算终点处的切线方向
+      const dx_tangent = tp.x - (tp.x - dx_dist/4);
+      const dy_tangent = tp.y - (tp.y + offset * direction);
+      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+    } else {
+      // 正常曲线
+      const direction = (index % 2 === 0) ? -1 : 1;
+      const ctrlOffset = Math.min(dx_dist * 0.8, 40); // 最大偏移40px
+      
+      // 创建三次贝塞尔曲线
+      pathStr = `M${fp.x},${fp.y} ` +
+                `C${fp.x},${fp.y + ctrlOffset * direction} ` +
+                `${tp.x},${tp.y + ctrlOffset * direction} ` +
+                `${tp.x},${tp.y}`;
+      
+      // 为文本创建平滑的曲线路径
+      textPathStr = pathStr;
+      
+      // 计算终点处的切线方向
+      const dx_tangent = tp.x - (tp.x + ctrlOffset * direction);
+      const dy_tangent = tp.y - tp.y;
+      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+    }
+  } else {
+    if (Math.abs(fp.x - tp.x) < 1) {
+      // S形曲线，垂直方向
+      const direction = (index % 2 === 0) ? -1 : 1;
+      const offset = 30; // 水平偏移量
+      
+      // 创建 S 形曲线
+      pathStr = `M${fp.x},${fp.y} ` +
+                `C${fp.x + offset * direction},${fp.y + dy_dist/4} ` +
+                `${tp.x + offset * direction},${tp.y - dy_dist/4} ` +
+                `${tp.x},${tp.y}`;
+      
+      // 为文本创建平滑的曲线路径
+      textPathStr = pathStr;
+      
+      // 计算终点处的切线方向
+      const dx_tangent = tp.x - (tp.x + offset * direction);
+      const dy_tangent = tp.y - (tp.y - dy_dist/4);
+      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+    } else {
+      // 正常曲线
+      const direction = (index % 2 === 0) ? 1 : -1;
+      const ctrlOffset = Math.min(dy_dist * 0.8, 40); // 最大偏移40px
+      
+      // 创建三次贝塞尔曲线
+      pathStr = `M${fp.x},${fp.y} ` +
+                `C${fp.x},${fp.y + ctrlOffset * direction} ` +
+                `${tp.x},${tp.y + ctrlOffset * direction} ` +
+                `${tp.x},${tp.y}`;
+      
+      // 为文本创建平滑的曲线路径
+      textPathStr = pathStr;
+      
+      // 计算终点处的切线方向
+      const dx_tangent = tp.x - tp.x;
+      const dy_tangent = tp.y - (tp.y + ctrlOffset * direction);
+      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+    }
+  }
+  
+  // 创建路径
+  var connPath = board.paper.path(pathStr).attr({
+    fill: "none",
+    stroke: "#aaa",
+    strokeWidth: 1,
+    strokeDasharray: "2,2",
+    id: `conn-path-${index}`
+  });
+  
+  // 创建起点圆形
+  var startCircle = board.paper.circle(fp.x, fp.y, 2).attr({
+    fill: "#666",
+    stroke: "none"
+  });
+  
+  // 创建箭头
+  let arrowSize = 6; // 箭头大小
+  let arrowPath = createArrow(tp.x, tp.y, arrowSize, arrowAngle);
+  var endArrow = board.paper.path(arrowPath).attr({
+    fill: "#666",
+    stroke: "none"
+  });
+  
+  // 创建文本路径
+  board.paper.path(textPathStr).attr({
+    id: textPathId,
+    fill: "none",
+    stroke: "none" // 不可见路径
+  });
+  
+  // 创建文本
+  var connText = board.paper.text(0, 0, "").attr({
+    class: 'text',
+    fill: "#f55",
+    opacity: 0
+  });
+  
+  // 创建textPath元素
+  var textPath = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+  textPath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${textPathId}`);
+  textPath.textContent = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
+  textPath.setAttribute("startOffset", "50%");
+  textPath.setAttribute("text-anchor", "middle");
+  
+  // 将textPath添加到文本元素
+  connText.node.appendChild(textPath);
+  
+  // 添加title元素，内容使用w字段
+  let titleText = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
+  let title = Snap.parse('<title>'+ titleText +'</title>');
+  connText.append(title);
+  
+  // 创建组
+  var g = board.paper.g(connPath, startCircle, endArrow, connText).attr({
+    class: 'connection'
+  });
+  
+  // 为整个连接组添加悬停效果
+  g.hover(
+    function() {
+      // 鼠标悬停时
+      connPath.attr({
+        stroke: "#f55",
+        strokeWidth: 1.5,
+        strokeDasharray: "3,3"
+      });
+      connText.attr({
+        opacity: 1
+      });
+    },
+    function() {
+      // 鼠标离开时
+      connPath.attr({
+        stroke: "#aaa",
+        strokeWidth: 1,
+        strokeDasharray: "2,2"
+      });
+      connText.attr({
+        opacity: 0
+      });
+    }
+  );
+}
+
+// 计算关键点的坐标
+function calculatePointCoordinates(roleIndex, time) {
+  if (Cfg.layout == "v") {
+    return {
+      x: (roleIndex - offset) * 20 + 45,
+      y: (time - Cfg.start) * Cfg.zoom
+    };
+  } else {
+    return {
+      x: (time - Cfg.start) * Cfg.zoom,
+      y: (roleIndex - offset) * 20 + 45
+    };
   }
 }
 
