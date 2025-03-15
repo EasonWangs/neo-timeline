@@ -295,6 +295,7 @@ function drawPeriod(pers){
 	period = Snap("#period");
 	if(Cfg.p.position) period.node.style.position = Cfg.p.position;
   let p = (Cfg.p.padding || 50) * Cfg.zoom;
+  
   for (var i = 0; i < pers.length; i++) {
       var l = pers[i].level || 1,
         x = (pers[i].start - Cfg.start) * Cfg.zoom,
@@ -326,26 +327,31 @@ function drawPeriod(pers){
       tY += 2;
     }
      
-    //时期
-    var rect = period.paper.rect(x, y, w, h).attr({
-      fill:  Cfg.p.colors[i % Cfg.p.colors.length], 
+    // 创建时期组
+    var periodGroup = period.g();
+    
+    //时期矩形
+    var rect = period.rect(x, y, w, h).attr({
+      fill: Cfg.p.colors[i % Cfg.p.colors.length], 
       fillOpacity: 0.2,
     }).hover(function() {
         this.animate({
            fillOpacity: 0.6    
-        },300); 
+        }, 300); 
     }, function() {
         this.animate({
            fillOpacity: 0.2    
-        },300); 
+        }, 300); 
     }); 
- 
+    
+    // 添加矩形到组
+    periodGroup.add(rect);
  
     //时期文字
-    var text = period.text(tX , tY,  pers[i].name).attr({
+    var text = period.text(tX, tY, pers[i].name).attr({
           class: 'text',
-          writingMode : wm,
-          textAnchor : Cfg.p.textAnchor,
+          writingMode: wm,
+          textAnchor: Cfg.p.textAnchor,
         });
 
     let textBox = text.getBBox(),
@@ -384,25 +390,43 @@ function drawPeriod(pers){
     }
 
     let title = Snap.parse('<title>'+ desc +'</title>');
-        text.append(title);
-    var g = period.paper.g(rect, text);
+    text.append(title);
+    
+    // 添加文本到组
+    periodGroup.add(text);
 
-    var points = pers[i].keypoints
+    // 处理关键点
+    var points = pers[i].keypoints;
     if(points){
+      // 创建关键点组
+      var pointsGroup = period.g().attr({
+        class: 'points'
+      });
+      
       for(var n = 0; n < points.length; n++){
-        let p = period.paper.g().attr({
-          class:'point'
+        // 为每个点创建一个组
+        let pointGroup = period.g().attr({
+          class: 'point'
         });
+        
         let x = (points[n].t - Cfg.start) * Cfg.zoom;
-        let pointSVG = period.paper.circle(x, y + 35, 3).attr({
-          stroke:"#f00",
+        let pointSVG = period.circle(x, y + 35, 3).attr({
+          stroke: "#f00",
           strokeWidth: 1,
         });
-        let title = Snap.parse('<title>'+ points[n].t + "-" +points[n].w+'</title>');
+        
+        let title = Snap.parse('<title>'+ points[n].t + "-" + points[n].w +'</title>');
         pointSVG.append(title);
-        p.add(pointSVG);
-        g.add(p)
+        
+        // 添加点到点组
+        pointGroup.add(pointSVG);
+        
+        // 添加点组到关键点组
+        pointsGroup.add(pointGroup);
       }
+      
+      // 添加关键点组到时期组
+      periodGroup.add(pointsGroup);
     }
   }
 }
@@ -422,6 +446,11 @@ function drawEvents(evts, roles){
   for (var i = 0; i < evts.length; i++) {
     // 处理普通事件
     if (evts[i].time) {
+      // 为每个事件创建一个组
+      var eventGroup = eventsBoard.g().attr({
+        class: 'events common'
+      });
+      
       var x1 = (evts[i].time - Cfg.start) * Cfg.zoom,
           y1 = 0,
           x2 = x1,
@@ -438,30 +467,37 @@ function drawEvents(evts, roles){
           break;
         case 'start':
         default:
-          tY = 40 ;
+          tY = 40;
           break;
       }
 
       if(Cfg.layout == "v"){
-        [ x1, y1, x2, y2, tX, tY] = [y1, x1, y2, x2, tY, tX];
+        [x1, y1, x2, y2, tX, tY] = [y1, x1, y2, x2, tY, tX];
       }
     
-      var line = eventsBoard.paper.line(x1, y1, x2, y2).attr({
+      // 创建事件线
+      var line = eventsBoard.line(x1, y1, x2, y2).attr({
         strokeWidth: 1,
-        stroke:"#aaa",
-        strokeDasharray:"5,5",
-      })
+        stroke: "#aaa",
+        strokeDasharray: "5,5",
+      });
+      
+      // 添加线到组
+      eventGroup.add(line);
 
+      // 创建事件文本
       var text = eventsBoard.text(tX, tY, evts[i].name).attr({
-            class: 'text',
-            textAnchor : Cfg.e.textAnchor,
-          });
+        class: 'text',
+        textAnchor: Cfg.e.textAnchor,
+      });
+      
+      // 添加标题
       let desc = evts[i].time + (evts[i].desc ? evts[i].desc : "");
       let title = Snap.parse('<title>'+ desc +'</title>');
-          text.append(title);
-      var g = eventsBoard.paper.g(line, text).attr({
-        class: 'events common'
-      });
+      text.append(title);
+      
+      // 添加文本到组
+      eventGroup.add(text);
     }
   }
   
@@ -473,56 +509,83 @@ function drawEvents(evts, roles){
 
 // 从角色的关键点中绘制关联事件
 function drawConnectionEvents(roles) {
+  if (!roles || !roles.length) {
+    console.warn('没有提供角色数据用于绘制关联事件');
+    return;
+  }
+
   const contentBoard = Snap("#content");
+  
+  // 创建关键点映射（只需遍历一次）
+  const keypointMap = createKeypointMap(roles);
+  
+  // 跟踪已处理的连接，避免重复
+  const processedConnections = new Set();
   let connectionCount = 0;
   
-  // 首先创建一个映射，用于存储所有关键点
-  const keypointMap = {};
-  
-  // 遍历所有角色和关键点，建立映射
+  // 遍历所有角色和关键点，查找带有 to 字段的关键点
   for (let r = 0; r < roles.length; r++) {
     const role = roles[r];
-    if (role.keypoints) {
-      for (let k = 0; k < role.keypoints.length; k++) {
-        const kp = role.keypoints[k];
-        if (kp.id) {
-          keypointMap[kp.id] = {
-            roleIndex: r,
-            keypoint: kp,
-            roleName: role.name
-          };
-        }
+    if (!role.keypoints || !role.keypoints.length) continue;
+    
+    for (let k = 0; k < role.keypoints.length; k++) {
+      const kp = role.keypoints[k];
+      if (!kp.to) continue;
+      
+      // 创建连接标识符（确保每个连接只处理一次）
+      const connectionId = `${r}-${kp.t}-${kp.to}`;
+      if (processedConnections.has(connectionId)) continue;
+      processedConnections.add(connectionId);
+      
+      // 查找目标关键点
+      const toPoint = keypointMap[kp.to];
+      if (!toPoint) {
+        console.warn(`未找到目标关键点: ${kp.to} (来自 ${role.name}, 时间 ${kp.t})`);
+        continue;
+      }
+      
+      // 准备源点和目标点数据
+      const fromPoint = {
+        roleIndex: r,
+        keypoint: kp,
+        roleName: role.name
+      };
+      
+      // 绘制连接
+      drawConnection(contentBoard, fromPoint, toPoint, connectionCount, kp.w);
+      connectionCount++;
+    }
+  }
+  
+  if (connectionCount === 0) {
+    console.info('在角色数据中未找到关联事件');
+  } else {
+    console.info(`已绘制 ${connectionCount} 个关联事件`);
+  }
+}
+
+// 创建关键点映射（辅助函数）
+function createKeypointMap(roles) {
+  const map = {};
+  
+  for (let r = 0; r < roles.length; r++) {
+    const role = roles[r];
+    if (!role.keypoints) continue;
+    
+    for (let k = 0; k < role.keypoints.length; k++) {
+      const kp = role.keypoints[k];
+      if (kp.id) {
+        // 存储完整信息，避免后续重复查找
+        map[kp.id] = {
+          roleIndex: r,
+          keypoint: kp,
+          roleName: role.name
+        };
       }
     }
   }
   
-  // 再次遍历所有角色和关键点，查找带有 to 字段的关键点
-  for (let r = 0; r < roles.length; r++) {
-    const role = roles[r];
-    if (role.keypoints) {
-      for (let k = 0; k < role.keypoints.length; k++) {
-        const kp = role.keypoints[k];
-        if (kp.to) {
-          // 找到了一个关联事件
-          const fromPoint = {
-            roleIndex: r,
-            keypoint: kp,
-            roleName: role.name
-          };
-          
-          const toPoint = keypointMap[kp.to];
-          
-          if (toPoint) {
-            // 绘制关联事件
-            drawConnection(contentBoard, fromPoint, toPoint, connectionCount, kp.w);
-            connectionCount++;
-          } else {
-            console.error(`Target keypoint not found: ${kp.to}`);
-          }
-        }
-      }
-    }
-  }
+  return map;
 }
 
 // 绘制两个关键点之间的连接
@@ -628,8 +691,8 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     }
   }
   
-  // 创建路径
-  var connPath = board.paper.path(pathStr).attr({
+  // 使用Snap.svg创建路径
+  var connPath = board.path(pathStr).attr({
     fill: "none",
     stroke: "#aaa",
     strokeWidth: 1,
@@ -637,8 +700,8 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     id: `conn-path-${index}`
   });
   
-  // 创建起点圆形
-  var startCircle = board.paper.circle(fp.x, fp.y, 2).attr({
+  // 使用Snap.svg创建起点圆形
+  var startCircle = board.circle(fp.x, fp.y, 2).attr({
     fill: "#666",
     stroke: "none"
   });
@@ -646,20 +709,20 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   // 创建箭头
   let arrowSize = 6; // 箭头大小
   let arrowPath = createArrow(tp.x, tp.y, arrowSize, arrowAngle);
-  var endArrow = board.paper.path(arrowPath).attr({
+  var endArrow = board.path(arrowPath).attr({
     fill: "#666",
     stroke: "none"
   });
   
-  // 创建文本路径
-  board.paper.path(textPathStr).attr({
+  // 使用Snap.svg创建文本路径
+  board.path(textPathStr).attr({
     id: textPathId,
     fill: "none",
     stroke: "none" // 不可见路径
   });
   
-  // 创建文本
-  var connText = board.paper.text(0, 0, "").attr({
+  // 使用Snap.svg创建文本
+  var connText = board.text(0, 0, "").attr({
     class: 'text',
     fill: "#f55",
     opacity: 0
@@ -680,12 +743,45 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   let title = Snap.parse('<title>'+ titleText +'</title>');
   connText.append(title);
   
-  // 创建组
-  var g = board.paper.g(connPath, startCircle, endArrow, connText).attr({
-    class: 'connection'
+  // 使用Snap.svg创建组
+  var g = board.g(connPath, startCircle, endArrow, connText).attr({
+    class: 'connection',
+    'data-from-role': fromPoint.roleIndex,
+    'data-to-role': toPoint.roleIndex,
+    'data-from-time': fromPoint.keypoint.t,
+    'data-to-time': toPoint.keypoint.t
   });
   
-  // 为整个连接组添加悬停效果
+  // 使用Snap.svg查找关联的两个item元素
+  function highlightRelatedItems(highlight) {
+    // 使用Snap.svg选择器查找相关元素
+    const fromSelector = `.item circle[cx="${fp.x}"][cy="${fp.y}"]`;
+    const toSelector = `.item circle[cx="${tp.x}"][cy="${tp.y}"]`;
+    
+    // 查找包含这些圆点的item元素
+    const fromCircle = board.select(fromSelector);
+    const toCircle = board.select(toSelector);
+    
+    if (fromCircle) {
+      const fromItem = fromCircle.parent().parent();
+      if (highlight) {
+        fromItem.addClass('focus');
+      } else {
+        fromItem.removeClass('focus');
+      }
+    }
+    
+    if (toCircle) {
+      const toItem = toCircle.parent().parent();
+      if (highlight) {
+        toItem.addClass('focus');
+      } else {
+        toItem.removeClass('focus');
+      }
+    }
+  }
+  
+  // 使用Snap.svg的hover方法添加悬停效果
   g.hover(
     function() {
       // 鼠标悬停时
@@ -697,6 +793,9 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       connText.attr({
         opacity: 1
       });
+      
+      // 高亮显示关联的两个item
+      highlightRelatedItems(true);
     },
     function() {
       // 鼠标离开时
@@ -708,12 +807,17 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       connText.attr({
         opacity: 0
       });
+      
+      // 移除高亮显示
+      highlightRelatedItems(false);
     }
   );
 }
 
 // 计算关键点的坐标
 function calculatePointCoordinates(roleIndex, time) {
+  const offset = window.offset || 0; // 确保offset变量可用
+  
   if (Cfg.layout == "v") {
     return {
       x: (roleIndex - offset) * 20 + 45,
@@ -780,7 +884,7 @@ function drawList(data){
   }
 
   //画分组框
-  if(Cfg.g.show ) drawItemGroup(Cfg.g.colors)
+  if(Cfg.g.show) drawItemGroup(Cfg.g.colors)
   
   //画区域框
   var periods = data.periods;
@@ -798,7 +902,8 @@ function drawItem(board, item, i, color, points) {
     return;
   }
 
-  var itemBox = board.paper.g().attr({
+  // 使用paper.g()方法创建组
+  var itemBox = board.g().attr({
     class: 'item'
   });
   
@@ -849,7 +954,6 @@ function drawItem(board, item, i, color, points) {
   }
 
   // 创建矩形，处理近似日期的渐变
-  var rect;
   let fill;
   
   // 根据start和end的近似值状态设置填充样式
@@ -868,9 +972,10 @@ function drawItem(board, item, i, color, points) {
   }
 
   // 创建矩形并应用填充样式
-  rect = board.paper.rect(x, y, w, h, 2).attr({
+  let rect = board.rect(x, y, w, h, 2).attr({
     fill: fill
   });
+  // 直接将矩形添加到组中
   itemBox.add(rect);
 
   //绘制name
@@ -879,7 +984,7 @@ function drawItem(board, item, i, color, points) {
       x1 = x + 10;
       y1 = y;
    }
-  var name = board.paper.text(x1, y1, item.name).attr({
+  var name = board.text(x1, y1, item.name).attr({
     class: "name",
     style: "text-shadow: 1px 1px "+ color + ", -1px -1px "+ color
   });
@@ -887,7 +992,8 @@ function drawItem(board, item, i, color, points) {
     show(this.parent());
     e.stopPropagation(); 
   })
-  itemBox.add(name)
+  // 直接将文本添加到组中
+  itemBox.add(name);
 
    //图标
   let x2 = x - 15, y2 = y - 13;
@@ -897,13 +1003,14 @@ function drawItem(board, item, i, color, points) {
    }
   if(item.icon){
     var url = Cfg.iconPath + item.icon + '.svg'
-    var icon = board.paper.image(url, x2, y2, 15, 12).attr({
+    var icon = board.image(url, x2, y2, 15, 12).attr({
       class:"icon",
       title:item.iconText
     });
     let title = Snap.parse('<title>'+item.iconText+'</title>');
     icon.append(title);
-    itemBox.add(icon)
+    // 直接将图标添加到组中
+    itemBox.add(icon);
   }
 
    //绘制name的desc
@@ -936,7 +1043,7 @@ function drawItem(board, item, i, color, points) {
      y3 = y - 3;
    }
 
-  let descText = board.paper.text(x3 , y3, desc).attr({
+  let descText = board.text(x3, y3, desc).attr({
       class: "descBox",
       fill:"#000",
     });
@@ -956,19 +1063,21 @@ function drawItem(board, item, i, color, points) {
          }
       }
   }
-  itemBox.add(descText)
+  // 直接将描述文本添加到组中
+  itemBox.add(descText);
 
   //keypoints
   if(points){
-    let dotBox = board.paper.g().attr({
+    // 使用g()方法创建点和连接线的组
+    let dotBox = board.g().attr({
         class:'dotBox'
       });
-    let contBox = board.paper.g().attr({
+    let contBox = board.g().attr({
         class:'contBox'
       });
 
     let [x4,y4,x5,y5] = [x,y,x,y];
-    for(let i =  points.length - 1; i >= 0 ; i--){
+    for(let i = points.length - 1; i >= 0; i--){
       let point = points[i];
       if(Cfg.layout == "v"){
          y4 = (point.t - Cfg.start) * Cfg.zoom;
@@ -979,7 +1088,7 @@ function drawItem(board, item, i, color, points) {
        }
 	   
 	   //keypoints信息
-	   let desc = point.t ;
+	   let desc = point.t;
 	       desc += item.start ? "[" + (point.t - item.start)+ "]" : "";
 	   if(point.w) {
 	     if(typeof(point.w) == 'string'){
@@ -992,13 +1101,15 @@ function drawItem(board, item, i, color, points) {
 	   
 	   //绘制点
 	   let title = Snap.parse('<title>'+desc+'</title>');
-	   let dot = board.paper.circle(x4, y4, 2).attr({
+	   let dot = board.circle(x4, y4, 2).attr({
 	     stroke:"#f00",
 	     fill:"#fff",
 	     strokeWidth: 1,
 	   });
 	   dot.append(title);
-	   dotBox.append(dot);
+	   // 直接将点添加到dotBox组中
+	   dotBox.add(dot);
+	   
 	   dotBox.click(function(e){
 	     show(this.parent());
 	     e.stopPropagation(); 
@@ -1011,14 +1122,15 @@ function drawItem(board, item, i, color, points) {
 	      y5 += 18//y + (points.length - i) * 18;
 	    }
 	   
-	   let line = board.paper.line(x4, y4, x5, y5).attr({
+	   let line = board.line(x4, y4, x5, y5).attr({
 	     stroke:"#000",
 	     strokeWidth: 2,
 	   });
+	   // 直接将线添加到contBox组中
 	   contBox.add(line);
 
       //显示信息
-      let text = board.paper.text(x5, y5, desc).attr({
+      let text = board.text(x5, y5, desc).attr({
         class:"dotText",
       });
 
@@ -1037,21 +1149,28 @@ function drawItem(board, item, i, color, points) {
              }
           }
       }
+      // 直接将文本添加到contBox组中
       contBox.add(text);
     }
+    // 将dotBox和contBox组添加到itemBox组中
     itemBox.add(dotBox);
-    itemBox.add(contBox)
+    itemBox.add(contBox);
   }
 
   //groups
   if(!!item.groups){
     var gp = item.groups[0];
     if(!(gp in area)) {
-       area[gp] = board.paper.g().attr({
+       // 使用g()方法创建组
+       area[gp] = board.g().attr({
         class:"group "+ gp,
-      })
+      });
     }
+    // 将itemBox组添加到area[gp]组中
     area[gp].add(itemBox);
+  } else {
+    // 如果没有组，直接将itemBox添加到board
+    board.add(itemBox);
   }
 }
 
@@ -1063,7 +1182,9 @@ function drawItemGroup(color){
         y = itemBox.y + 1,
         w = itemBox.width + 4,
         h = itemBox.height - 1;
-    let rect = board.paper.rect(x,y,w,h,5).attr({
+    
+    // 创建组框矩形
+    let rect = board.rect(x, y, w, h, 5).attr({
         class: "block",
         stroke: "#fff",
         fill: color[i],
@@ -1072,11 +1193,11 @@ function drawItemGroup(color){
     }).hover(function() {
         this.animate({
            fillOpacity: 0.5    
-        },300); 
+        }, 300); 
     }, function() {
         this.animate({
             fillOpacity: 0.2    
-        },300); 
+        }, 300); 
     });
 
     // 分组title
@@ -1084,12 +1205,16 @@ function drawItemGroup(color){
     if(Cfg.layout == "v"){
       x1 = x + w/2;
       y1 = y - 2;
-   }
-    var name = board.paper.text( x1 , y1, i).attr({
+    }
+    
+    // 创建标题文本
+    var name = board.text(x1, y1, i).attr({
       class: "title",
-      fill:"#000",
+      fill: "#000",
       style: "text-shadow: 1px 1px "+ color[i] + ", -1px -1px "+ color[i]
     });
+    
+    // 使用prepend方法将元素添加到组的开头，确保它们在视觉上位于组的底层
     area[i].prepend(name);
     area[i].prepend(rect);
   }
