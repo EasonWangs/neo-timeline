@@ -762,9 +762,14 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
         strokeWidth: 1.5,
         strokeDasharray: "3,3"
       });
-      // connText.attr({
-      //   opacity: 1
-      // });
+      
+      // 高亮相关联的两个元素
+      let fromElement = board.select(`#${fromPoint.roleName}`);
+      let toElement = board.select(`#${toPoint.roleName}`);
+      
+      if(fromElement) show(fromElement);
+      if(toElement) show(toElement);
+      
     },
     function() {
       // 鼠标离开时
@@ -773,9 +778,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
         strokeWidth: 1,
         strokeDasharray: "2,2"
       });
-      // connText.attr({
-      //   opacity: 0
-      // });
+      hide();
     }
   );
 }
