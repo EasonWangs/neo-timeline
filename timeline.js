@@ -746,41 +746,11 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   // 使用Snap.svg创建组
   var g = board.g(connPath, startCircle, endArrow, connText).attr({
     class: 'connection',
-    'data-from-role': fromPoint.roleIndex,
-    'data-to-role': toPoint.roleIndex,
-    'data-from-time': fromPoint.keypoint.t,
-    'data-to-time': toPoint.keypoint.t
+    'data-from-role': fromPoint.keypoint.id,
+    'data-to-role': toPoint.keypoint.id
   });
   
-  // 使用Snap.svg查找关联的两个item元素
-  function highlightRelatedItems(highlight) {
-    // 使用Snap.svg选择器查找相关元素
-    const fromSelector = `.item circle[cx="${fp.x}"][cy="${fp.y}"]`;
-    const toSelector = `.item circle[cx="${tp.x}"][cy="${tp.y}"]`;
-    
-    // 查找包含这些圆点的item元素
-    const fromCircle = board.select(fromSelector);
-    const toCircle = board.select(toSelector);
-    
-    if (fromCircle) {
-      const fromItem = fromCircle.parent().parent();
-      if (highlight) {
-        fromItem.addClass('focus');
-      } else {
-        fromItem.removeClass('focus');
-      }
-    }
-    
-    if (toCircle) {
-      const toItem = toCircle.parent().parent();
-      if (highlight) {
-        toItem.addClass('focus');
-      } else {
-        toItem.removeClass('focus');
-      }
-    }
-  }
-  
+ 
   // 使用Snap.svg的hover方法添加悬停效果
   g.hover(
     function() {
@@ -790,12 +760,9 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
         strokeWidth: 1.5,
         strokeDasharray: "3,3"
       });
-      connText.attr({
-        opacity: 1
-      });
-      
-      // 高亮显示关联的两个item
-      highlightRelatedItems(true);
+      // connText.attr({
+      //   opacity: 1
+      // });
     },
     function() {
       // 鼠标离开时
@@ -804,12 +771,9 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
         strokeWidth: 1,
         strokeDasharray: "2,2"
       });
-      connText.attr({
-        opacity: 0
-      });
-      
-      // 移除高亮显示
-      highlightRelatedItems(false);
+      // connText.attr({
+      //   opacity: 0
+      // });
     }
   );
 }
