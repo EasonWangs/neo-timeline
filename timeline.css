@@ -86,7 +86,7 @@ height:100%;
 .content .group
 {
   position: relative;
-  pointer-events: none;
+  pointer-events: auto;
 }
  .group .title
 {

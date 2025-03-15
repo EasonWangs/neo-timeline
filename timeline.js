@@ -881,26 +881,28 @@ function drawList(data){
 
 //绘制个体
 function drawItem(board, item, i, color, points) {
-  if (!item || !board) {
-    console.error('Invalid parameters:', {board, item, i, color});
-    return;
-  }
-
-  // 使用paper.g()方法创建组
+  if (!item) return;
+  
+  // 使用 Cfg.size 作为基础间距，默认值为 20
+  const itemSpacing = Cfg.size || 20;
+ 
   var itemBox = board.g().attr({
-    class: 'item',
-    id: item.id || item.name // 使用id或name作为元素id
+    class:"item",
+    id: item.id || item.name
   });
-  
-  if(item.offset) offset += item.offset;
-  var y = (i - offset) * 20 + 45;
 
-  // 解析日期并获取位置
-  const startDate = parseDate(item.start);
-  const endDate = parseDate(item.end);
-  
+ 
+
+  if(item.offset) offset += item.offset;
   // 计算x坐标和宽度
-  let x, w, h = 2;
+  let w, h = 2;
+  var x = (item.start - Cfg.start) * Cfg.zoom,
+  y = (i - offset) * itemSpacing + 45; // 使用 itemSpacing 替换固定值
+
+   // 解析日期并获取位置
+   const startDate = parseDate(item.start);
+   const endDate = parseDate(item.end);
+   
   
   if (startDate) {
     x = getDatePosition(startDate, Cfg.zoom);
@@ -980,12 +982,14 @@ function drawItem(board, item, i, color, points) {
   // 直接将文本添加到组中
   itemBox.add(name);
 
-   //图标
+
+     //图标
   let x2 = x - 15, y2 = y - 13;
   if(Cfg.layout == "v"){
       x2 = x + 2;
       y2 = y - 13;
    }
+
   if(item.icon){
     var url = Cfg.iconPath + item.icon + '.svg'
     var icon = board.image(url, x2, y2, 15, 12).attr({
@@ -1103,9 +1107,9 @@ function drawItem(board, item, i, color, points) {
 	   
 	   //绘制线
 	    if(Cfg.layout == "v"){
-	      x5 -= 18 //x - (points.length - 1 - i) * 18 - 10;
+	      x5 -= itemSpacing - 2; // 使用 Cfg.size 计算线的长度
 	    }else if(Cfg.layout == "h"){
-	      y5 += 18//y + (points.length - i) * 18;
+	      y5 += itemSpacing - 2; // 使用 Cfg.size 计算线的长度
 	    }
 	   
 	   let line = board.line(x4, y4, x5, y5).attr({
@@ -1128,10 +1132,10 @@ function drawItem(board, item, i, color, points) {
                 y: y5
              })
             if(Cfg.layout == "v"){
-               x5 -= 16
-			   y5 -= 136
+               x5 -= itemSpacing - 4 // 使用 Cfg.size 计算文本间距
+			   y5 -= itemSpacing * 6.8 // 使用 Cfg.size 计算文本垂直间距
              }else if(Cfg.layout == "h"){
-               y5 += 16
+               y5 += itemSpacing - 4 // 使用 Cfg.size 计算文本间距
              }
           }
       }
