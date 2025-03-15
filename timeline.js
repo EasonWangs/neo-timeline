@@ -746,8 +746,10 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   // 使用Snap.svg创建组
   var g = board.g(connPath, startCircle, endArrow, connText).attr({
     class: 'connection',
-    'data-from-role': fromPoint.keypoint.id,
-    'data-to-role': toPoint.keypoint.id
+    'data-from-role': fromPoint.roleName,
+    'data-to-role': toPoint.roleName,
+    'data-from-event': fromPoint.keypoint.id,
+    'data-to-event': toPoint.keypoint.id
   });
   
  
@@ -868,7 +870,8 @@ function drawItem(board, item, i, color, points) {
 
   // 使用paper.g()方法创建组
   var itemBox = board.g().attr({
-    class: 'item'
+    class: 'item',
+    id: item.id || item.name // 使用id或name作为元素id
   });
   
   if(item.offset) offset += item.offset;
