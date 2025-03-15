@@ -1254,31 +1254,32 @@ function resize(){
 
 
 function show(that,i){
-  if(board.select(".show")) {
-      board.select(".show").attr({
-        class:"item"
-      })
-    };
 	let pointNode = that.selectAll(".dotText").items;
 	console.log(pointNode[2])
 	// that.select(".dotText")[i].attr({
 	//   class:"currPoint"
 	// });
+  board.attr({
+    class:"content focus"
+  })
+  if(that.hasClass("show")) {
+    //如果已经高亮了，则取消高亮
+    that.attr({
+      class:"item"
+    });
+  }else{
     that.attr({
       class:"item show"
     });
-    board.attr({
-      class:"content focus"
-    })
+  }
+  
 }
 
 function hide(){
 	board.attr({
       class:"content"
     })
-    if(board.select(".show")) {
-      board.select(".show").attr({
-        class:"item"
-      })
-    };
+  board.selectAll(".show").attr({
+    class:"item"
+  })
 }
