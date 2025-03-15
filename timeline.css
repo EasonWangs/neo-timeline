@@ -14,8 +14,6 @@ height:100%;
   position: fixed;
   z-index: 4;
   left:0;
-  background: #383838;
-  opacity: .8;
   font-size: 8px;
 }
 .svgBg{
@@ -23,7 +21,6 @@ height:100%;
   z-index: 0;
   top: 0;
   left: 0;
-  background-color: #faf7ec;
   /*background-image: url("./spring/images/spring.jpg");*/
   background-size: contain;
   background-attachment: fixed;

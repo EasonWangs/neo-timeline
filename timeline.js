@@ -22,7 +22,12 @@ function drawRuler(w,h) {
     o.hm = o.hm || Math.max(1, Math.floor(o.hs / suggestedDivisions));
     rh = Snap(w, 25).attr({
       id:"ruler-h",
-      class:"ruler"
+      class:"ruler",
+    });
+    // 添加背景矩形
+    rh.rect(0, 0, w, 25).attr({
+      fill: Cfg.rulerBg || "#383838",
+      fillOpacity: 0.8
     });
     for(var i = 0; i < w / Cfg.zoom; i += o.hm){
       let x =  i * Cfg.zoom;
@@ -87,6 +92,11 @@ function drawRuler(w,h) {
       id:"ruler-v",
       class:"ruler"
     });
+    // 添加背景矩形
+    rv.rect(0, 0, 25, h).attr({
+      fill: Cfg.rulerBg || "#383838",
+      fillOpacity: 0.8
+    });
     for (var i = 0; i < h / Cfg.zoom; i += o.vm) {
       let y = i * Cfg.zoom;
       if(i % o.vs == 0){ 
@@ -142,6 +152,11 @@ function drawRuler(w,h) {
    // svg绘制背景网格
   svgBg = Snap(w,h).attr({
     class:"svgBg"
+  });
+  
+  // 添加背景矩形
+  svgBg.rect(0, 0, w, h).attr({
+    fill: Cfg.svgBg || "#faf7ec"
   });
 
   if(!o.hm){
