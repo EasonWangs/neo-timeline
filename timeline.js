@@ -767,8 +767,8 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       let fromElement = board.select(`#${fromPoint.roleName}`);
       let toElement = board.select(`#${toPoint.roleName}`);
       
-      if(fromElement) show(fromElement);
-      if(toElement) show(toElement);
+      if(fromElement) show(fromElement,-1);
+      if(toElement) show(toElement,-1);
       
     },
     function() {
@@ -1081,7 +1081,7 @@ function drawItem(board, item, i, color, points) {
 	   dotBox.add(dot);
 	   
 	   dotBox.click(function(e){
-	     show(this.parent());
+	     show(this.parent(),i);
 	     e.stopPropagation(); 
 	   })
 	   
@@ -1262,9 +1262,15 @@ function show(that,i){
 	// that.select(".dotText")[i].attr({
 	//   class:"currPoint"
 	// });
-  board.attr({
-    class:"content focus"
-  })
+  if(i == -1){
+    board.attr({
+      class:"content focus focus-item"
+    })
+  }else{
+    board.attr({
+      class:"content focus"
+    })
+  }
   if(that.hasClass("show")) {
     //如果已经高亮了，则取消高亮
     that.attr({

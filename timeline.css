@@ -113,6 +113,13 @@ height:100%;
   text-shadow: 3px 3px 3px #eee;
 }
 
+
+.content.focus .item{
+  opacity: 0.2;
+}
+.content.focus .show{
+  opacity: 1;
+}
 .item .contBox,.item .descBox
 {
   display: none;
@@ -121,11 +128,8 @@ height:100%;
 {
   display: block;
 }
-.content.focus .item{
-  opacity: 0.2;
-}
-.content.focus .show{
-  opacity: 1;
+.content.focus-item .item .contBox,.content.focus-item .item .descBox{
+  display: none;
 }
 
 .currPoint{}
