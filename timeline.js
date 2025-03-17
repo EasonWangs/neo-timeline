@@ -529,7 +529,6 @@ function drawConnectionEvents(roles) {
     return;
   }
 
-  const contentBoard = Snap("#content");
   
   // 创建关键点映射（只需遍历一次）
   const keypointMap = createKeypointMap(roles);
@@ -567,7 +566,7 @@ function drawConnectionEvents(roles) {
       };
       
       // 绘制连接
-      drawConnection(contentBoard, fromPoint, toPoint, connectionCount, kp.w);
+      drawConnection(board, fromPoint, toPoint, connectionCount, kp.w);
       connectionCount++;
     }
   }
@@ -605,9 +604,25 @@ function createKeypointMap(roles) {
 
 // 绘制两个关键点之间的连接
 function drawConnection(board, fromPoint, toPoint, index, name) {
-  // 计算起点和终点的坐标
-  let fp = calculatePointCoordinates(fromPoint.roleIndex, fromPoint.keypoint.t);
-  let tp = calculatePointCoordinates(toPoint.roleIndex, toPoint.keypoint.t);
+  // 通过id查找起点和终点的dot元素
+  const fromDot = board.select(`#${fromPoint.keypoint.id}`);
+  const toDot = board.select(`#${toPoint.keypoint.id}`);
+  
+  if (!fromDot || !toDot) {
+    console.warn('找不到连接点:', fromPoint.keypoint.id, toPoint.keypoint.id);
+    return;
+  }
+  
+  // 获取点的坐标并确保是数值类型
+  const fp = {
+    x: parseFloat(fromDot.attr('cx')) || 0,
+    y: parseFloat(fromDot.attr('cy')) || 0
+  };
+  
+  const tp = {
+    x: parseFloat(toDot.attr('cx')) || 0,
+    y: parseFloat(toDot.attr('cy')) || 0
+  };
   
   // 确保点的顺序是从上到下或从左到右
   if (Cfg.layout == "v" && fp.y > tp.y) {
@@ -628,42 +643,61 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   let textPathId = `text-path-${index}`;
   let arrowAngle = 0;
   
+  // 辅助函数：确保坐标是有效数字
+  const ensureNumber = (value) => {
+    const num = parseFloat(value);
+    return isFinite(num) ? num : 0;
+  };
+  
+  // 辅助函数：格式化路径坐标
+  const formatPoint = (x, y) => `${ensureNumber(x)},${ensureNumber(y)}`;
+  
   if (Cfg.layout == "v") {
     if (Math.abs(fp.y - tp.y) < 1) {
       // S形曲线，水平方向
       const direction = (index % 2 === 0) ? 1 : -1;
       const offset = 30; // 垂直偏移量
       
+      // 计算控制点坐标
+      const cp1x = ensureNumber(fp.x + dx_dist/4);
+      const cp1y = ensureNumber(fp.y + offset * direction);
+      const cp2x = ensureNumber(tp.x - dx_dist/4);
+      const cp2y = ensureNumber(tp.y + offset * direction);
+      
       // 创建 S 形曲线
-      pathStr = `M${fp.x},${fp.y} ` +
-                `C${fp.x + dx_dist/4},${fp.y + offset * direction} ` +
-                `${tp.x - dx_dist/4},${tp.y + offset * direction} ` +
-                `${tp.x},${tp.y}`;
+      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+                `C${formatPoint(cp1x, cp1y)} ` +
+                `${formatPoint(cp2x, cp2y)} ` +
+                `${formatPoint(tp.x, tp.y)}`;
       
       // 为文本创建平滑的曲线路径
       textPathStr = pathStr;
       
       // 计算终点处的切线方向
-      const dx_tangent = tp.x - (tp.x - dx_dist/4);
-      const dy_tangent = tp.y - (tp.y + offset * direction);
+      const dx_tangent = ensureNumber(tp.x - (tp.x - dx_dist/4));
+      const dy_tangent = ensureNumber(tp.y - (tp.y + offset * direction));
       arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
     } else {
       // 正常曲线
       const direction = (index % 2 === 0) ? -1 : 1;
       const ctrlOffset = Math.min(dx_dist * 0.8, 40); // 最大偏移40px
       
+      // 计算控制点坐标
+      const cp1y = ensureNumber(fp.y + ctrlOffset * direction);
+      const cp2y = ensureNumber(tp.y + ctrlOffset * direction);
+      
       // 创建三次贝塞尔曲线
-      pathStr = `M${fp.x},${fp.y} ` +
-                `C${fp.x},${fp.y + ctrlOffset * direction} ` +
-                `${tp.x},${tp.y + ctrlOffset * direction} ` +
-                `${tp.x},${tp.y}`;
+      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+                `C${formatPoint(fp.x, cp1y)} ` +
+                `${formatPoint(tp.x, cp2y)} ` +
+                `${formatPoint(tp.x, tp.y)}`;
       
       // 为文本创建平滑的曲线路径
       textPathStr = pathStr;
       
       // 计算终点处的切线方向
-      const dx_tangent = tp.x - (tp.x + ctrlOffset * direction);
-      const dy_tangent = tp.y - tp.y;
+      const dx_tangent = ensureNumber(tp.x - (tp.x + ctrlOffset * direction));
+      const dy_tangent = ensureNumber(tp.y - tp.y);
       arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
     }
   } else {
@@ -672,36 +706,46 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       const direction = (index % 2 === 0) ? -1 : 1;
       const offset = 30; // 水平偏移量
       
+      // 计算控制点坐标
+      const cp1x = ensureNumber(fp.x + offset * direction);
+      const cp1y = ensureNumber(fp.y + dy_dist/4);
+      const cp2x = ensureNumber(tp.x + offset * direction);
+      const cp2y = ensureNumber(tp.y - dy_dist/4);
+      
       // 创建 S 形曲线
-      pathStr = `M${fp.x},${fp.y} ` +
-                `C${fp.x + offset * direction},${fp.y + dy_dist/4} ` +
-                `${tp.x + offset * direction},${tp.y - dy_dist/4} ` +
-                `${tp.x},${tp.y}`;
+      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+                `C${formatPoint(cp1x, cp1y)} ` +
+                `${formatPoint(cp2x, cp2y)} ` +
+                `${formatPoint(tp.x, tp.y)}`;
       
       // 为文本创建平滑的曲线路径
       textPathStr = pathStr;
       
       // 计算终点处的切线方向
-      const dx_tangent = tp.x - (tp.x + offset * direction);
-      const dy_tangent = tp.y - (tp.y - dy_dist/4);
+      const dx_tangent = ensureNumber(tp.x - (tp.x + offset * direction));
+      const dy_tangent = ensureNumber(tp.y - (tp.y - dy_dist/4));
       arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
     } else {
       // 正常曲线
       const direction = (index % 2 === 0) ? 1 : -1;
       const ctrlOffset = Math.min(dy_dist * 0.8, 40); // 最大偏移40px
       
+      // 计算控制点坐标
+      const cp1y = ensureNumber(fp.y + ctrlOffset * direction);
+      const cp2y = ensureNumber(tp.y + ctrlOffset * direction);
+      
       // 创建三次贝塞尔曲线
-      pathStr = `M${fp.x},${fp.y} ` +
-                `C${fp.x},${fp.y + ctrlOffset * direction} ` +
-                `${tp.x},${tp.y + ctrlOffset * direction} ` +
-                `${tp.x},${tp.y}`;
+      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+                `C${formatPoint(fp.x, cp1y)} ` +
+                `${formatPoint(tp.x, cp2y)} ` +
+                `${formatPoint(tp.x, tp.y)}`;
       
       // 为文本创建平滑的曲线路径
       textPathStr = pathStr;
       
       // 计算终点处的切线方向
-      const dx_tangent = tp.x - tp.x;
-      const dy_tangent = tp.y - (tp.y + ctrlOffset * direction);
+      const dx_tangent = ensureNumber(tp.x - tp.x);
+      const dy_tangent = ensureNumber(tp.y - (tp.y + ctrlOffset * direction));
       arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
     }
   }
