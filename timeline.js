@@ -1132,59 +1132,68 @@ function drawItem(board, item, i, color, points) {
 	     }
 	   }
 	   
-	   //绘制点
+	   //绘制点和线
 	   let title = Snap.parse('<title>'+desc+'</title>');
 	   let dot = board.circle(x4, y4, 2).attr({
 	     stroke:"#f00",
 	     fill:"#fff",
 	     strokeWidth: 1,
-       id: point.id || '' // 为每个点添加 id 属性
+       id: point.id || '', // 为每个点添加 id 属性
+       'data-index': i // 添加索引属性
 	   });
 	   dot.append(title);
-	   // 直接将点添加到dotBox组中
-	   dotBox.add(dot);
 	   
-	   dotBox.click(function(e){
-	     show(this.parent(),i);
+	   // 将点击事件绑定到单个dot上，而不是整个dotBox
+	   dot.click(function(e){
+	     show(this.parent().parent(), this.attr('data-index'));
 	     e.stopPropagation(); 
-	   })
+	   });
+	   dotBox.add(dot);
+	   //绘制线和文本
+	   if(Cfg.layout == "v"){
+	     x5 -= itemSpacing - 2; // 使用 Cfg.size 计算线的长度
+	   }else if(Cfg.layout == "h"){
+	     y5 += itemSpacing - 2; // 使用 Cfg.size 计算线的长度
+	   }
 	   
-	   //绘制线
-	    if(Cfg.layout == "v"){
-	      x5 -= itemSpacing - 2; // 使用 Cfg.size 计算线的长度
-	    }else if(Cfg.layout == "h"){
-	      y5 += itemSpacing - 2; // 使用 Cfg.size 计算线的长度
-	    }
+	   // 为每组line和text创建一个组
+	   let lineTextGroup = board.g().attr({
+	     class: 'contGroup'
+	   });
 	   
+	   // 绘制线
 	   let line = board.line(x4, y4, x5, y5).attr({
 	     stroke:"#000",
 	     strokeWidth: 2,
 	   });
-	   // 直接将线添加到contBox组中
-	   contBox.add(line);
-
-      //显示信息
-      let text = board.text(x5, y5, desc).attr({
-        class:"dotText",
-      });
-
-      let tspan = text.selectAll('tspan').items;
-      if(tspan.length > 0){
-          for(let i in tspan){
-            tspan[i].attr({
-                x: x5,
-                y: y5
-             })
-            if(Cfg.layout == "v"){
-               x5 -= itemSpacing - 4 // 使用 Cfg.size 计算文本间距
-			   y5 -= itemSpacing * 6.8 // 使用 Cfg.size 计算文本垂直间距
-             }else if(Cfg.layout == "h"){
-               y5 += itemSpacing - 4 // 使用 Cfg.size 计算文本间距
-             }
-          }
-      }
-      // 直接将文本添加到contBox组中
-      contBox.add(text);
+	   
+	   //显示信息
+	   let text = board.text(x5, y5, desc).attr({
+	     class:"dotText",
+	   });
+	   
+	   let tspan = text.selectAll('tspan').items;
+	   if(tspan.length > 0){
+	     for(let i in tspan){
+	       tspan[i].attr({
+	         x: x5,
+	         y: y5
+	       })
+	       if(Cfg.layout == "v"){
+	         x5 -= itemSpacing - 4 // 使用 Cfg.size 计算文本间距
+	         y5 -= itemSpacing * 6.8 // 使用 Cfg.size 计算文本垂直间距
+	       }else if(Cfg.layout == "h"){
+	         y5 += itemSpacing - 4 // 使用 Cfg.size 计算文本间距
+	       }
+	     }
+	   }
+	   
+	   // 将line和text添加到组中
+	   lineTextGroup.add(line);
+	   lineTextGroup.add(text);
+	   
+	   // 将组添加到contBox中
+	   contBox.add(lineTextGroup);
     }
     // 将dotBox和contBox组添加到itemBox组中
     itemBox.add(dotBox);
@@ -1321,12 +1330,18 @@ function resize(){
 
 
 function show(that,i){
-	let pointNode = that.selectAll(".dotText").items;
-	console.log(pointNode[2])
-	// that.select(".dotText")[i].attr({
-	//   class:"currPoint"
-	// });
-  if(i == -1){
+	let pointNode = that.selectAll(".contGroup").items;
+  let len = pointNode.length;
+  board.selectAll(".currPoint").attr({
+    class:"contGroup"
+  })
+  let currPoint = pointNode[len - i - 1];
+	if(currPoint){
+    currPoint.attr({
+      class:"contGroup currPoint"
+    });
+  }
+  if(i != undefined){ // 只显示 item。不显示 point
     board.attr({
       class:"content focus focus-item"
     })

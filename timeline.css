@@ -117,19 +117,21 @@ height:100%;
 .content.focus .show{
   opacity: 1;
 }
-.item .contBox,.item .descBox
+.item .contGroup,.item .descBox
 {
   display: none;
 }
-.show .contBox,.show .descBox
+.show .contGroup,.show .descBox
 {
   display: block;
 }
-.content.focus-item .item .contBox,.content.focus-item .item .descBox{
+.content.focus-item .item .contGroup,.content.focus-item .item .descBox{
   display: none;
 }
 
-.currPoint{}
+.content.focus-item .item .currPoint {
+  display: block;
+}
 
 .vertical .name,.vertical .descBox, .vertical .dotText{
   writing-mode: tb-rl
