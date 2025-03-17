@@ -773,33 +773,21 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     stroke: "none"
   });
   
-  // 使用Snap.svg创建文本路径
-  board.path(textPathStr).attr({
-    id: textPathId,
-    fill: "none",
-    stroke: "none" // 不可见路径
-  });
-  
-  // 使用Snap.svg创建文本
-  var connText = board.text(0, 0, "").attr({
+  // 使用连接线路径作为文本路径
+  let text = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
+  var connText = board.text(0, 0, text).attr({
     class: 'text',
     fill: "#f55",
-    opacity: 0
+    opacity: 0,
+    textpath: {
+      path: connPath,
+      startOffset: '50%',
+      'text-anchor': 'middle'
+    }
   });
   
-  // 创建textPath元素
-  var textPath = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
-  textPath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${textPathId}`);
-  textPath.textContent = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
-  textPath.setAttribute("startOffset", "50%");
-  textPath.setAttribute("text-anchor", "middle");
-  
-  // 将textPath添加到文本元素
-  connText.node.appendChild(textPath);
-  
   // 添加title元素，内容使用w字段
-  let titleText = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
-  let title = Snap.parse('<title>'+ titleText +'</title>');
+  let title = Snap.parse('<title>'+ text +'</title>');
   connText.append(title);
   
   // 使用Snap.svg创建组
@@ -822,8 +810,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       g.removeClass('active');
       connPath.attr({
         stroke: "#aaa",
-        strokeWidth: 1,
-        strokeDasharray: "2,2"
       });
       hide();
     } else {
@@ -833,16 +819,12 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
         activeConn.removeClass('active');
         activeConn.select('path').attr({
           stroke: "#aaa",
-          strokeWidth: 1,
-          strokeDasharray: "2,2"
         });
       });
       
       g.addClass('active');
       connPath.attr({
         stroke: "#f55",
-        strokeWidth: 1.5,
-        strokeDasharray: "3,3"
       });
       
       // 高亮相关联的两个元素
@@ -853,6 +835,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       if(toElement) show(toElement,-1);
     }
   });
+
 }
 
 // 计算关键点的坐标
@@ -947,8 +930,6 @@ function drawItem(board, item, i, color, points) {
     class:"item",
     id: item.id || item.name
   });
-
- 
 
   if(item.offset) offset += item.offset;
   // 计算x坐标和宽度
