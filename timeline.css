@@ -74,6 +74,7 @@ height:100%;
 .connection .text{
   pointer-events: auto ;
   writing-mode: vertical-rl;
+  cursor: pointer;
 }
 
 .content{

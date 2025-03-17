@@ -811,11 +811,34 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     'data-to-event': toPoint.keypoint.id
   });
   
- 
-  // 使用Snap.svg的hover方法添加悬停效果
-  g.hover(
-    function() {
-      // 鼠标悬停时
+  // 为连接线组添加点击事件
+  g.click(function(e) {
+    // 阻止事件冒泡
+    e.stopPropagation();
+    
+    // 检查是否已经处于高亮状态
+    if (g.hasClass('active')) {
+      // 如果已经高亮，则恢复默认状态
+      g.removeClass('active');
+      connPath.attr({
+        stroke: "#aaa",
+        strokeWidth: 1,
+        strokeDasharray: "2,2"
+      });
+      hide();
+    } else {
+      // 如果未高亮，则设置高亮状态
+      // 先清除其他连接线的高亮状态
+      board.selectAll('.connection.active').forEach(function(activeConn) {
+        activeConn.removeClass('active');
+        activeConn.select('path').attr({
+          stroke: "#aaa",
+          strokeWidth: 1,
+          strokeDasharray: "2,2"
+        });
+      });
+      
+      g.addClass('active');
       connPath.attr({
         stroke: "#f55",
         strokeWidth: 1.5,
@@ -828,18 +851,8 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       
       if(fromElement) show(fromElement,-1);
       if(toElement) show(toElement,-1);
-      
-    },
-    function() {
-      // 鼠标离开时
-      connPath.attr({
-        stroke: "#aaa",
-        strokeWidth: 1,
-        strokeDasharray: "2,2"
-      });
-      hide();
     }
-  );
+  });
 }
 
 // 计算关键点的坐标
