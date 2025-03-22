@@ -623,6 +623,18 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     x: parseFloat(toDot.attr('cx')) || 0,
     y: parseFloat(toDot.attr('cy')) || 0
   };
+
+  // 添加偏移量
+  const offset = 2; // 设置偏移距离
+  if (Cfg.layout == "v") {
+    // 垂直布局时，水平方向偏移
+    fp.x -= offset;
+    tp.x += offset;
+  } else {
+    // 水平布局时，垂直方向偏移
+    fp.y += offset;
+    tp.y -= offset;
+  }
   
   // 确保点的顺序是从上到下或从左到右
   if (Cfg.layout == "v" && fp.y > tp.y) {
@@ -746,12 +758,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     id: textPathId  // 使用 textPathId 作为路径ID
   });
   
-  // 使用Snap.svg创建起点圆形
-  var startCircle = board.circle(fp.x, fp.y, 2).attr({
-    fill: "#666",
-    stroke: "none"
-  });
-  
+
   // 创建箭头
   let arrowSize = 6; // 箭头大小
   let arrowPath = createArrow(tp.x, tp.y, arrowSize, arrowAngle);
@@ -771,7 +778,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   });
   
   // 使用Snap.svg创建组
-  var g = board.g(connPath, startCircle, endArrow, connText).attr({
+  var g = board.g(connPath, endArrow, connText).attr({
     class: 'connection',
     'data-from-role': fromPoint.roleName,
     'data-to-role': toPoint.roleName,
@@ -874,26 +881,29 @@ function createArrow(x, y, size, angle) {
 // 创建文本路径的辅助函数
 function createTextPath(board, pathId, text, options = {}) {
   // 创建文本元素
-  const textElement = board.text(0, 0, "").attr({
+  const textElement = board.text(0, 0, text).attr({
     class: 'text',
     fill: options.fill || "#f55",
     opacity: options.opacity || 0
   });
 
-  // 创建textPath元素
-  const textPath = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
-  textPath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${pathId}`);
-  textPath.textContent = text;
-  textPath.setAttribute("startOffset", options.startOffset || "50%");
-  textPath.setAttribute("text-anchor", options.textAnchor || "middle");
+  // 创建 textPath 元素
+  const textPath = board.el('textPath', {
+    'xlink:href': `#${pathId}`,
+    startOffset: options.startOffset || "50%",
+    'text-anchor': options.textAnchor || "middle"
+  });
 
-  // 将textPath添加到文本元素
-  textElement.node.appendChild(textPath);
+  // 设置文本内容
+  textPath.node.textContent = text;
+
+  // 将 textPath 添加到文本元素
+  textElement.node.textContent = '';  // 清除原有文本
+  textElement.node.appendChild(textPath.node);
 
   // 如果提供了title，添加title元素
   if (options.title) {
-    let title = Snap.parse('<title>'+ options.title +'</title>');
-    textElement.append(title);
+    textElement.append(Snap.parse('<title>'+ options.title +'</title>'));
   }
 
   return textElement;
