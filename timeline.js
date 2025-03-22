@@ -639,7 +639,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   
   // 创建曲线路径
   let pathStr;
-  let textPathStr;
   let textPathId = `text-path-${index}`;
   let arrowAngle = 0;
   
@@ -670,9 +669,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
                 `${formatPoint(cp2x, cp2y)} ` +
                 `${formatPoint(tp.x, tp.y)}`;
       
-      // 为文本创建平滑的曲线路径
-      textPathStr = pathStr;
-      
       // 计算终点处的切线方向
       const dx_tangent = ensureNumber(tp.x - (tp.x - dx_dist/4));
       const dy_tangent = ensureNumber(tp.y - (tp.y + offset * direction));
@@ -691,9 +687,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
                 `C${formatPoint(fp.x, cp1y)} ` +
                 `${formatPoint(tp.x, cp2y)} ` +
                 `${formatPoint(tp.x, tp.y)}`;
-      
-      // 为文本创建平滑的曲线路径
-      textPathStr = pathStr;
       
       // 计算终点处的切线方向
       const dx_tangent = ensureNumber(tp.x - (tp.x + ctrlOffset * direction));
@@ -718,9 +711,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
                 `${formatPoint(cp2x, cp2y)} ` +
                 `${formatPoint(tp.x, tp.y)}`;
       
-      // 为文本创建平滑的曲线路径
-      textPathStr = pathStr;
-      
       // 计算终点处的切线方向
       const dx_tangent = ensureNumber(tp.x - (tp.x + offset * direction));
       const dy_tangent = ensureNumber(tp.y - (tp.y - dy_dist/4));
@@ -740,9 +730,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
                 `${formatPoint(tp.x, cp2y)} ` +
                 `${formatPoint(tp.x, tp.y)}`;
       
-      // 为文本创建平滑的曲线路径
-      textPathStr = pathStr;
-      
       // 计算终点处的切线方向
       const dx_tangent = ensureNumber(tp.x - tp.x);
       const dy_tangent = ensureNumber(tp.y - (tp.y + ctrlOffset * direction));
@@ -756,7 +743,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     stroke: "#aaa",
     strokeWidth: 1,
     strokeDasharray: "2,2",
-    id: `conn-path-${index}`
+    id: textPathId  // 使用 textPathId 作为路径ID
   });
   
   // 使用Snap.svg创建起点圆形
@@ -773,22 +760,15 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     stroke: "none"
   });
   
-  // 使用连接线路径作为文本路径
-  let text = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
-  var connText = board.text(0, 0, text).attr({
-    class: 'text',
+  // 使用封装的函数创建文本路径
+  const titleText = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
+  const connText = createTextPath(board, textPathId, titleText, {
     fill: "#f55",
     opacity: 0,
-    textpath: {
-      path: connPath,
-      startOffset: '50%',
-      'text-anchor': 'middle'
-    }
+    startOffset: "50%",
+    textAnchor: "middle",
+    title: titleText
   });
-  
-  // 添加title元素，内容使用w字段
-  let title = Snap.parse('<title>'+ text +'</title>');
-  connText.append(title);
   
   // 使用Snap.svg创建组
   var g = board.g(connPath, startCircle, endArrow, connText).attr({
@@ -889,6 +869,34 @@ function createArrow(x, y, size, angle) {
   
   // 生成SVG路径
   return `M${points[0].x},${points[0].y} L${points[1].x},${points[1].y} L${points[2].x},${points[2].y} Z`;
+}
+
+// 创建文本路径的辅助函数
+function createTextPath(board, pathId, text, options = {}) {
+  // 创建文本元素
+  const textElement = board.text(0, 0, "").attr({
+    class: 'text',
+    fill: options.fill || "#f55",
+    opacity: options.opacity || 0
+  });
+
+  // 创建textPath元素
+  const textPath = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+  textPath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${pathId}`);
+  textPath.textContent = text;
+  textPath.setAttribute("startOffset", options.startOffset || "50%");
+  textPath.setAttribute("text-anchor", options.textAnchor || "middle");
+
+  // 将textPath添加到文本元素
+  textElement.node.appendChild(textPath);
+
+  // 如果提供了title，添加title元素
+  if (options.title) {
+    let title = Snap.parse('<title>'+ options.title +'</title>');
+    textElement.append(title);
+  }
+
+  return textElement;
 }
 
 //绘制列表
