@@ -770,10 +770,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   // 使用封装的函数创建文本路径
   const titleText = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
   const connText = createTextPath(board, textPathId, titleText, {
-    fill: "#f55",
     opacity: 0,
-    startOffset: "50%",
-    textAnchor: "middle",
     title: titleText
   });
   
@@ -790,30 +787,12 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   g.click(function(e) {
     // 阻止事件冒泡
     e.stopPropagation();
-    
+    hideAll();
     // 检查是否已经处于高亮状态
     if (g.hasClass('active')) {
-      // 如果已经高亮，则恢复默认状态
       g.removeClass('active');
-      connPath.attr({
-        stroke: "#aaa",
-      });
-      hide();
     } else {
-      // 如果未高亮，则设置高亮状态
-      // 先清除其他连接线的高亮状态
-      board.selectAll('.connection.active').forEach(function(activeConn) {
-        activeConn.removeClass('active');
-        activeConn.select('path').attr({
-          stroke: "#aaa",
-        });
-      });
-      
       g.addClass('active');
-      connPath.attr({
-        stroke: "#f55",
-      });
-      
       // 高亮相关联的两个元素
       let fromElement = board.select(`#${fromPoint.roleName}`);
       let toElement = board.select(`#${toPoint.roleName}`);
@@ -890,7 +869,7 @@ function createTextPath(board, pathId, text, options = {}) {
   // 创建 textPath 元素
   const textPath = board.el('textPath', {
     'xlink:href': `#${pathId}`,
-    startOffset: options.startOffset || "50%",
+    startOffset: options.startOffset || "0",
     'text-anchor': options.textAnchor || "middle"
   });
 
@@ -912,7 +891,7 @@ function createTextPath(board, pathId, text, options = {}) {
 //绘制列表
 function drawList(data){
   board = Snap("#content");
-  document.onclick = hide;
+  document.onclick = hideAll;
   area = {};
   offset = 0;
   var roles = data.roles;
@@ -1032,7 +1011,12 @@ function drawItem(board, item, i, color, points) {
     style: "text-shadow: 1px 1px "+ color + ", -1px -1px "+ color
   });
   name.click(function(e){
-    show(this.parent());
+    let parent = this.parent();
+    if(parent.hasClass("show")){
+      hide(parent);
+    }else{
+      show(parent);
+    }
     e.stopPropagation(); 
   })
   // 直接将文本添加到组中
@@ -1342,44 +1326,31 @@ function resize(){
 
 
 function show(that,i){
-	let pointNode = that.selectAll(".contGroup").items;
-  let len = pointNode.length;
-  board.selectAll(".currPoint").attr({
-    class:"contGroup"
-  })
-  let currPoint = pointNode[len - i - 1];
-	if(currPoint){
-    currPoint.attr({
-      class:"contGroup currPoint"
-    });
-  }
+	let pointNode = that.selectAll(".contGroup").items,
+      len = pointNode.length,
+      currPoint = pointNode[len - i - 1];
+   
+   board.addClass("focus");
   if(i != undefined){ // 只显示 item。不显示 point
-    board.attr({
-      class:"content focus focus-item"
-    })
-  }else{
-    board.attr({
-      class:"content focus"
-    })
+    board.addClass("focus-item");
+    if(currPoint)  currPoint.addClass('currPoint');
   }
-  if(that.hasClass("show")) {
-    //如果已经高亮了，则取消高亮
-    that.attr({
-      class:"item"
-    });
-  }else{
-    that.attr({
-      class:"item show"
-    });
-  }
-  
+  that.addClass("show");
 }
 
-function hide(){
-	board.attr({
-      class:"content"
-    })
-  board.selectAll(".show").attr({
-    class:"item"
-  })
+function hide(that){
+	that.removeClass("show");
+}
+
+function hideAll(){
+	board.removeClass("focus focus-item");
+  board.selectAll(".show").forEach(function(activeConn) {
+    activeConn.removeClass('show');
+  });
+  board.selectAll(".currPoint").forEach(function(activeConn) {
+    activeConn.removeClass('currPoint');
+  });
+  board.selectAll('.connection.active').forEach(function(activeConn) {
+    activeConn.removeClass('active');
+  });
 }

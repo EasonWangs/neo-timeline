@@ -70,11 +70,20 @@ height:100%;
   pointer-events: none 
 }
 
-
 .connection .text{
   pointer-events: auto ;
   writing-mode: vertical-rl;
   cursor: pointer;
+}
+
+.connection textPath{
+  cursor: pointer;
+}
+.connection path{
+  opacity: 0.6;
+}
+.connection.active path{
+  stroke: #f55;
 }
 
 .content{
@@ -110,6 +119,9 @@ height:100%;
 .item .dotText{
   text-shadow: 3px 3px 3px #eee;
 }
+
+
+
 
 
 .content.focus .item,.content.focus .group .title{
