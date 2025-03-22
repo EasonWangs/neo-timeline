@@ -789,6 +789,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     // 阻止事件冒泡
     e.stopPropagation();
     hideAll();
+    
     // 检查是否已经处于高亮状态
     if (g.hasClass('active')) {
       g.removeClass('active');
@@ -800,9 +801,16 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       
       if(fromElement) show(fromElement,-1);
       if(toElement) show(toElement,-1);
+
+      // 创建并显示悬浮窗
+      const content = `
+        <div style="margin-bottom: 5px;"><strong>${fromPoint.roleName} - ${toPoint.roleName} （时间: ${fromPoint.keypoint.t}）</strong></div>
+        ${name ? `<div>${name}</div>` : ''}
+      `;
+      
+      createPopup(e.clientX, e.clientY, content);
     }
   });
-
 }
 
 // 计算关键点的坐标
@@ -1120,14 +1128,17 @@ function drawItem(board, item, i, color, points) {
 	   //keypoints信息
 	   let desc = point.t;
 	       desc += item.start ? "[" + (point.t - item.start)+ "]" : "";
-	   if(point.w) {
-	     if(typeof(point.w) == 'string'){
-	       desc += point.w
-	     }else{
-	       point.w[0] = desc + point.w[0];
-	       desc = point.w;
-	     }
-	   }
+       let displayContent = "";
+       if(point.w) {
+         if(typeof(point.w) == 'string'){
+           displayContent = point.w;
+           desc += point.w;
+         }else{
+           point.w[0] = desc + point.w[0];
+           desc = point.w;
+           displayContent = point.w.join('<br>');
+         }
+       }
 	   
 	   //绘制点和线
 	   let title = Snap.parse('<title>'+desc+'</title>');
@@ -1135,16 +1146,31 @@ function drawItem(board, item, i, color, points) {
 	     stroke:"#f00",
 	     fill:"#fff",
 	     strokeWidth: 1,
-       id: point.id || '', // 为每个点添加 id 属性
-       'data-index': i // 添加索引属性
+       id: point.id || '',
+       'data-index': i
 	   });
 	   dot.append(title);
 	   
-	   // 将点击事件绑定到单个dot上，而不是整个dotBox
+	   // 修改点击事件处理
 	   dot.click(function(e){
 	     show(this.parent().parent(), this.attr('data-index'));
+	     
+	     // 创建悬浮窗内容
+	     const content = `
+	       <div style="margin-bottom: 5px;">
+	         <strong>${item.name}([${point.t - item.start}])</strong>
+	       </div>
+	       <div>时间: ${point.t}</div>
+	       ${displayContent ? `<div style="margin-top: 5px;">${displayContent}</div>` : ''}
+	       ${point.id ? `<div style="color: #666; font-size: 12px; margin-top: 5px;">ID: ${point.id}</div>` : ''}
+	     `;
+	     
+	     // 显示悬浮窗
+	     createPopup(e.clientX, e.clientY, content);
+	     
 	     e.stopPropagation(); 
 	   });
+	   
 	   dotBox.add(dot);
 	   //绘制线和文本
 	   if(Cfg.layout == "v"){
@@ -1354,4 +1380,76 @@ function hideAll(){
   board.selectAll('.connection.active').forEach(function(activeConn) {
     activeConn.removeClass('active');
   });
+  
+  // 移除悬浮窗
+  const popup = document.querySelector('.connection-popup');
+  if (popup) {
+    popup.remove();
+  }
+}
+
+// 在文件中添加新的函数来创建和显示悬浮窗
+function createPopup(x, y, content) {
+  // 移除已存在的悬浮窗
+  const existingPopup = document.querySelector('.connection-popup');
+  if (existingPopup) {
+    existingPopup.remove();
+  }
+
+  // 创建悬浮窗元素
+  const popup = document.createElement('div');
+  popup.className = 'connection-popup';
+  popup.innerHTML = content;
+  
+  // 设置样式 - 在 x 和 y 坐标上分别减去 2 像素
+  popup.style.cssText = `
+    position: fixed;
+    left: ${x + 5}px;
+    top: ${y + 5}px;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+    font-size: 14px;
+    max-width: 240px;
+  `;
+
+  // 添加关闭按钮
+  const closeBtn = document.createElement('span');
+  closeBtn.innerHTML = '×';
+  closeBtn.style.cssText = `
+    position: absolute;
+    right: 5px;
+    top: 2px;
+    cursor: pointer;
+    color: #999;
+    font-size: 16px;
+  `;
+  closeBtn.onclick = () => popup.remove();
+  popup.appendChild(closeBtn);
+
+  // 添加到文档中
+  document.body.appendChild(popup);
+
+  // 点击空白处关闭悬浮窗
+  document.addEventListener('click', function closePopup(e) {
+    if (!popup.contains(e.target) && !e.target.closest('.connection')) {
+      popup.remove();
+      document.removeEventListener('click', closePopup);
+    }
+  });
+
+  // 调整位置以确保在视窗内
+  const rect = popup.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  if (rect.right > viewportWidth) {
+    popup.style.left = `${viewportWidth - rect.width - 10}px`;
+  }
+  if (rect.bottom > viewportHeight) {
+    popup.style.top = `${viewportHeight - rect.height - 10}px`;
+  }
 }
