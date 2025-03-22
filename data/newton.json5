@@ -1,0 +1,291 @@
+{
+	"config": {
+		"start": 1585,
+		"zoom": 8,
+		"size": 30,
+		"layout": "h",
+		"o": {
+			"hs": 5,
+			"hm": 1
+		},
+		"iconPath": "//cssass.com/public/flags/",
+		"p": {
+			"colors": ["#c23531", "#2f4554", "#d48265", "#61a0a8", "#ca8622", "#91c7ae", "#bda29a", "#6e7074", "#749f83", "#546570", "#c4ccd3"]
+		},
+		"e": {
+			"textAnchor": "start"
+		},
+		"g": {
+			"colors": {
+				"无形学院": "#D9E3E5"
+			},
+			"show": true
+		}
+	},
+	"periods": [{
+		"name": "英国内战",
+		"desc": "三次内战",
+		"start": 1642,
+		"end": 1651
+	}, ],
+	"events": [{
+			"name": "王政复辟",
+			"time": 1660,
+		},
+		{
+			"name": "牛顿奇迹年",
+			"time": 1666,
+		},
+	],
+
+	"roles": [{
+			"name": "霍布斯",
+			"desc": ["Thomas Hobbes", "科学的社会学之⽗"],
+			"icon": "gb",
+			"iconText": "英国",
+			"start": 1588,
+			"end": 1679,
+			"keypoints": [{
+				"t": 1651,
+				"w": "出版巨著《利维坦》"
+			}, {
+				"id": "Hobbes1",
+				"t": 1655,
+				"to": "Wallis1",
+				"w": "出版《论物体》。"
+			}]
+		},
+		{
+			"name": "波义耳",
+			"desc": ["Robert Boyle", "近代化学之父", "围绕其周围形成[无形学院]，是英国皇家学院的前身"
+			],
+			"icon": "gb",
+			"iconText": "英国",
+			"groups": ["无形学院"],
+			"start": 1627,
+			"end": 1691,
+			"keypoints": [{
+				"t": 1642,
+				"w": "游历马赛期间，父亲去世"
+			}, {
+				"t": 1645,
+				"w": "加入社团[无形学院]"
+			}, {
+				"id": "Boyle1",
+				"t": 1654,
+				"to": "Hooke1",
+				"w": "聘请胡克为助手"
+			}]
+		},
+		{
+			"name": "沃利斯",
+			"desc": "John Wallis",
+			"icon": "gb",
+			"iconText": "英国",
+			"groups": ["无形学院"],
+			"start": 1616,
+			"end": 1703,
+			"keypoints": [{
+				"id": "Wallis1",
+				"t": 1655,
+				"w": "出版了⼩册⼦《关于霍布斯⼏何学问题的简洁反驳》，逻辑缜密⼜不乏挖苦讽刺"
+			}]
+		},
+		{
+			"name": "赛斯·沃德",
+			"desc": "Seth Ward",
+			"icon": "gb",
+			"iconText": "英国",
+			"groups": ["无形学院"],
+			"start": 1617,
+			"end": 1689
+		},
+		{
+			"name": "胡克",
+			"desc": "Robert Hooke",
+			"icon": "gb",
+			"iconText": "英国",
+			"start": 1635,
+			"end": 1703,
+			"keypoints": [{
+				"id": "Hooke1",
+				"t": 1654,
+				"w": "成为波义耳的助手"
+			}, {
+				"id": "Hooke2",
+				"t": 1671,
+				"to": "newton3",
+				"w": "批评了牛顿的某些观点，牛顿对此很不满，并退出了辩论会。"
+			}, {
+				"id": "Hooke3",
+				"t": 1679,
+				"to": "newton4",
+				"w": "主动致信牛顿讨论问题，后在皇家学会会议现场以雄辩的口才向参会者展示了牛顿的失误"
+			}]
+		},
+		{
+			"name": "弗兰斯蒂德",
+			"desc": "John Flamsteed",
+			"icon": "gb",
+			"iconText": "英国",
+			"start": 1646,
+			"end": 1719,
+			"keypoints": [{
+				"t": 1675,
+				"w": "负责落成的格林威治天文台"
+			}]
+		},
+		{
+			"name": "艾萨克·巴罗",
+			"desc": ["Isaac Barrow", "首位卢卡斯数学教授"],
+			"icon": "gb",
+			"iconText": "英国",
+			"start": 1630,
+			"end": 1677,
+			"keypoints": [{
+				"id": "Barrow1",
+				"t": 1664,
+				"to": "newton1",
+				"w": "负责考察牛顿学术水平"
+			}, {
+				"id": "Barrow2",
+				"t": 1669,
+				"to": "newton2",
+				"w": "辞去卢卡斯教授之职，举荐牛顿继任"
+			}]
+		},
+		{
+			"name": "牛顿",
+			"icon": "gb",
+			"iconText": "英国",
+			"start": 1643,
+			"end": 1727,
+			"keypoints": [{
+				"id": "newton1",
+				"t": 1664,
+				"w": "毕业"
+			}, {
+				"id": "newton2",
+				"t": 1669,
+				"w": "接任卢卡斯数学教授"
+			}, {
+				"id": "newton3",
+				"t": 1671,
+				"w": "向皇家学院展示发明的反射式望远镜，随后出版光学笔记（后来的《光学》）"
+			}, {
+				"id": "newton4",
+				"t": 1679,
+				"w": "受胡克打压，也从中发现灵感"
+			}, {
+				"t": 1684,
+				"w": "《物体在轨道中之运动》"
+			}]
+		},
+		{
+			"name": "哈雷",
+			"desc": "Edmond Halley",
+			"icon": "gb",
+			"iconText": "英国",
+			"start": 1656,
+			"end": 1742
+		},
+		{
+			"name": "洛克",
+			"desc": "John Locke",
+			"icon": "gb",
+			"iconText": "英国",
+			"start": 1632,
+			"end": 1704
+		},
+		{
+			"name": "笛卡尔",
+			"desc": "René Descartes",
+			"icon": "fr",
+			"iconText": "法国",
+			"start": 1596,
+			"end": 1650
+		},
+
+		{
+			"name": "梅森",
+			"desc": ["围绕其周围形成[梅森学院]，是法国科学院的前身", "梅森素数"
+			],
+			"icon": "fr",
+			"start": 1588,
+			"end": 1648
+		},
+		{
+			"name": "费马",
+			"desc": "Pierre de Fermat",
+			"icon": "fr",
+			"iconText": "法国",
+			"start": 1601,
+			"end": 1665
+		},
+		{
+			"name": "帕斯卡",
+			"desc": "Blaise Pascal",
+			"icon": "fr",
+			"iconText": "法国",
+			"start": 1623,
+			"end": 1662
+		},
+
+		{
+			"name": "惠更斯",
+			"desc": ["Christiaan Huygens", "深受笛卡尔，梅森两位大师启迪"],
+			"icon": "nl",
+			"iconText": "荷兰",
+			"start": 1629,
+			"end": 1695
+		},
+		{
+			"name": "卡西尼一世",
+			"desc": "Giovanni Cassini",
+			"icon": "it",
+			"iconText": "意大利",
+			"start": 1625,
+			"end": 1712,
+			"keypoints": [{
+				"t": 1672,
+				"w": "执掌新落成的巴黎天文台"
+			}]
+		},
+		{
+			"name": "莱布尼茨",
+			"desc": "Gottfried Wilhelm Leibniz",
+			"icon": "de",
+			"iconText": "德国",
+			"start": 1646,
+			"end": 1716
+		},
+		{
+			"name": "雅各布·伯努利",
+			"desc": "Jacob Bernoulli",
+			"desc": ["雅各布·伯努利", "研究了悬链线", "等时曲线方程", "伯努利试验与大数定理(概率论)"],
+			"icon": "ch",
+			"iconText": "瑞士",
+			"start": 1654,
+			"end": 1705
+		},
+		{
+			"name": "约翰·伯努利",
+			"desc": "Johann Bernoulli",
+			"icon": "ch",
+			"iconText": "瑞士",
+			"start": 1667,
+			"end": 1748
+		},
+
+
+
+		{
+			"name": "罗杰·培根",
+			"desc": "Roger Bacon",
+			"icon": "gb",
+			"iconText": "英国",
+			"start": 1214,
+			"end": 1294
+		}
+	]
+}

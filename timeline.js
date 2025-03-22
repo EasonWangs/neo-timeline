@@ -771,6 +771,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   const titleText = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
   const connText = createTextPath(board, textPathId, titleText, {
     opacity: 0,
+    startOffset: "50%",
     title: titleText
   });
   
