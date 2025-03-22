@@ -804,7 +804,8 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
 
       // 创建并显示悬浮窗
       const content = `
-        <div style="margin-bottom: 5px;"><strong>${fromPoint.roleName} - ${toPoint.roleName} （时间: ${fromPoint.keypoint.t}）</strong></div>
+        <div style="margin-bottom: 5px;"><strong>${fromPoint.roleName} - ${toPoint.roleName} </strong></div>
+        <div>时间: ${fromPoint.keypoint.t}</div>
         ${name ? `<div>${name}</div>` : ''}
       `;
       
@@ -923,6 +924,61 @@ function drawList(data){
   //画事件线
   var events = data.events;
   if(events) drawEvents(events, data.roles);
+}
+
+
+// 修改键盘导航处理函数
+function handleKeyNavigation(e) {
+  if (!currentSelection.item || !currentSelection.points.length) return;
+
+  const { points, currentIndex } = currentSelection;
+  let newIndex = currentIndex;
+
+  switch (e.key) {
+    case 'ArrowLeft':
+    case 'ArrowUp':
+      // 向上/左移动时，index 减小（更早的事件）
+      newIndex = Math.max(0, currentIndex - 1);
+      break;
+    case 'ArrowRight':
+    case 'ArrowDown':
+      // 向下/右移动时，index 增加（更新的事件）
+      newIndex = Math.min(points.length - 1, currentIndex + 1);
+      break;
+    default:
+      return;
+  }
+
+  if (newIndex !== currentIndex) {
+    e.preventDefault();
+    
+    // 更新当前索引
+    currentSelection.currentIndex = newIndex;
+    
+    // 获取当前点并触发点击事件
+    const currentDot = points.find(dot => parseInt(dot.attr('data-index')) === newIndex);
+    if (!currentDot) return;
+
+    // 创建并触发点击事件
+    const pt = currentDot.node.ownerSVGElement.createSVGPoint();
+    pt.x = currentDot.attr('cx');
+    pt.y = currentDot.attr('cy');
+    
+    // 转换为页面坐标
+    const ctm = currentDot.node.getScreenCTM();
+    const globalPt = pt.matrixTransform(ctm);
+
+    // 创建自定义事件，包含转换后的坐标
+    const clickEvent = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: globalPt.x,
+      clientY: globalPt.y
+    });
+    
+    currentDot.node.dispatchEvent(clickEvent);
+  }
 }
 
 //绘制个体
@@ -1147,7 +1203,8 @@ function drawItem(board, item, i, color, points) {
 	     fill:"#fff",
 	     strokeWidth: 1,
        id: point.id || '',
-       'data-index': i
+       'data-index': i,
+       'data-time': point.t // 添加时间属性
 	   });
 	   dot.append(title);
 	   
@@ -1155,18 +1212,27 @@ function drawItem(board, item, i, color, points) {
 	   dot.click(function(e){
 	     show(this.parent().parent(), this.attr('data-index'));
 	     
+	     // 获取点的坐标并转换为页面坐标
+	     const pt = this.node.ownerSVGElement.createSVGPoint();
+	     pt.x = this.attr('cx');
+	     pt.y = this.attr('cy');
+	     
+	     // 转换为页面坐标
+	     const ctm = this.node.getScreenCTM();
+	     const globalPt = pt.matrixTransform(ctm);
+	     
 	     // 创建悬浮窗内容
 	     const content = `
 	       <div style="margin-bottom: 5px;">
-	         <strong>${item.name}([${point.t - item.start}])</strong>
+	         <strong>${item.name}[${point.t - item.start}]</strong>
 	       </div>
 	       <div>时间: ${point.t}</div>
 	       ${displayContent ? `<div style="margin-top: 5px;">${displayContent}</div>` : ''}
 	       ${point.id ? `<div style="color: #666; font-size: 12px; margin-top: 5px;">ID: ${point.id}</div>` : ''}
 	     `;
 	     
-	     // 显示悬浮窗
-	     createPopup(e.clientX, e.clientY, content);
+	     // 使用点的实际坐标显示悬浮窗
+	     createPopup(globalPt.x, globalPt.y, content);
 	     
 	     e.stopPropagation(); 
 	   });
@@ -1351,42 +1417,13 @@ function resize(){
    }
 }
 
+// 添加一个全局变量来跟踪当前选中的状态
+let currentSelection = {
+  item: null,
+  points: [],
+  currentIndex: -1
+};
 
-function show(that,i){
-	let pointNode = that.selectAll(".contGroup").items,
-      len = pointNode.length,
-      currPoint = pointNode[len - i - 1];
-   
-   board.addClass("focus");
-  if(i != undefined){ // 只显示 item。不显示 point
-    board.addClass("focus-item");
-    if(currPoint)  currPoint.addClass('currPoint');
-  }
-  that.addClass("show");
-}
-
-function hide(that){
-	that.removeClass("show");
-}
-
-function hideAll(){
-	board.removeClass("focus focus-item");
-  board.selectAll(".show").forEach(function(activeConn) {
-    activeConn.removeClass('show');
-  });
-  board.selectAll(".currPoint").forEach(function(activeConn) {
-    activeConn.removeClass('currPoint');
-  });
-  board.selectAll('.connection.active').forEach(function(activeConn) {
-    activeConn.removeClass('active');
-  });
-  
-  // 移除悬浮窗
-  const popup = document.querySelector('.connection-popup');
-  if (popup) {
-    popup.remove();
-  }
-}
 
 // 在文件中添加新的函数来创建和显示悬浮窗
 function createPopup(x, y, content) {
@@ -1452,4 +1489,61 @@ function createPopup(x, y, content) {
   if (rect.bottom > viewportHeight) {
     popup.style.top = `${viewportHeight - rect.height - 10}px`;
   }
+}
+
+
+
+// 修改 show 函数，记录选中状态
+function show(that, i) {
+  let pointNode = that.selectAll(".contGroup").items,
+      len = pointNode.length,
+      currPoint = pointNode[len - i - 1];
+   
+  board.addClass("focus");
+  if(i != undefined) { // 只显示 item。不显示 point
+    board.addClass("focus-item");
+    if(currPoint) currPoint.addClass('currPoint');
+  }
+  that.addClass("show");
+
+  // 记录当前选中的 item 和它的关键点
+  const dots = that.selectAll(".dotBox circle").items;
+  if (dots && dots.length > 0) {
+    currentSelection.item = that;
+    currentSelection.points = dots;
+    currentSelection.currentIndex = i !== undefined ? i : -1;
+    
+    // 添加键盘事件监听器
+    document.addEventListener('keydown', handleKeyNavigation);
+  }
+}
+
+// 修改 hideAll 函数，清除选中状态
+function hideAll() {
+  board.removeClass("focus focus-item");
+  board.selectAll(".show").forEach(function(activeConn) {
+    activeConn.removeClass('show');
+  });
+  board.selectAll(".currPoint").forEach(function(activeConn) {
+    activeConn.removeClass('currPoint');
+  });
+  board.selectAll('.connection.active').forEach(function(activeConn) {
+    activeConn.removeClass('active');
+  });
+  
+  // 移除悬浮窗
+  const popup = document.querySelector('.connection-popup');
+  if (popup) {
+    popup.remove();
+  }
+
+  // 清除当前选中状态
+  currentSelection = {
+    item: null,
+    points: [],
+    currentIndex: -1
+  };
+  
+  // 移除键盘事件监听器
+  document.removeEventListener('keydown', handleKeyNavigation);
 }
