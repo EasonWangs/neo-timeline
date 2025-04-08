@@ -933,7 +933,6 @@ function handleKeyNavigation(e) {
 
   const { points, currentIndex } = currentSelection;
   let newIndex = currentIndex;
-
   switch (e.key) {
     case 'ArrowLeft':
     case 'ArrowUp':
@@ -943,12 +942,11 @@ function handleKeyNavigation(e) {
     case 'ArrowRight':
     case 'ArrowDown':
       // 向下/右移动时，index 增加（更新的事件）
-      newIndex = Math.min(points.length - 1, currentIndex + 1);
+      newIndex = Math.min(points.length - 1, currentIndex - 0 + 1);
       break;
     default:
       return;
   }
-
   if (newIndex !== currentIndex) {
     e.preventDefault();
     

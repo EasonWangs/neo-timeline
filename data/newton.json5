@@ -1,6 +1,6 @@
 {
 	"config": {
-		"start": 1585,
+		"start": 1582,
 		"zoom": 8,
 		"size": 30,
 		"layout": "h",
@@ -17,7 +17,8 @@
 		},
 		"g": {
 			"colors": {
-				"无形学院": "#D9E3E5"
+				"无形学院": "#D9E3E5",
+				"梅森学院": "#E3E5D9"
 			},
 			"show": true
 		}
@@ -202,6 +203,7 @@
 			"desc": "René Descartes",
 			"icon": "fr",
 			"iconText": "法国",
+			"groups": ["梅森学院"],
 			"start": 1596,
 			"end": 1650
 		},
@@ -211,6 +213,7 @@
 			"desc": ["围绕其周围形成[梅森学院]，是法国科学院的前身", "梅森素数"
 			],
 			"icon": "fr",
+			"groups": ["梅森学院"],
 			"start": 1588,
 			"end": 1648
 		},
@@ -218,6 +221,7 @@
 			"name": "费马",
 			"desc": "Pierre de Fermat",
 			"icon": "fr",
+			"groups": ["梅森学院"],
 			"iconText": "法国",
 			"start": 1601,
 			"end": 1665
@@ -226,6 +230,7 @@
 			"name": "帕斯卡",
 			"desc": "Blaise Pascal",
 			"icon": "fr",
+			"groups": ["梅森学院"],
 			"iconText": "法国",
 			"start": 1623,
 			"end": 1662
@@ -236,6 +241,7 @@
 			"desc": ["Christiaan Huygens", "深受笛卡尔，梅森两位大师启迪"],
 			"icon": "nl",
 			"iconText": "荷兰",
+			"groups": ["梅森学院"],
 			"start": 1629,
 			"end": 1695
 		},
