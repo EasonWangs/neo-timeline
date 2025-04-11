@@ -1,117 +1,236 @@
 {
-	config : {
-        start : 1800, //起点
-        zoom: 5, //缩放
+    config: {
+        start: 1890, //起点
+        zoom: 10, //缩放
+        "size": 30,
         layout: "h",
-        o : {
-          hs:10, 
-          hm:2, 
+        o: {
+            hs: 10,
+            hm: 2,
         },
-        iconPath : "//cssass.com/public/flags/",
-        p:{
-		      textAnchor : "start", //start,middle,end
-		      colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],
-		    },
-		    e:{ //事件
-		      textAnchor : "start",
-		    },
-		    g : {
-	    		show : true,
-	        colors : {
-	          "南向北赵": "#D9E3E5",
-	          "北派五大家": "#F4E3B1",
-	          "新派大家": '#CDD8D1',
-	          "三剑客": "#D9E3E5"
-	        },
-	      },
-      },
-"periods" : [],
-"events": [{
-	"name": "ENIAC诞生",
-	"time": 1946
-},{
-	"name": "EDVAC诞生",
-	"time": 1951
-},{
-	"name": "ARPANET出现",
-	"time": 1968
-}],
-"roles": [
-	{
-		"name": "冯诺依曼",
-		"start": 1903,
-		"end": 1957,
-		"icon":"us",
-		"desc": ["理论计算机科学与博弈论的奠基者"],
-		"keypoints": [{
-			"t": 1945,
-			"w": "联名发表了一篇计算机史上著名的“101页报告”"
-		},{
-			"t": 1948,
-			"w": "发表了划时代的论文——《通信的数学理论》，奠定了现代信息论的基础"
-		},]
-	},{
-		"name": "图灵",
-		"start": 1912,
-		"end": 1954,
-		"icon":"gb",
-		"desc": ["计算机科学与人工智能之父"],
-		"keypoints": [{
-			"t": 1941,
-			"w": "破译了德国的密码系统恩尼格玛密码机"
-		},{
-			"t": 1949,
-			"w": "提出了一个叫做图灵测试的实验"
-		}]
-	},{
-		"name": "香农",
-		"start": 1916,
-		"end": 2001,
-		"icon":"us",
-		"desc": ["信息论的创始人"],
-		"keypoints": [{
-			"t": 1943,
-			"w": "提出了一个叫做图灵测试的实验"
-		},{
-			"t": 1948,
-			"w": "发表了划时代的论文——《通信的数学理论》，奠定了现代信息论的基础"
-		},]
-	},{
-		"name": "约翰·莫奇利",
-		"start": 1907,
-		"end": 1980,
-		"icon":"us",
-		"desc": ["与普雷斯波·艾克特共同发明了埃尼阿克（ENIAC）——第一个通用的电子数字计算机，以及后来的EDVAC、BINAC和UNIVAC"],
-		"keypoints": []
-	},
-	
-	{
-		"name": "马文·闵斯基",
-		"start": 1927,
-		"end": 2016,
-		"icon":"us",
-		"desc": ["人工神经网络的奠基人"],
-		"keypoints": [{
-			"t": 1951,
-			"w": "设计并建构了第一部能自我学习的人工神经网络机器，SNARC"
-		},{
-			"t": 1956,
-			"w": "与约翰·麦卡锡组织了达特茅斯会议，提出了人工智能的概念"
-		},]
-	},{
-		"name": "约翰·麦卡锡",
-		"start": 1927,
-		"end": 2011,
-		"icon":"us",
-		"desc": ["提出了“人工智能”这个概念"],
-		"keypoints": [{
-			"t": 1951,
-			"w": "设计并建构了第一部能自我学习的人工神经网络机器，SNARC"
-		},{
-			"t": 1956,
-			"w": "与马文·闵斯基组织了达特茅斯会议，提出了人工智能的概念"
-		},]
-	},
+        iconPath: "//cssass.com/public/flags/",
+        p: {
+            textAnchor: "start", //start,middle,end
+            colors: ['#c23531', '#2f4554', '#d48265', '#61a0a8', '#ca8622', '#91c7ae', '#bda29a', '#6e7074', '#749f83', '#546570', '#c4ccd3'],
+        },
+        e: { //事件
+            textAnchor: "start",
+        },
+        g: {
+            show: true,
+            colors: {
+                "Symbolicism": "#D9E3E5",
+                "Behaviorism": "#F4E3B1",
+                "Connectionism": '#CDD8D1',
+                "深度学习三巨头": "#D9E3E5"
+            },
+        },
+    },
+    "periods": [],
+    "events": [{
+        "name": "达特茅斯会议",
+        "time": 1956
+    }, {
+        "name": "第一次寒冬",
+        "time": 1970
+    }, {
+        "name": "第二次寒冬",
+        "time": 1990
+    }],
+    "roles": [{
+            "name": "图灵",
+            "start": 1912,
+            "end": 1954,
+            "icon": "gb",
+            "desc": ["计算机科学与人工智能之父"],
+            "keypoints": [{
+                "t": 1936,
+                "w": "提出了“图灵机”的概念，这是现代计算机的理论基础"
+            }, {
+                "t": 1941,
+                "w": "破译了德国的密码系统恩尼格玛密码机"
+            }, {
+                "t": 1950,
+                "w": "发表了《计算机器与智能》，提出了著名的“图灵测试”，用于评估机器是否具有智能"
+            }]
+        }, {
+            "name": "香农",
+            "start": 1916,
+            "end": 2001,
+            "icon": "us",
+            "desc": ["信息论创始人"],
+            "keypoints": [{
+                    "t": 1937,
+                    "w": "硕士论文中应用布尔代数分析和设计开关电路，开启了数字电路设计的科学时代"
+                }, {
+					"id": "Shannon1",
+                    "t": 1948,
+                    "w": "发表了划时代的论文——《通信的数学理论》，奠定了现代信息论的基础"
+                },
+                {
+                    "t": 1950,
+                    "w": "提出了信息熵的概念，为信息的量化和编码提供了理论框架"
+                }
+            ]
+        }, 
+        {
+            "name": "冯·诺伊曼",
+            "start": 1903,
+            "end": 1957,
+            "icon": "us",
+            "desc": ["计算机科学和现代计算机体系结构的奠基人，博弈论的奠基人"],
+            "keypoints": [{
+                    "t": 1945,
+                    "w": "参与ENIAC项目，联名发表《EDVAC报告的初稿》(“101页报告”)，奠定了现代计算机体系结构的基础（冯诺依曼结构）",
+                },
+                {
+                    "t": 1946,
+                    "w": "开始研究程序编制问题，发展了线性代数和算术的数值计算方法，推动了现代数值分析的发展",
+                },
+                {
+                    "t": 1953,
+                    "w": "引入随机计算的概念，为蒙特卡罗方法的发展做出了重要贡献",
+                },
+                {
+                    "t": 1956,
+                    "w": "其未完成的手稿《计算机与人脑》出版，对人脑和计算机系统进行了深入比较",
+                }
+            ]
+        },
+        {
+            "name": "约翰·莫奇利",
+            "start": 1907,
+            "end": 1980,
+            "icon": "us",
+            "desc": ["ENIAC的主要设计者之一", "UNIVAC I的开发者"],
+            "keypoints": [{
+                    "t": 1946,
+                    "w": "与约翰·埃克特共同设计并生产出ENIAC（电子数学积分计算机），世界上第一台通用电子数字计算机"
+                },
+                {
+                    "t": 1947,
+                    "w": "与埃克特创立埃克特-莫奇利计算机公司（EMCC），开创了计算机商业化的先河"
+                },
+                {
+                    "t": 1951,
+                    "w": "成功研制出UNIVAC I，世界上第一台商业化的电子计算机"
+                },
+            ]
+        },
+        {
+            "name": "马文·闵斯基",
+            "start": 1927,
+            "end": 2016,
+            "icon": "us",
+            "desc": ["人工神经网络的奠基人"],
+            "groups": ['Symbolicism'],
+            "keypoints": [{
+                "t": 1951,
+                "w": "设计并建构了第一部能自我学习的人工神经网络机器，SNARC"
+            }, {
+                "t": 1956,
+                "w": "与约翰·麦卡锡组织了达特茅斯会议，提出了人工智能的概念"
+            }, ]
+        },
+        {
+            "name": "约翰·麦卡锡",
+            "start": 1927,
+            "end": 2011,
+            "icon": "us",
+            "groups": ['Symbolicism'],
+            "desc": ["提出了“人工智能”这个概念"],
+            "keypoints": [{
+                "t": 1956,
+                "w": "与马文·闵斯基组织了达特茅斯会议，提出了人工智能的概念"
+            }, ]
+        },
+        {
+            "name": "司马贺",
+            "desc": "Herbert A. Simon",
+            "icon": "us",
+            "iconText": "美国",
+            "groups": ['Symbolicism'],
+            "start": 1916,
+            "end": 2001
+        },
+        {
+            "name": "艾伦·纽厄尔",
+            "desc": "Allen Newell",
+            "icon": "us",
+            "iconText": "美国",
+            "groups": ['Symbolicism'],
+            "start": 1927,
+            "end": 1992
+        },
+		{
+			"name": "诺伯特·维纳",
+			"start": 1894,
+			"end": 1964,
+			"icon": "us",
+			"iconText": "美国",
+			"groups": ['Behaviorism'],
+			"desc": ["Norbert Wiener，控制论(Cybernetics)之父，信息论的开创者之一"],
+			"keypoints": [
+				{
+					"t": 1948,
+					"w": "发表《控制论》，宣告控制论这一新兴学科的诞生"
+				},
+				{
+					"id":"Wiener1"
+					"t": 1949,
+					"to":"Shannon1",
+					"w": "完善了香农-维纳公式（Shannon-Wiener Formula）"
+				},
+			]
+		},
+        {
+            "name": "尼尔斯·约翰·尼尔森",
+            "desc": "Nils John Nilsson",
+            "icon": "us",
+            "iconText": "美国",
+            "groups": ['Behaviorism'],
+            "start": 1933,
+            "end": 2019
+        },
+        {
+            "name": "汉斯·莫拉韦克",
+            "desc": "Hans Moravec",
+            "icon": "us",
+            "iconText": "美国",
+            "groups": ['Behaviorism'],
+            "start": 1948,
+            "end": 2023
+        },
 
-]
+        {
+            "name": "沃尔特·皮茨",
+            "desc": "Walter Pitts",
+            "icon": "us",
+            "iconText": "美国",
+            "groups": ['Connectionism'],
+            "start": 1923,
+            "end": 1969
+        },
+        {
+            "name": "沃伦·麦卡洛克",
+            "desc": "Warren McCulloch",
+            "icon": "us",
+            "iconText": "美国",
+            "groups": ['Connectionism'],
+            "start": 1898,
+            "end": 1969
+        },
+        {
+            "name": "弗兰克·罗森布拉特",
+            "desc": "Frank Rosenblatt",
+            "icon": "us",
+            "iconText": "美国",
+            "groups": ['Connectionism'],
+            "start": 1928,
+            "end": 1971
+        },
+
+
+
+    ]
 }

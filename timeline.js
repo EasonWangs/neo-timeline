@@ -1222,9 +1222,8 @@ function drawItem(board, item, i, color, points) {
 	     // 创建悬浮窗内容
 	     const content = `
 	       <div style="margin-bottom: 5px;">
-	         <strong>${item.name}[${point.t - item.start}]</strong>
+	         <strong>${point.t}[${point.t - item.start}]</strong>
 	       </div>
-	       <div>时间: ${point.t}</div>
 	       ${displayContent ? `<div style="margin-top: 5px;">${displayContent}</div>` : ''}
 	       ${point.id ? `<div style="color: #666; font-size: 12px; margin-top: 5px;">ID: ${point.id}</div>` : ''}
 	     `;
