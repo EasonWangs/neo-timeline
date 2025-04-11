@@ -654,63 +654,94 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   // 辅助函数：格式化路径坐标
   const formatPoint = (x, y) => `${ensureNumber(x)},${ensureNumber(y)}`;
   
-  // 改进曲线的控制点计算
+  // 使用30度角偏移计算控制点（π/6 = 30度）
+  // 方向系数，根据索引交替，使相邻曲线不会重叠
+  const direction = (index % 2 === 0) ? 1 : -1;
+  
   if (Cfg.layout == "v") {
-    // 垂直布局
-    // 计算控制点
-    let midY = (fp.y + tp.y) / 2;
-    let curveStrength = Math.min(dx_dist * 0.5, 80); // 限制曲线强度
-    
-    // 在两点Y值接近时使用更强的曲线
-    if (Math.abs(fp.y - tp.y) < 50) {
-      curveStrength = Math.max(curveStrength, 40);
+    if (Math.abs(fp.y - tp.y) < 1) {
+      // 当两点在同一水平线上时，使用S形曲线
+      const offsetY = 30 * direction; // 垂直偏移量
+      
+      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+                `C${formatPoint(fp.x + dx_dist/4, fp.y + offsetY)} ` +
+                `${formatPoint(tp.x - dx_dist/4, tp.y + offsetY)} ` +
+                `${formatPoint(tp.x, tp.y)}`;
+      
+      // 计算箭头角度
+      arrowAngle = Math.atan2(-offsetY, dx_dist/4) * 180 / Math.PI;
+    } else {
+      // 使用30度角偏移计算控制点
+      // 计算总距离的一部分作为偏移基础
+      const dist = Math.sqrt(dx_dist*dx_dist + dy_dist*dy_dist);
+      const offsetBase = Math.min(Math.max(40, dist * 0.3), 80) * direction;
+      
+      // 计算30度角的偏移量
+      const offsetX = offsetBase * Math.cos(Math.PI/6); // cos(30°) ≈ 0.866
+      const offsetY = offsetBase * Math.sin(Math.PI/6); // sin(30°) = 0.5
+      
+      // 确定控制点的方向：如果终点在起点上方，调整Y偏移方向
+      const yDirection = tp.y < fp.y ? -1 : 1;
+      
+      // 创建控制点
+      const cp1x = fp.x + offsetX;
+      const cp1y = fp.y + offsetY * yDirection;
+      const cp2x = tp.x + offsetX;
+      const cp2y = tp.y + offsetY * yDirection;
+      
+      // 生成贝塞尔曲线路径
+      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+                `C${formatPoint(cp1x, cp1y)} ` +
+                `${formatPoint(cp2x, cp2y)} ` +
+                `${formatPoint(tp.x, tp.y)}`;
+      
+      // 计算箭头角度
+      const dx_tangent = tp.x - cp2x;
+      const dy_tangent = tp.y - cp2y;
+      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
     }
-    
-    // 根据是否是相同时间点调整曲线方向
-    const direction = (index % 2 === 0 || Math.abs(fp.y - tp.y) < 20) ? 1 : -1;
-    
-    // 创建控制点
-    const cp1x = fp.x + curveStrength * direction;
-    const cp2x = tp.x + curveStrength * direction;
-    
-    // 创建贝塞尔曲线
-    pathStr = `M${formatPoint(fp.x, fp.y)} ` +
-              `C${formatPoint(cp1x, fp.y)} ` +
-              `${formatPoint(cp2x, tp.y)} ` +
-              `${formatPoint(tp.x, tp.y)}`;
-    
-    // 计算箭头角度
-    const dx_tangent = tp.x - cp2x;
-    const dy_tangent = 0; // 在终点处曲线几乎是水平的
-    arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
   } else {
-    // 水平布局
-    // 计算控制点
-    let midX = (fp.x + tp.x) / 2;
-    let curveStrength = Math.min(dy_dist * 0.5, 80); // 限制曲线强度
-    
-    // 在两点X值接近时使用更强的曲线
-    if (Math.abs(fp.x - tp.x) < 50) {
-      curveStrength = Math.max(curveStrength, 40);
+    if (Math.abs(fp.x - tp.x) < 1) {
+      // 当两点在同一垂直线上时，使用S形曲线
+      const offsetX = 30 * direction; // 水平偏移量
+      
+      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+                `C${formatPoint(fp.x + offsetX, fp.y + dy_dist/4)} ` +
+                `${formatPoint(tp.x + offsetX, tp.y - dy_dist/4)} ` +
+                `${formatPoint(tp.x, tp.y)}`;
+      
+      // 计算箭头角度
+      arrowAngle = Math.atan2(dy_dist/4, -offsetX) * 180 / Math.PI;
+    } else {
+      // 使用30度角偏移计算控制点
+      // 计算总距离的一部分作为偏移基础
+      const dist = Math.sqrt(dx_dist*dx_dist + dy_dist*dy_dist);
+      const offsetBase = Math.min(Math.max(40, dist * 0.3), 80) * direction;
+      
+      // 计算30度角的偏移量
+      const offsetX = offsetBase * Math.sin(Math.PI/6); // sin(30°) = 0.5
+      const offsetY = offsetBase * Math.cos(Math.PI/6); // cos(30°) ≈ 0.866
+      
+      // 确定控制点的方向：如果终点在起点右侧，调整X偏移方向
+      const xDirection = tp.x > fp.x ? 1 : -1;
+      
+      // 创建控制点
+      const cp1x = fp.x + offsetX * xDirection;
+      const cp1y = fp.y + offsetY;
+      const cp2x = tp.x + offsetX * xDirection;
+      const cp2y = tp.y + offsetY;
+      
+      // 生成贝塞尔曲线路径
+      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+                `C${formatPoint(cp1x, cp1y)} ` +
+                `${formatPoint(cp2x, cp2y)} ` +
+                `${formatPoint(tp.x, tp.y)}`;
+      
+      // 计算箭头角度
+      const dx_tangent = tp.x - cp2x;
+      const dy_tangent = tp.y - cp2y;
+      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
     }
-    
-    // 根据是否是相同时间点调整曲线方向
-    const direction = (index % 2 === 0 || Math.abs(fp.x - tp.x) < 20) ? 1 : -1;
-    
-    // 创建控制点
-    const cp1y = fp.y + curveStrength * direction;
-    const cp2y = tp.y + curveStrength * direction;
-    
-    // 创建贝塞尔曲线
-    pathStr = `M${formatPoint(fp.x, fp.y)} ` +
-              `C${formatPoint(fp.x, cp1y)} ` +
-              `${formatPoint(tp.x, cp2y)} ` +
-              `${formatPoint(tp.x, tp.y)}`;
-    
-    // 计算箭头角度
-    const dx_tangent = 0; // 在终点处曲线几乎是垂直的
-    const dy_tangent = tp.y - cp2y;
-    arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
   }
   
   // 使用Snap.svg创建路径
@@ -719,7 +750,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     stroke: "#aaa",
     strokeWidth: 1,
     strokeDasharray: "2,2",
-    id: textPathId  // 使用 textPathId 作为路径ID
+    id: textPathId
   });
   
 
