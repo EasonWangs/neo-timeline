@@ -176,7 +176,7 @@
 					"w": "发表《控制论》，宣告控制论这一新兴学科的诞生"
 				},
 				{
-					"id":"Wiener1"
+					"id":"Wiener1",
 					"t": 1949,
 					"to":"Shannon1",
 					"w": "完善了香农-维纳公式（Shannon-Wiener Formula）"

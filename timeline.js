@@ -636,15 +636,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     tp.y -= offset;
   }
   
-  // 确保点的顺序是从上到下或从左到右
-  if (Cfg.layout == "v" && fp.y > tp.y) {
-    // 垂直布局中，确保从上到下
-    [fp, tp] = [tp, fp];
-  } else if (Cfg.layout != "v" && fp.x > tp.x) {
-    // 水平布局中，确保从左到右
-    [fp, tp] = [tp, fp];
-  }
-  
   // 计算水平和垂直距离
   const dx_dist = Math.abs(tp.x - fp.x);
   const dy_dist = Math.abs(tp.y - fp.y);
@@ -663,90 +654,63 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   // 辅助函数：格式化路径坐标
   const formatPoint = (x, y) => `${ensureNumber(x)},${ensureNumber(y)}`;
   
+  // 改进曲线的控制点计算
   if (Cfg.layout == "v") {
-    if (Math.abs(fp.y - tp.y) < 1) {
-      // S形曲线，水平方向
-      const direction = (index % 2 === 0) ? 1 : -1;
-      const offset = 30; // 垂直偏移量
-      
-      // 计算控制点坐标
-      const cp1x = ensureNumber(fp.x + dx_dist/4);
-      const cp1y = ensureNumber(fp.y + offset * direction);
-      const cp2x = ensureNumber(tp.x - dx_dist/4);
-      const cp2y = ensureNumber(tp.y + offset * direction);
-      
-      // 创建 S 形曲线
-      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
-                `C${formatPoint(cp1x, cp1y)} ` +
-                `${formatPoint(cp2x, cp2y)} ` +
-                `${formatPoint(tp.x, tp.y)}`;
-      
-      // 计算终点处的切线方向
-      const dx_tangent = ensureNumber(tp.x - (tp.x - dx_dist/4));
-      const dy_tangent = ensureNumber(tp.y - (tp.y + offset * direction));
-      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-    } else {
-      // 正常曲线
-      const direction = (index % 2 === 0) ? -1 : 1;
-      const ctrlOffset = Math.min(dx_dist * 0.8, 40); // 最大偏移40px
-      
-      // 计算控制点坐标
-      const cp1y = ensureNumber(fp.y + ctrlOffset * direction);
-      const cp2y = ensureNumber(tp.y + ctrlOffset * direction);
-      
-      // 创建三次贝塞尔曲线
-      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
-                `C${formatPoint(fp.x, cp1y)} ` +
-                `${formatPoint(tp.x, cp2y)} ` +
-                `${formatPoint(tp.x, tp.y)}`;
-      
-      // 计算终点处的切线方向
-      const dx_tangent = ensureNumber(tp.x - (tp.x + ctrlOffset * direction));
-      const dy_tangent = ensureNumber(tp.y - tp.y);
-      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+    // 垂直布局
+    // 计算控制点
+    let midY = (fp.y + tp.y) / 2;
+    let curveStrength = Math.min(dx_dist * 0.5, 80); // 限制曲线强度
+    
+    // 在两点Y值接近时使用更强的曲线
+    if (Math.abs(fp.y - tp.y) < 50) {
+      curveStrength = Math.max(curveStrength, 40);
     }
+    
+    // 根据是否是相同时间点调整曲线方向
+    const direction = (index % 2 === 0 || Math.abs(fp.y - tp.y) < 20) ? 1 : -1;
+    
+    // 创建控制点
+    const cp1x = fp.x + curveStrength * direction;
+    const cp2x = tp.x + curveStrength * direction;
+    
+    // 创建贝塞尔曲线
+    pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+              `C${formatPoint(cp1x, fp.y)} ` +
+              `${formatPoint(cp2x, tp.y)} ` +
+              `${formatPoint(tp.x, tp.y)}`;
+    
+    // 计算箭头角度
+    const dx_tangent = tp.x - cp2x;
+    const dy_tangent = 0; // 在终点处曲线几乎是水平的
+    arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
   } else {
-    if (Math.abs(fp.x - tp.x) < 1) {
-      // S形曲线，垂直方向
-      const direction = (index % 2 === 0) ? -1 : 1;
-      const offset = 30; // 水平偏移量
-      
-      // 计算控制点坐标
-      const cp1x = ensureNumber(fp.x + offset * direction);
-      const cp1y = ensureNumber(fp.y + dy_dist/4);
-      const cp2x = ensureNumber(tp.x + offset * direction);
-      const cp2y = ensureNumber(tp.y - dy_dist/4);
-      
-      // 创建 S 形曲线
-      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
-                `C${formatPoint(cp1x, cp1y)} ` +
-                `${formatPoint(cp2x, cp2y)} ` +
-                `${formatPoint(tp.x, tp.y)}`;
-      
-      // 计算终点处的切线方向
-      const dx_tangent = ensureNumber(tp.x - (tp.x + offset * direction));
-      const dy_tangent = ensureNumber(tp.y - (tp.y - dy_dist/4));
-      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
-    } else {
-      // 正常曲线
-      const direction = (index % 2 === 0) ? 1 : -1;
-      const ctrlOffset = Math.min(dy_dist * 0.8, 40); // 最大偏移40px
-      
-      // 计算控制点坐标
-      const cp1y = ensureNumber(fp.y + ctrlOffset * direction);
-      const cp2y = ensureNumber(tp.y + ctrlOffset * direction);
-      
-      // 创建三次贝塞尔曲线
-      pathStr = `M${formatPoint(fp.x, fp.y)} ` +
-                `C${formatPoint(fp.x, cp1y)} ` +
-                `${formatPoint(tp.x, cp2y)} ` +
-                `${formatPoint(tp.x, tp.y)}`;
-      
-      // 计算终点处的切线方向
-      const dx_tangent = ensureNumber(tp.x - tp.x);
-      const dy_tangent = ensureNumber(tp.y - (tp.y + ctrlOffset * direction));
-      arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
+    // 水平布局
+    // 计算控制点
+    let midX = (fp.x + tp.x) / 2;
+    let curveStrength = Math.min(dy_dist * 0.5, 80); // 限制曲线强度
+    
+    // 在两点X值接近时使用更强的曲线
+    if (Math.abs(fp.x - tp.x) < 50) {
+      curveStrength = Math.max(curveStrength, 40);
     }
+    
+    // 根据是否是相同时间点调整曲线方向
+    const direction = (index % 2 === 0 || Math.abs(fp.x - tp.x) < 20) ? 1 : -1;
+    
+    // 创建控制点
+    const cp1y = fp.y + curveStrength * direction;
+    const cp2y = tp.y + curveStrength * direction;
+    
+    // 创建贝塞尔曲线
+    pathStr = `M${formatPoint(fp.x, fp.y)} ` +
+              `C${formatPoint(fp.x, cp1y)} ` +
+              `${formatPoint(tp.x, cp2y)} ` +
+              `${formatPoint(tp.x, tp.y)}`;
+    
+    // 计算箭头角度
+    const dx_tangent = 0; // 在终点处曲线几乎是垂直的
+    const dy_tangent = tp.y - cp2y;
+    arrowAngle = Math.atan2(dy_tangent, dx_tangent) * 180 / Math.PI;
   }
   
   // 使用Snap.svg创建路径
@@ -805,7 +769,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       // 创建并显示悬浮窗
       const content = `
         <div style="margin-bottom: 5px;"><strong>${fromPoint.roleName} - ${toPoint.roleName} </strong></div>
-        <div>时间: ${fromPoint.keypoint.t}</div>
+        <div>时间: ${fromPoint.keypoint.t}-${toPoint.keypoint.t}</div>
         ${name ? `<div>${name}</div>` : ''}
       `;
       
