@@ -623,6 +623,18 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     x: parseFloat(toDot.attr('cx')) || 0,
     y: parseFloat(toDot.attr('cy')) || 0
   };
+
+  // 添加偏移量
+  const offset = 2; // 设置偏移距离
+  if (Cfg.layout == "v") {
+    // 垂直布局时，水平方向偏移
+    fp.x -= offset;
+    tp.x += offset;
+  } else {
+    // 水平布局时，垂直方向偏移
+    fp.y += offset;
+    tp.y -= offset;
+  }
   
   // 计算水平和垂直距离
   const dx_dist = Math.abs(tp.x - fp.x);
@@ -671,7 +683,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       // 确定控制点的方向：如果终点在起点上方，调整Y偏移方向
       const yDirection = tp.y < fp.y ? -1 : 1;
       
-      // 创建控制点 - 控制点有偏移，但起点终点保持准确位置
+      // 创建控制点 
       const cp1x = fp.x + offsetX;
       const cp1y = fp.y + offsetY * yDirection;
       const cp2x = tp.x + offsetX;
@@ -713,7 +725,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       // 确定控制点的方向：如果终点在起点右侧，调整X偏移方向
       const xDirection = tp.x > fp.x ? 1 : -1;
       
-      // 创建控制点 - 控制点有偏移，但起点终点保持准确位置
+      // 创建控制点 
       const cp1x = fp.x + offsetX * xDirection;
       const cp1y = fp.y + offsetY;
       const cp2x = tp.x + offsetX * xDirection;
