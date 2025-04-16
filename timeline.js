@@ -1046,8 +1046,14 @@ function drawItem(board, item, i, color, points) {
   } else if (endDate && endDate.isApprox) {
     // 只有end是近似值时
     fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
+  } else if (startDate && !endDate) {
+    // 没有结束日期，使用右侧渐变
+    fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
+  } else if (!startDate && endDate) {
+    // 没有开始日期，使用左侧渐变
+    fill = (Cfg.layout == "v") ? "url(#gradT)" : "url(#gradL)";
   } else {
-    // 都不是近似值时
+    // 其他情况使用纯色
     fill = "#000";
   }
 
