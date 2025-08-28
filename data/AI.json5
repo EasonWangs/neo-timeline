@@ -360,6 +360,20 @@
 			]
 		},
 		{
+			"name": "罗德尼·布鲁克斯",
+			"desc": "Rodney Brooks,现代机器人之父",
+			"groups": ['Behaviorism'],
+			"icon": "au",
+			"iconText": "澳大利亚",
+			"start": 1954,
+			"keypoints": [
+				{
+					"t": 1991,
+					"w": "发表的研究论文《没有表征的智能》"
+				},
+			]
+		},
+		{
 		    "name": "沃尔特·皮茨",
 		    "start": 1923,
 		    "end": 1969,

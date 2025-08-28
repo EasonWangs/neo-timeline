@@ -16,10 +16,10 @@
 	    },
 	    g : {
 	      colors : {
-	       "zhou": "#D9E3E5",
-	      "zhen": "#F4E3B1",
-	      "qin": '#CDD8D1',
-	      "lu": "#D9E3E5"
+	       "周": "#D9E3E5",
+	      "郑": "#F4E3B1",
+	      "秦": '#CDD8D1',
+	      "鲁": "#D9E3E5"
 	      },
 	      show : true,
 	    },
@@ -123,172 +123,172 @@
 	"roles": [{
 		"name": "周平王",
 		"desc": "周幽王姬宫湦之子，母王后申后（申国国君申侯之女）",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -770,
 		"end": -720,
 		"offset":-1,
 	},{
 		"name": "周桓王",
 		"desc": "周平王姬宜臼之孙",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -719,
 		"end": -697,
 		"offset":1,
 	},{
 		"name": "周庄王",
 		"desc": "姓姬，名佗",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -696,
 		"end": -682,
 		"offset":1,
 	},{
 		"name": "周僖王",
 		"desc": "姓姬，名胡齐",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -682,
 		"end": -677,
 	},{
 		"name": "周惠王",
 		"desc": "姓姬，名阆，又名闻",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -677,
 		"end": -652,
 	},{
 		
 		"name": "周襄王",
 		"desc": "姬姓，名郑",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -652,
 		"end": -619,
 		"offset":1,
 	},{
 		"name": "周顷王",
 		"desc": "姓姬，名壬臣",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -619,
 		"end": -613,
 		"offset":1,
 	},{
 		"name": "周匡王",
 		"desc": "姓姬，名班",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -613,
 		"end": -607,
 	},{
 		"name": "周定王",
 		"desc": "姓姬，名瑜",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -606,
 		"end": -586,
 	},{
 		"name": "周简王",
 		"desc": "姓姬，名夷",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -586,
 		"end": -572,
 		"offset":5,
 	},{
 		"name": "周灵王",
 		"desc": "姓姬，名泄心",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -572,
 		"end": -545,
 	},{
 		"name": "周景王",
 		"desc": "姓姬，名贵",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -545,
 		"end": -520,
 		"offset":1,
 	},{
 		"name": "周悼王",
 		"desc": "姓姬，名猛",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -520,
 		"end": -520,
 	},{
 		"name": "周敬王",
 		"desc": "姬姓，名匄。周悼王同母弟",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -520,
 		"end": -476,
 	},{
 		"name": "周元王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -476,
 		"end": -469,
 		"offset": 4,
 	},{
 		"name": "周贞定王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -469,
 		"end": -441,
 	},{
 		"name": "周哀王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -441,
 		"end": -441,
 	},{
 		"name": "周思王",
 		"desc": "周哀王之弟，叔袭杀害周哀王即位",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -441,
 		"end": -440,
 	},{
 		"name": "周考王",
 		"desc": "杀害周思王自立",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -440,
 		"end": -426,
 	},{
 		"name": "周威烈王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -426,
 		"end": -402,
 		"offset": 4,
 	},{
 		"name": "周安王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -402,
 		"end": -376,
 	},{
 		"name": "周烈王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -375,
 		"end": -369,
 		"offset":1,
 	},{
 		"name": "周显王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -369,
 		"end": -321,
 	},{
 		"name": "周慎靓王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -321,
 		"end": -315,
 		"offset":1,
 	},{
 		"name": "周赧王",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -314,
 		"end": -256,
 	},{
 		"name": "老子",
-		"groups":["zhou"],
+		"groups":["周"],
 		"start": -571,
 		"end": -470,
 	},
 	{
 		"name": "秦文公",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -766,
 		"end": -716,
 	},
 	{
 		"name": "[霸]秦穆公",
 		"desc": "嬴姓，赵氏，名任好。秦国第九位国君",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": null,
 		"end": -621,
 		"keypoints": [{
@@ -303,14 +303,14 @@
 	{
 		"name": "百里奚",
 		"desc": "姜姓，虞国（今山西平陆北）人，百里氏，名奚，字子明，号五羖大夫",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -725,
 		"end": -621
 	},
 	{
 		"name": "秦献公",
 		"desc": "秦灵公之子",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -424,
 		"end": -362,
 		"keypoints": [{
@@ -321,7 +321,7 @@
 	{
 		"name": "秦孝公",
 		"desc": "嬴姓，名渠梁，亦称秦平王",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -381,
 		"end": -338,
 		"keypoints": [{
@@ -332,7 +332,7 @@
 	{
 		"name": "商鞅",
 		"desc": "姬姓，公孙氏，名鞅，卫国人",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -390,
 		"end": -338
 	},
@@ -340,7 +340,7 @@
 	{
 		"name": "秦惠文王",
 		"desc": "考古名骃，传世名驷",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -356,
 		"end": -311,
 		"keypoints": [{
@@ -352,7 +352,7 @@
 	{
 		"name": "张仪",
 		"desc": "姬姓，张氏，魏国人。封武信君，卒于魏国",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -373,
 		"end": -310,
 		"keypoints": [{
@@ -363,7 +363,7 @@
 	{
 		"name": "秦昭襄王",
 		"desc": "名稷，秦惠文王之子，秦悼武王（简称秦武王）之弟",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -325,
 		"end": -251,
 		"keypoints": [{
@@ -378,7 +378,7 @@
 	{
 		"name": "范雎",
 		"desc": "姬姓、范氏。又作范睢、范且，字叔，化名为张禄",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": null,
 		"end": -255,
 		"keypoints": [{
@@ -396,7 +396,7 @@
 	{
 		"name": "白起",
 		"desc": "芈姓，白氏，亦称公孙起",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -332,
 		"end": -257,
 		"keypoints": [{
@@ -413,7 +413,7 @@
 	{
 		"name": "秦始皇",
 		"desc": "嬴姓，赵氏，名政。秦庄襄王之子",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -259,
 		"end": -210,
 		"keypoints": [{
@@ -427,7 +427,7 @@
 	{
 		"name": "吕不韦",
 		"desc": "姜姓，吕氏",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": null,
 		"end": -235,
 		"keypoints": [{
@@ -440,7 +440,7 @@
 	},{
 		"name": "李斯",
 		"desc": "楚国上蔡人，荀子门生",
-		"groups":["qin"],
+		"groups":["秦"],
 		"start": -280,
 		"end": -208,
 		"keypoints": [{
@@ -455,7 +455,7 @@
 	{
 		"name": "郑庄公",
 		"desc":"姬姓，郑氏，名寤生。郑国第三位国君",
-		"groups":["zhen"],
+		"groups":["郑"],
 		"start": -757,
 		"end": -701,
 		"keypoints": [{
@@ -471,7 +471,7 @@
 	},{
 		"name": "郑襄公",
 		"desc":"郑国第十三任君主",
-		"groups":["zhen"],
+		"groups":["郑"],
 		"start": null,
 		"end": -587,
 		"keypoints": [{
@@ -482,13 +482,13 @@
 	{
 		"name": "鲁隐公",
 		"desc": "传世的鲁国史书《春秋》及其三传的记事都是从鲁隐公开始的",
-		"groups":["lu"],
+		"groups":["鲁"],
 		"start": -722,
 		"end": -712,
 	},{
 		"name": "鲁庄公",
 		"desc": "姬姓，名同。鲁桓公之子，鲁国第十六任国君",
-		"groups":["lu"],
+		"groups":["鲁"],
 		"start": -706,
 		"end": -662,
 		"keypoints": [{
@@ -502,13 +502,13 @@
 	{
 		"name": "孔子",
 		"desc": "子姓，孔氏，名丘，字仲尼",
-		"groups":["lu"],
+		"groups":["鲁"],
 		"start": -551,
 		"end": -479,
 	},{
 		"name": "鲁班",
 		"desc": "姬姓，公输氏，名班",
-		"groups":["lu"],
+		"groups":["鲁"],
 		"start": -507,
 		"end": -444,
 	},{
@@ -520,7 +520,7 @@
 	{
 		"name": "[霸]齐桓公",
 		"desc": "姜姓，吕氏，名小白。齐国第十六位国君。春秋时期的第一位霸主，孔子称赞他“九合诸侯”、“一匡天下”。典故“一箭之仇”“老马识途”“庭燎招士”",
-		"groups":["qi"],
+		"groups":["齐"],
 		"start": null,
 		"end": -643,
 		"keypoints": [{
@@ -534,28 +534,28 @@
 	{
 		"name": "管仲",
 		"desc": "姬姓，管氏，名夷吾，字仲",
-		"groups":["qi"],
+		"groups":["齐"],
 		"start": -725,
 		"end": -645,
 	},
 	{
 		"name": "齐景公",
 		"desc": "姜姓，名杵臼，齐后庄公的异母弟",
-		"groups":["qi"],
+		"groups":["齐"],
 		"start": null,
 		"end": -490,
 	},
 	{
 		"name": "晏婴",
 		"desc": "字仲，谥平，习惯上多称晏平仲。祖籍为宋国",
-		"groups":["qi"],
+		"groups":["齐"],
 		"start": -578,
 		"end": -500,
 	},
 	{
 		"name": "齐威王",
 		"desc": "妫姓，田氏，名因齐，战国策作婴齐",
-		"groups":["qi"],
+		"groups":["齐"],
 		"start": -378,
 		"end": -320,
 	},
@@ -563,7 +563,7 @@
 	{
 		"name": "齐湣王",
 		"desc": "名地，一名遂",
-		"groups":["qi"],
+		"groups":["齐"],
 		"start": -323,
 		"end": -284,
 		"keypoints": [{
@@ -584,7 +584,7 @@
 	{
 		"name": "孙膑",
 		"desc": "妫姓，孙氏，本名不详",
-		"groups":["qi"],
+		"groups":["齐"],
 		"start": -382,
 		"end": -316,
 	},
@@ -592,7 +592,7 @@
 	{
 		"name": "孟尝君",
 		"desc": "妫姓，田氏，名文，字孟",
-		"groups":["qi"],
+		"groups":["齐"],
 		"start": null,
 		"end": -279,
 		"keypoints": [{
@@ -607,7 +607,7 @@
 	{
 		"name": "[霸]宋襄公",
 		"desc": "姓子，名兹甫，宋氏",
-		"groups":["song"],
+		"groups":["宋"],
 		"start": null,
 		"end": -637,
 		"keypoints": [{
@@ -621,21 +621,21 @@
 	{
 		"name": "墨子",
 		"desc": "子姓，墨氏，名翟",
-		"groups":["song"],
+		"groups":["宋"],
 		"start": -468,
 		"end": -376,
 	},
 	{
 		"name": "庄子",
 		"desc": "庄氏，名周，一说字子休",
-		"groups":["song"],
+		"groups":["宋"],
 		"start": -369,
 		"end": -286,
 	},
 	{
 		"name": "晋献公",
 		"desc": "，姬姓，名佹诸。攻灭虢国、虞国、魏国等国，史称其“并国十七，服国三十八”",
-		"groups":["jin"],
+		"groups":["晋"],
 		"start": null,
 		"end": -651,
 		"keypoints": [{
@@ -649,7 +649,7 @@
 	{
 		"name": "[霸]晋文公",
 		"desc": "姬姓，晋氏，名重耳。晋国的第二十二任国君。司马迁《史记》称赞他是“古所谓明君”。典故“退避三舍” “志在四方”“贪天之功”",
-		"groups":["jin"],
+		"groups":["晋"],
 		"start": -697,
 		"end": -628,
 		"keypoints": [{
@@ -663,14 +663,14 @@
 	{
 		"name": "介子推",
 		"desc": "割股奉君”、隐居“不言禄”",
-		"groups":["jin"],
+		"groups":["晋"],
 		"start": null,
 		"end": -636,
 	},
 	{
 		"name": "晋灵公",
 		"desc": "晋襄公之子",
-		"groups":["jin"],
+		"groups":["晋"],
 		"start": null,
 		"end": -607,
 		"keypoints": [{
@@ -680,13 +680,13 @@
 	},{
 		"name": "赵盾",
 		"desc": "又称赵宣子、赵孟",
-		"groups":["jin"],
+		"groups":["晋"],
 		"start": null,
 		"end": -601,
 	},{
 		"name": "程婴",
 		"desc": "",
-		"groups":["jin"],
+		"groups":["晋"],
 		"start": null,
 		"end": -583,
 		"keypoints": [{
@@ -697,7 +697,7 @@
 	{
 		"name": "魏文侯",
 		"desc": "姬姓，魏氏，名斯。魏国开国君主",
-		"groups":["wei"],
+		"groups":["魏"],
 		"start": null,
 		"end": -396,
 		"keypoints": [{
@@ -707,7 +707,7 @@
 	},{
 		"name": "李悝",
 		"desc": "又作李克、李兑等。一般认为他是法家的始祖",
-		"groups":["wei"],
+		"groups":["魏"],
 		"start": -455,
 		"end": -395,
 		"keypoints": [{
@@ -718,7 +718,7 @@
 	{
 		"name": "魏惠王",
 		"desc": "本名魏罃，一作魏婴。魏国的第三代君主",
-		"groups":["wei"],
+		"groups":["魏"],
 		"start": -400,
 		"end": -319,
 		"keypoints": [{
@@ -732,7 +732,7 @@
 	{
 		"name": "庞涓",
 		"desc": "",
-		"groups":["wei"],
+		"groups":["魏"],
 		"start": -385,
 		"end": -342,
 		"keypoints": [{
@@ -747,7 +747,7 @@
 	{
 		"name": "魏昭王",
 		"desc": "魏遫，魏襄王之子",
-		"groups":["wei"],
+		"groups":["魏"],
 		"start": null,
 		"end": -277,
 		"keypoints": [{
@@ -758,7 +758,7 @@
 	{
 		"name": "信陵君",
 		"desc": "姬姓，魏氏，名无忌。魏昭王之子",
-		"groups":["wei"],
+		"groups":["魏"],
 		"start": null,
 		"end": -243,
 		"keypoints": [{
@@ -770,7 +770,7 @@
 	{
 		"name": "惠施",
 		"desc": "宋国人。名家代表人物、辩客和哲学家，政治家",
-		"groups":["wei"],
+		"groups":["魏"],
 		"start": -370,
 		"end": -310,
 		"keypoints": [{
@@ -782,7 +782,7 @@
 	{
 		"name": "公孙衍",
 		"desc": "曾任犀首之官，人因以犀首称之",
-		"groups":["wei"],
+		"groups":["魏"],
 		"start": -360,
 		"end": -300,
 		"keypoints": [{
@@ -802,7 +802,7 @@
 	{
 		"name": "赵肃侯",
 		"desc": "原名赵语",
-		"groups":["zhao"],
+		"groups":["赵"],
 		"start": null,
 		"end": -326,
 		"keypoints": [{
@@ -814,7 +814,7 @@
 	{
 		"name": "赵武灵王",
 		"desc": "嬴姓，赵氏，名雍",
-		"groups":["zhao"],
+		"groups":["赵"],
 		"start": -356,
 		"end": -295,
 		"keypoints": [{
@@ -830,7 +830,7 @@
 	{
 		"name": "苏秦",
 		"desc": "己姓，苏氏，字季子",
-		"groups":["zhao"],
+		"groups":["赵"],
 		"start": null,
 		"end": -284
 	},
@@ -838,7 +838,7 @@
 	{
 		"name": "赵惠文王",
 		"desc": "嬴姓，赵氏，名何，赵武灵王次子",
-		"groups":["zhao"],
+		"groups":["赵"],
 		"start": -310,
 		"end": -266,
 		"keypoints": [{
@@ -853,7 +853,7 @@
 	{
 		"name": "荀子",
 		"desc": "名况,被尊称为荀卿，又称孙卿",
-		"groups":["zhao"],
+		"groups":["赵"],
 		"start": -316,
 		"end": -237,
 		"keypoints": [{
@@ -865,7 +865,7 @@
 	{
 		"name": "平原君",
 		"desc": "嬴姓，赵氏，名胜，赵武灵王之子",
-		"groups":["zhao"],
+		"groups":["赵"],
 		"start": null,
 		"end": -251,
 		"keypoints": [{
@@ -882,7 +882,7 @@
 	{
 		"name": "廉颇",
 		"desc": "嬴姓，廉氏，名颇，字洪野",
-		"groups":["zhao"],
+		"groups":["赵"],
 		"start": -327,
 		"end": -243,
 		"keypoints": [{
@@ -897,7 +897,7 @@
 	{
 		"name": "李牧",
 		"desc": "名繓，字牧，以字行",
-		"groups":["zhao"],
+		"groups":["赵"],
 		"start": null,
 		"end": -229,
 		"keypoints": [{
@@ -912,7 +912,7 @@
 	{
 		"name": "韩昭侯",
 		"desc": "姬姓，韩氏，名武。韩国的第六任君主",
-		"groups":["han"],
+		"groups":["韩"],
 		"start": null,
 		"end": -333,
 		"keypoints": [{
@@ -922,13 +922,13 @@
 	},{
 		"name": "申不害",
 		"desc": "郑国人，郑国被韩国所灭之后，以法家学说，成为韩昭侯的宰相",
-		"groups":["han"],
+		"groups":["韩"],
 		"start": -385,
 		"end": -337, 
 	},{
 		"name": "韩非子",
 		"desc": "荀子门生。法家集大成者",
-		"groups":["han"],
+		"groups":["韩"],
 		"start": -281,
 		"end": -233, 
 	},
@@ -936,7 +936,7 @@
 	{
 		"name": "楚成王",
 		"desc": "芈姓，熊氏，名恽。楚文王之子",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": null,
 		"end": -626,
 		"keypoints": [{
@@ -954,7 +954,7 @@
 	{
 		"name": "成得臣",
 		"desc": "芈姓，成氏，名得臣，字子玉",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": null,
 		"end": -632,
 		"keypoints": [{
@@ -966,7 +966,7 @@
 	{
 		"name": "[霸]楚庄王",
 		"desc": "又称荆庄王，芈姓，熊氏，名旅。典故“问鼎中原”“止戈为武”",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": null,
 		"end": -591,
 		"keypoints": [{
@@ -980,7 +980,7 @@
 	{
 		"name": "孙叔敖",
 		"desc": "芈姓，𫇭氏，名敖，字孙叔",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": -630,
 		"end": -593,
 		"keypoints": [{
@@ -992,7 +992,7 @@
 	{
 		"name": "吴起",
 		"desc": "卫国人。历侍鲁、魏、楚三国",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": -440,
 		"end": -381,
 		"keypoints": [{
@@ -1007,7 +1007,7 @@
 	{
 		"name": "楚怀王",
 		"desc": "名槐，父为楚威王",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": -355,
 		"end": -296,
 		"keypoints": [{
@@ -1021,7 +1021,7 @@
 	{
 		"name": "楚顷襄王",
 		"desc": "名横",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": -329,
 		"end": -263,
 		"keypoints": [{
@@ -1036,7 +1036,7 @@
 	{
 		"name": "屈原",
 		"desc": "芈姓，屈氏，名平，字原",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": -342,
 		"end": -278,
 		"keypoints": [{
@@ -1053,7 +1053,7 @@
 	{
 		"name": "春申君",
 		"desc": "本名黄歇",
-		"groups":["chu"],
+		"groups":["楚"],
 		"start": null,
 		"end": -238,
 		"keypoints": [{
@@ -1073,7 +1073,7 @@
 	{
 		"name": "燕昭王",
 		"desc": "姬姓，名职",
-		"groups":["yan"],
+		"groups":["燕"],
 		"start": -336,
 		"end": -279,
 		"keypoints": [{
@@ -1084,7 +1084,7 @@
 	{
 		"name": "乐毅",
 		"desc": "名将乐羊后代。赵国人",
-		"groups":["yan"],
+		"groups":["燕"],
 		"start": -310,
 		"end": -260,
 		"keypoints": [{
@@ -1096,7 +1096,7 @@
 	{
 		"name": "吴王阖闾",
 		"desc": "姬姓，名光，又称公子光",
-		"groups":["wu"],
+		"groups":["吴"],
 		"start": null,
 		"end": -496,
 		"keypoints": [{
@@ -1113,7 +1113,7 @@
 	{
 		"name": "吴王夫差",
 		"desc": "姬姓，名光，又称公子光",
-		"groups":["wu"],
+		"groups":["吴"],
 		"start": null,
 		"end": -473,
 		"keypoints": [{
@@ -1130,7 +1130,7 @@
 	{
 		"name": "伍子胥",
 		"desc": "芈姓，伍氏。名员，字子胥",
-		"groups":["wu"],
+		"groups":["吴"],
 		"start": -559,
 		"end": -484,
 		"keypoints": [{
@@ -1152,7 +1152,7 @@
 	},{
 		"name": "孙武",
 		"desc": "妫姓，孙氏，名武，字长卿，齐国人",
-		"groups":["wu"],
+		"groups":["吴"],
 		"start": -545,
 		"end": -470,
 		"keypoints": [{
@@ -1166,7 +1166,7 @@
 	{
 		"name": "越王勾践",
 		"desc": "姒姓，本名鸠浅。典故“卧薪尝胆”“鸟尽弓藏，兔死狗烹” “十年生聚，十年教训”",
-		"groups":["yue"],
+		"groups":["越"],
 		"start": null,
 		"end": -464,
 		"keypoints": [{
@@ -1183,7 +1183,7 @@
 	{
 		"name": "范蠡",
 		"desc": "字少伯，又名鸱夷子皮、陶朱公",
-		"groups":["yue"],
+		"groups":["越"],
 		"start": -536,
 		"end": -448
 	},
