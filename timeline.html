@@ -4,29 +4,49 @@
     <meta charset="utf-8">
     <title></title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <script src="../../public/js/json5.js"></script>
-    <script src="../../public/js/snap.svg-min.js" type="text/javascript" charset="utf-8"></script>
-    <script src="../../public/js/axios.js" type="text/javascript" charset="utf-8"></script>
-    <script src="../../public/js/drag.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./vendor/json5.min.js"></script>
+    <script src="./vendor/snap.svg-min.js" type="text/javascript" charset="utf-8"></script>
     <script src="./timeline.js" type="text/javascript" charset="utf-8"></script>
     <link href="./timeline.css" rel="stylesheet">
      <script type="text/javascript">
       var pars = getParams();
-      document.title = decodeURIComponent(pars.title);
-      window.onload = function(){
-        url = "./data/" + pars.name + ".json5";
-        axios.get(url).then(function (res) {
-           var data = JSON5.parse(res.data);
-            Cfg = data.config;
-            drawList(data);
-            resize();
+      document.title = decodeURIComponent(pars.title || "时间线");
 
-            if(Cfg.layout == "v"){
-             $id('wapper').className = "wapper vertical"
-           }
-        });
+      function showLoadError(message) {
+        var wrapper = $id("wapper");
+        if (!wrapper) return;
+        wrapper.innerHTML = '<div style="padding:20px;color:#c00;font-family:sans-serif;line-height:1.6;">' +
+          message + '</div>';
       }
+
+      window.onload = function() {
+        var url = "./data/" + pars.name + ".json5";
+        if (!pars.name) {
+          showLoadError("缺少 name 参数，请从 index.html 进入。");
+          return;
+        }
+        fetch(url).then(function(response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status + " when loading " + url);
+          }
+          return response.text();
+        }).then(function(text) {
+          var data = JSON5.parse(text);
+          Cfg = data.config;
+          drawList(data);
+          resize();
+          initDragPan();
+
+          if (Cfg.layout == "v") {
+            $id('wapper').className = "wapper vertical";
+          }
+        }).catch(function(err) {
+          console.error("Failed to load timeline data:", err);
+          showLoadError("数据加载失败：" + url + "<br/>请确认文件存在且格式正确。");
+        });
+      };
       window.onscroll = function() {
+        if (!window.Cfg) return;
         var sh = -Math.max(document.body.scrollLeft, document.documentElement.scrollLeft);
         var sv = -Math.max(document.body.scrollTop, document.documentElement.scrollTop);
         if($id('ruler-v')) $id('ruler-v').style.top = sv + 'px' 

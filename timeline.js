@@ -1545,3 +1545,92 @@ function hideAll() {
   // 移除键盘事件监听器
   document.removeEventListener('keydown', handleKeyNavigation);
 }
+
+var isDragging = false;
+var initialMouseX = 0;
+var initialMouseY = 0;
+var initialScrollLeft = 0;
+var initialScrollTop = 0;
+var dragPanBound = false;
+var touchDragging = false;
+
+function getScrollLeft() {
+  return document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+}
+
+function getScrollTop() {
+  return document.documentElement.scrollTop || document.body.scrollTop || 0;
+}
+
+function setScroll(left, top) {
+  document.documentElement.scrollLeft = left;
+  document.body.scrollLeft = left;
+  document.documentElement.scrollTop = top;
+  document.body.scrollTop = top;
+}
+
+function startDrag(e) {
+  if (e.button === 2) {
+    isDragging = true;
+    initialMouseX = e.clientX;
+    initialMouseY = e.clientY;
+    initialScrollLeft = getScrollLeft();
+    initialScrollTop = getScrollTop();
+  }
+}
+
+function stopDrag() {
+  isDragging = false;
+}
+
+function dragScroll(e) {
+  if (!isDragging || touchDragging) return;
+  var deltaX = e.clientX - initialMouseX;
+  var deltaY = e.clientY - initialMouseY;
+  setScroll(initialScrollLeft - deltaX, initialScrollTop - deltaY);
+}
+
+function getTouchCenter(touches) {
+  var x = (touches[0].clientX + touches[1].clientX) / 2;
+  var y = (touches[0].clientY + touches[1].clientY) / 2;
+  return { x: x, y: y };
+}
+
+function startTouchDrag(e) {
+  if (e.touches.length !== 2) return;
+  touchDragging = true;
+  isDragging = true;
+  var center = getTouchCenter(e.touches);
+  initialMouseX = center.x;
+  initialMouseY = center.y;
+  initialScrollLeft = getScrollLeft();
+  initialScrollTop = getScrollTop();
+}
+
+function dragTouchScroll(e) {
+  if (!touchDragging || e.touches.length !== 2) return;
+  e.preventDefault();
+  var center = getTouchCenter(e.touches);
+  var deltaX = center.x - initialMouseX;
+  var deltaY = center.y - initialMouseY;
+  setScroll(initialScrollLeft - deltaX, initialScrollTop - deltaY);
+}
+
+function stopTouchDrag(e) {
+  if (e && e.touches && e.touches.length >= 2) return;
+  touchDragging = false;
+  isDragging = false;
+}
+
+function initDragPan() {
+  if (dragPanBound) return;
+  dragPanBound = true;
+  document.addEventListener('mousedown', startDrag);
+  document.addEventListener('mouseup', stopDrag);
+  document.addEventListener('mouseleave', stopDrag);
+  document.addEventListener('mousemove', dragScroll);
+  document.addEventListener('touchstart', startTouchDrag, { passive: true });
+  document.addEventListener('touchmove', dragTouchScroll, { passive: false });
+  document.addEventListener('touchend', stopTouchDrag, { passive: true });
+  document.addEventListener('touchcancel', stopTouchDrag, { passive: true });
+}
