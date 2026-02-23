@@ -5,22 +5,27 @@
     <title></title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <script src="./vendor/json5.min.js"></script>
+    <script src="./utils.js" type="text/javascript" charset="utf-8"></script>
     <script src="./vendor/snap.svg-min.js" type="text/javascript" charset="utf-8"></script>
     <script src="./timeline.js" type="text/javascript" charset="utf-8"></script>
     <link href="./timeline.css" rel="stylesheet">
      <script type="text/javascript">
-      var pars = getParams();
-      document.title = decodeURIComponent(pars.title || "时间线");
+      const PageUtils = window.TimelineUtils;
+      const pars = PageUtils.getParams();
+      document.title = pars.title || "时间线";
 
       function showLoadError(message) {
-        var wrapper = $id("wapper");
+        const wrapper = $id("wapper");
         if (!wrapper) return;
-        wrapper.innerHTML = '<div style="padding:20px;color:#c00;font-family:sans-serif;line-height:1.6;">' +
-          message + '</div>';
+        wrapper.textContent = "";
+        const node = document.createElement("div");
+        node.style.cssText = "padding:20px;color:#c00;font-family:sans-serif;line-height:1.6;white-space:pre-line;";
+        node.textContent = message;
+        wrapper.appendChild(node);
       }
 
       window.onload = function() {
-        var url = "./data/" + pars.name + ".json5";
+        const url = "./data/" + pars.name + ".json5";
         if (!pars.name) {
           showLoadError("缺少 name 参数，请从 index.html 进入。");
           return;
@@ -31,8 +36,8 @@
           }
           return response.text();
         }).then(function(text) {
-          var data = JSON5.parse(text);
-          Cfg = data.config;
+          const data = JSON5.parse(text);
+          Cfg = PageUtils.normalizeConfig(data.config);
           drawList(data);
           resize();
           initDragPan();
@@ -42,13 +47,13 @@
           }
         }).catch(function(err) {
           console.error("Failed to load timeline data:", err);
-          showLoadError("数据加载失败：" + url + "<br/>请确认文件存在且格式正确。");
+          showLoadError("数据加载失败：" + url + "\n请确认文件存在且格式正确。");
         });
       };
       window.onscroll = function() {
         if (!window.Cfg) return;
-        var sh = -Math.max(document.body.scrollLeft, document.documentElement.scrollLeft);
-        var sv = -Math.max(document.body.scrollTop, document.documentElement.scrollTop);
+        const sh = -Math.max(document.body.scrollLeft, document.documentElement.scrollLeft);
+        const sv = -Math.max(document.body.scrollTop, document.documentElement.scrollTop);
         if($id('ruler-v')) $id('ruler-v').style.top = sv + 'px' 
         if($id('ruler-h'))  $id('ruler-h').style.left = sh + 'px' 
         if(Cfg.layout == "h"){

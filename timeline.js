@@ -1,31 +1,66 @@
-var $id = function(e){
+const $id = function(e){
   return document.getElementById(e)
 }
-function getParams() {
-  var url = document.location,
-    arr = url.search.substring(1).split("&"),
-    arrHash = {};
-  for (var i = 0; i < arr.length; i++) {
-    arrHash[arr[i].split("=")[0]] = arr[i].split("=")[1];
-  }
-  return arrHash;
+const state = {
+  rh: null,
+  rv: null,
+  svgBg: null,
+  period: null,
+  board: null,
+  area: {},
+  offset: 0,
+  size: null,
+  hideAllBound: false,
+  popupCloseHandler: null
 };
-      
-function drawRuler(w,h) {
-   //绘制标尺[横]
-  var o = Cfg.o;
+const U = window.TimelineUtils;
+
+function removePopup() {
+  const popup = document.querySelector('.connection-popup');
+  if (popup) popup.remove();
+  if (state.popupCloseHandler) {
+    document.removeEventListener('click', state.popupCloseHandler);
+    state.popupCloseHandler = null;
+  }
+}
+
+function bindHideAllListener() {
+  if (state.hideAllBound) return;
+  document.addEventListener('click', hideAll);
+  state.hideAllBound = true;
+}
+
+function drawRuler(w, h) {
+  // 输入: 当前画布宽高
+  // 处理: 清理旧标尺/网格并重新绘制
+  // 输出: 更新 state.rh/state.rv/state.svgBg
+  const wrapper = $id("wapper");
+  if (!wrapper) return;
+  const oldRh = $id("ruler-h");
+  const oldRv = $id("ruler-v");
+  if (oldRh) oldRh.remove();
+  if (oldRv) oldRv.remove();
+  if (state.svgBg && state.svgBg.node && state.svgBg.node.parentNode) {
+    state.svgBg.node.parentNode.removeChild(state.svgBg.node);
+  }
+
+  //绘制标尺[横]
+  const o = Cfg.o;
+  let rulerH = null;
+  let rulerV = null;
+  let bgGrid = null;
   if(o.hs){
     // 动态计算合适的小标间隔
     const mainMarkWidth = o.hs * Cfg.zoom; // 主刻度之间的像素宽度
     const MIN_SPACE = 25; // 最小文字间隔
     const suggestedDivisions = Math.floor(mainMarkWidth / MIN_SPACE); // 建议划分次数
     o.hm = o.hm || Math.max(1, Math.floor(o.hs / suggestedDivisions));
-    rh = Snap(w, 25).attr({
+    rulerH = Snap(w, 25).attr({
       id:"ruler-h",
       class:"ruler",
     });
     // 添加背景矩形
-    rh.rect(0, 0, w, 25).attr({
+    rulerH.rect(0, 0, w, 25).attr({
       fill: Cfg.rulerBg || "#383838",
       fillOpacity: 0.8
     });
@@ -33,17 +68,17 @@ function drawRuler(w,h) {
       let x =  i * Cfg.zoom;
       if(i % o.hs == 0){
         //此时是大标
-        rh.line(x, 0, x, 25).attr({
+        rulerH.line(x, 0, x, 25).attr({
           stroke: "#8f9292",
           strokeWidth: 1,
         });
         let text = (Cfg.start + i) + '';
-        rh.text(x + 2, 12.5, text).attr({
+        rulerH.text(x + 2, 12.5, text).attr({
           fill: "#b1b4b4"
         });
       }else{ 
         //其他情况是小标
-        rh.line(x,15, x, 25).attr({
+        rulerH.line(x,15, x, 25).attr({
           stroke: "#8f9292",
           strokeWidth: 1,
         });
@@ -51,7 +86,7 @@ function drawRuler(w,h) {
         let spaceToNextMark = o.hs * Cfg.zoom;
         if(spaceToNextMark >= 100) { // 如果空间大于100px，显示小标值
           let text = (Cfg.start + i) + '';
-          rh.text(x + 2, 12.5, text).attr({
+          rulerH.text(x + 2, 12.5, text).attr({
             fill: "#b1b4b4",
             fontSize: "0.8em" // 小标文字稍小
           });
@@ -63,21 +98,21 @@ function drawRuler(w,h) {
         for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
           let posx = x + j/len * Cfg.zoom;
           // 月份标记
-          rh.line(posx, 16, posx, 25).attr({
+          rulerH.line(posx, 16, posx, 25).attr({
             stroke: "#8f9292",
             strokeWidth: 1,
           });
     
           // 计算月份
           let monthNum = j*(12/len) + 1; // 计算月份
-          rh.text(posx + 2, 20, monthNum).attr({
+          rulerH.text(posx + 2, 20, monthNum).attr({
             fill: "#b1b4b4",
             fontSize: "0.7em" // 月份标记文字稍小
           });
         }
       }
     }
-    $id("wapper").appendChild(rh.node);
+    wrapper.appendChild(rulerH.node);
    }
 
   //绘制标尺[竖]
@@ -88,12 +123,12 @@ function drawRuler(w,h) {
     let suggestedDivisions = Math.floor((mainMarkWidth) / MIN_SPACE);
     o.vm = o.vm || Math.max(1, Math.floor(o.vs / suggestedDivisions));
     
-    rv = Snap(25, h).attr({
+    rulerV = Snap(25, h).attr({
       id:"ruler-v",
       class:"ruler"
     });
     // 添加背景矩形
-    rv.rect(0, 0, 25, h).attr({
+    rulerV.rect(0, 0, 25, h).attr({
       fill: Cfg.rulerBg || "#383838",
       fillOpacity: 0.8
     });
@@ -101,19 +136,19 @@ function drawRuler(w,h) {
       let y = i * Cfg.zoom;
       if(i % o.vs == 0){ 
         //大标
-        rv.line(0, y, 25, y).attr({
+        rulerV.line(0, y, 25, y).attr({
           stroke: "#8f9292",
           strokeWidth: 1,
         });
         let text = (Cfg.start + i) + '';
-        let ruletext = rv.text(0,  y - 2,  text).attr({
+        let ruletext = rulerV.text(0,  y - 2,  text).attr({
           fill: "#b1b4b4"
         });
         // let matrix = new Snap.Matrix();
         // matrix.rotate(270, 0, y); // 旋转文字
         // ruletext.transform(matrix);
       }else{ //小标
-        rv.line(15, y, 25, y).attr({
+        rulerV.line(15, y, 25, y).attr({
           stroke: "#8f9292",
           strokeWidth: 1,
         });
@@ -121,7 +156,7 @@ function drawRuler(w,h) {
         let spaceToNextMark = o.vs * Cfg.zoom;
         if(spaceToNextMark >= 100) { // 如果空间大于100px，显示小标值
           let text = (Cfg.start + i) + '';
-          rv.text(0, y - 2, text).attr({
+          rulerV.text(0, y - 2, text).attr({
             fill: "#b1b4b4",
             fontSize: "0.8em" // 小标文字稍小
           });
@@ -133,29 +168,29 @@ function drawRuler(w,h) {
         for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
           let posy = y + j/len * Cfg.zoom;
           // 月份标记
-          rv.line(16, posy, 25, posy).attr({
+          rulerV.line(16, posy, 25, posy).attr({
             stroke: "#8f9292",
             strokeWidth: 1,
           });
           // 计算月份
           let monthNum = j*(12/len) + 1; // 计算月份
-          rv.text(16, posy-2, monthNum).attr({
+          rulerV.text(16, posy-2, monthNum).attr({
             fill: "#b1b4b4",
             fontSize: "0.7em" // 月份标记文字稍小
           });
         }
       }
     }
-    $id("wapper").appendChild(rv.node);
+    wrapper.appendChild(rulerV.node);
   }
 
    // svg绘制背景网格
-  svgBg = Snap(w,h).attr({
+  bgGrid = Snap(w,h).attr({
     class:"svgBg"
   });
   
   // 添加背景矩形
-  svgBg.rect(0, 0, w, h).attr({
+  bgGrid.rect(0, 0, w, h).attr({
     fill: Cfg.svgBg || "#faf7ec"
   });
 
@@ -170,7 +205,7 @@ function drawRuler(w,h) {
   
   // 纵向栅格线
   for (var i = 0; i < w/Cfg.zoom; i += o.hm) {
-    let line = svgBg.line(i * Cfg.zoom, 0, i * Cfg.zoom, "100%").attr({
+    let line = bgGrid.line(i * Cfg.zoom, 0, i * Cfg.zoom, "100%").attr({
         stroke:  (i % o.hs == 0) ? "#f0ebdc" : "#f5f0e0",
         class : (i % o.hs == 0) ? "thickLine" : "thinLine"
      })
@@ -178,137 +213,22 @@ function drawRuler(w,h) {
 
   // 横向栅格线
   for (var i = 0; i < h/Cfg.zoom; i+= o.vm) {
-    let line = svgBg.line(0,  i * Cfg.zoom, "100%",  i * Cfg.zoom).attr({
+    let line = bgGrid.line(0,  i * Cfg.zoom, "100%",  i * Cfg.zoom).attr({
         stroke:  (i % o.vs == 0) ? "#f0ebdc" : "#f5f0e0",
         class : (i % o.vs == 0) ? "thickLine" : "thinLine"
      });
   }
-  $id("wapper").appendChild(svgBg.node);
+  wrapper.appendChild(bgGrid.node);
+  state.rh = rulerH;
+  state.rv = rulerV;
+  state.svgBg = bgGrid;
 }
-
-// 检查是否为近似值
-function isApproxDate(date) {
-  return typeof date === 'string' && date.startsWith('~');
-}
-
-// 处理近似值，提取~后面的内容
-function parseApproxDate(date) {
-  if (isApproxDate(date)) {
-    return date.substring(1).trim();
-  }
-  return date;
-}
-
-// 日期解析函数增强
-const parseDate = (dateStr) => {
-  if (!dateStr) return null;
-  
-  try {
-    // 确保输入是字符串类型
-    dateStr = String(dateStr);
-    dateStr = dateStr.trim();
-    
-    // 处理近似值
-    const isApprox = isApproxDate(dateStr);
-    if (isApprox) {
-      dateStr = parseApproxDate(dateStr);
-      if (!dateStr) return null;
-    }
-    
-   
-    // 检查是否包含日期分隔符
-    if (dateStr.includes('/')) {
-      const parts = dateStr.split('/');
-      
-      // 解析年份（必需）
-      const year = parseInt(parts[0]);
-      if (isNaN(year)) {
-        console.error('Invalid year:', dateStr);
-        return null;
-      }
-      
-      // 解析月份（可选）
-      const month = parts.length > 1 ? parseInt(parts[1]) : 1;
-      if (isNaN(month) || month < 1 || month > 12) {
-        console.error('Invalid month:', dateStr);
-        return null;
-      }
-      
-      // 解析日期（可选）
-      const day = parts.length > 2 ? parseInt(parts[2]) : 1;
-      if (isNaN(day) || day < 1 || day > 31) {
-        console.error('Invalid day:', dateStr);
-        return null;
-      }
-      
-      // 构建格式化的日期字符串
-      let formattedDate = `${year}/${month.toString().padStart(2, '0')}`;
-      if (parts.length > 2) {
-        formattedDate += `/${day.toString().padStart(2, '0')}`;
-      }
-      
-      return {
-        year: year,
-        month: month - 1,  // 转换为0-11
-        day: day,
-        isApprox: isApprox,
-        original: isApprox ? '~' + formattedDate : formattedDate
-      };
-    }
-    
-    // 处理纯年份格式
-    const parsedYear = parseInt(dateStr);
-    if (isNaN(parsedYear)) {
-      console.error('Invalid year:', dateStr);
-      return null;
-    }
-    
-    return {
-      year: parsedYear,
-      month: 0,
-      day: 1,
-      isApprox: isApprox,
-      original: isApprox ? '~' + parsedYear : String(parsedYear)
-    };
-    
-  } catch (e) {
-    console.error('Date parse error:', dateStr, e);
-    return null;
-  }
-};
-
-// 计算日期在时间轴上的位置
-const getDatePosition = (date, zoom) => {
-  if (!date) return 0;
-  
-  try {
-    // 确保所有输入都是有效数字
-    const year = parseInt(date.year) || 0;
-    const month = parseInt(date.month) || 0;
-    const day = parseInt(date.day) || 1;
-    const start = parseInt(Cfg.start) || 0;
-    
-    // 计算年份偏移
-    const yearOffset = year - start;
-    
-    // 计算月份和日期的小数部分
-    const monthFraction = month / 12;
-    const dayFraction = day / (12 * 30); // 简化为每月30天
-    
-    const position = (yearOffset + monthFraction + dayFraction) * zoom;
-    
-    // 确保返回有效数字
-    return isFinite(position) ? position : 0;
-  } catch (e) {
-    console.error('Position calculation error:', date, e);
-    return 0;
-  }
-};
 
 // 时期范围
 function drawPeriod(pers){
-	period = Snap("#period");
-	if(Cfg.p.position) period.node.style.position = Cfg.p.position;
+	const periodBoard = Snap("#period");
+  state.period = periodBoard;
+	if(Cfg.p.position) periodBoard.node.style.position = Cfg.p.position;
   let p = (Cfg.p.padding || 50) * Cfg.zoom;
   
   for (var i = 0; i < pers.length; i++) {
@@ -343,10 +263,10 @@ function drawPeriod(pers){
     }
      
     // 创建时期组
-    var periodGroup = period.g();
+    var periodGroup = periodBoard.g();
     
     //时期矩形
-    var rect = period.rect(x, y, w, h).attr({
+    var rect = periodBoard.rect(x, y, w, h).attr({
       fill: Cfg.p.colors[i % Cfg.p.colors.length], 
       fillOpacity: 0.2,
     }).hover(function() {
@@ -363,7 +283,7 @@ function drawPeriod(pers){
     periodGroup.add(rect);
  
     //时期文字
-    var text = period.text(tX, tY, pers[i].name).attr({
+    var text = periodBoard.text(tX, tY, pers[i].name).attr({
           class: 'text',
           writingMode: wm,
           textAnchor: Cfg.p.textAnchor,
@@ -383,28 +303,17 @@ function drawPeriod(pers){
 
     let desc = "";
     // 解析日期
-    const startDate = parseDate(pers[i].start);
-    const endDate = parseDate(pers[i].end);
+    const startDate = U.parseDate(pers[i].start);
+    const endDate = U.parseDate(pers[i].end);
     
     // 使用原始日期字符串显示
-    if (startDate && endDate) {
-      desc = `(${startDate.original}-${endDate.original})`;
-    } else if (startDate) {
-      desc = `(${startDate.original}-)`;
-    } else if (endDate) {
-      desc = `(-${endDate.original})`;
-    }
+    desc = U.buildRangeDesc(startDate, endDate);
 
     if(pers[i].desc) {
-      if(typeof(pers[i].desc) == 'string'){
-        desc += pers[i].desc;
-      }else{
-        pers[i].desc[0] = desc + pers[i].desc[0];
-        desc = pers[i].desc;
-      }
+      desc = U.prependLabelToValue(desc, pers[i].desc);
     }
 
-    let title = Snap.parse('<title>'+ desc +'</title>');
+    let title = Snap.parse('<title>'+ U.toPlainText(desc) +'</title>');
     text.append(title);
     
     // 添加文本到组
@@ -414,18 +323,18 @@ function drawPeriod(pers){
     var points = pers[i].keypoints;
     if(points){
       // 创建关键点组
-      var pointsGroup = period.g().attr({
+      var pointsGroup = periodBoard.g().attr({
         class: 'points'
       });
       
       for(var n = 0; n < points.length; n++){
         // 为每个点创建一个组
-        let pointGroup = period.g().attr({
+        let pointGroup = periodBoard.g().attr({
           class: 'point'
         });
         
         let x = (points[n].t - Cfg.start) * Cfg.zoom;
-        let pointSVG = period.circle(x, y + 35, 3).attr({
+        let pointSVG = periodBoard.circle(x, y + 35, 3).attr({
           stroke: "#f00",
           strokeWidth: 1,
         });
@@ -566,15 +475,9 @@ function drawConnectionEvents(roles) {
       };
       
       // 绘制连接
-      drawConnection(board, fromPoint, toPoint, connectionCount, kp.w);
+      drawConnection(state.board, fromPoint, toPoint, connectionCount, kp.w);
       connectionCount++;
     }
-  }
-  
-  if (connectionCount === 0) {
-    console.info('在角色数据中未找到关联事件');
-  } else {
-    console.info(`已绘制 ${connectionCount} 个关联事件`);
   }
 }
 
@@ -604,6 +507,9 @@ function createKeypointMap(roles) {
 
 // 绘制两个关键点之间的连接
 function drawConnection(board, fromPoint, toPoint, index, name) {
+  // 输入: 两个关键点信息与连接序号
+  // 处理: 计算路径、箭头与标题并绑定交互
+  // 输出: 在传入 board 上生成连接图元
   // 通过id查找起点和终点的dot元素
   const fromDot = board.select(`#${fromPoint.keypoint.id}`);
   const toDot = board.select(`#${toPoint.keypoint.id}`);
@@ -798,20 +704,19 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
       if(toElement) show(toElement,-1);
 
       // 创建并显示悬浮窗
-      const content = `
-        <div style="margin-bottom: 5px;"><strong>${fromPoint.roleName} - ${toPoint.roleName} </strong></div>
-        <div>时间: ${fromPoint.keypoint.t}-${toPoint.keypoint.t}</div>
-        ${name ? `<div>${name}</div>` : ''}
-      `;
-      
-      createPopup(e.clientX, e.clientY, content);
+      var popupLines = [`时间: ${fromPoint.keypoint.t}-${toPoint.keypoint.t}`];
+      if (name) popupLines.push(U.toPlainText(name));
+      createPopup(e.clientX, e.clientY, U.buildPopupContent({
+        title: `${fromPoint.roleName} - ${toPoint.roleName}`,
+        lines: popupLines
+      }));
     }
   });
 }
 
 // 计算关键点的坐标
 function calculatePointCoordinates(roleIndex, time) {
-  const offset = window.offset || 0; // 确保offset变量可用
+  const offset = state.offset || 0;
   
   if (Cfg.layout == "v") {
     return {
@@ -895,16 +800,18 @@ function createTextPath(board, pathId, text, options = {}) {
 
 //绘制列表
 function drawList(data){
-  board = Snap("#content");
-  document.onclick = hideAll;
-  area = {};
-  offset = 0;
+  Cfg = U.normalizeConfig(Cfg);
+  const board = Snap("#content");
+  state.board = board;
+  bindHideAllListener();
+  state.area = {};
+  state.offset = 0;
   var roles = data.roles;
   for (var i = 0; i < roles.length; i++) {
     let item = roles[i],
         color = "#fff";
-    if(!!item.groups){
-      color = Cfg.g.colors[item.groups[0]]
+    if(!!item.groups && Cfg.g.colors[item.groups[0]]){
+      color = Cfg.g.colors[item.groups[0]];
     }
     drawItem(board, item, i, color, item.keypoints)
   }
@@ -974,50 +881,33 @@ function handleKeyNavigation(e) {
   }
 }
 
-//绘制个体
-function drawItem(board, item, i, color, points) {
-  if (!item) return;
-  
-  // 使用 Cfg.size 作为基础间距，默认值为 20
-  const itemSpacing = Cfg.size || 20;
- 
-  var itemBox = board.g().attr({
-    class:"item",
-    id: item.id || item.name
-  });
+function computeItemGeometry(item, index, itemSpacing) {
+  let w;
+  let h = 2;
+  let x = (item.start - Cfg.start) * Cfg.zoom;
+  let y = (index - state.offset) * itemSpacing + 45;
+  const startDate = U.parseDate(item.start);
+  const endDate = U.parseDate(item.end);
 
-  if(item.offset) offset += item.offset;
-  // 计算x坐标和宽度
-  let w, h = 2;
-  var x = (item.start - Cfg.start) * Cfg.zoom,
-  y = (i - offset) * itemSpacing + 45; // 使用 itemSpacing 替换固定值
-
-   // 解析日期并获取位置
-   const startDate = parseDate(item.start);
-   const endDate = parseDate(item.end);
-   
-  
   if (startDate) {
-    x = getDatePosition(startDate, Cfg.zoom);
+    x = U.getDatePosition(startDate, Cfg.zoom);
   } else if (endDate) {
-    x = getDatePosition(endDate, Cfg.zoom) - (60 * Cfg.zoom);
+    x = U.getDatePosition(endDate, Cfg.zoom) - (60 * Cfg.zoom);
   } else {
     x = 0;
   }
 
   if (endDate) {
-    w = getDatePosition(endDate, Cfg.zoom) - x;
+    w = U.getDatePosition(endDate, Cfg.zoom) - x;
   } else if (startDate) {
     w = 90 * Cfg.zoom;
   } else {
     w = Cfg.zoom;
   }
 
-  // 确保x和w是有效数值
   x = isFinite(x) ? x : 0;
   w = isFinite(w) ? Math.max(w, 1) : Cfg.zoom;
 
-  // 布局转换
   if (Cfg.layout == "v") {
     const temp = h;
     h = w;
@@ -1027,49 +917,36 @@ function drawItem(board, item, i, color, points) {
     y = tempX;
   }
 
-  // 最终验证
   if (!isFinite(x) || !isFinite(y) || !isFinite(w) || !isFinite(h)) {
     console.error('Invalid dimensions:', {x, y, w, h}, 'for item:', item);
-    return;
+    return null;
   }
 
-  // 创建矩形，处理近似日期的渐变
   let fill;
-  
-  // 根据start和end的近似值状态设置填充样式
   if (startDate && startDate.isApprox && endDate && endDate.isApprox) {
-    // 当两端都是近似值时
     fill = (Cfg.layout == "v") ? "url(#gradTB)" : "url(#gradLR)";
   } else if (startDate && startDate.isApprox) {
-    // 只有start是近似值时
     fill = (Cfg.layout == "v") ? "url(#gradT)" : "url(#gradL)";
   } else if (endDate && endDate.isApprox) {
-    // 只有end是近似值时
     fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
   } else if (startDate && !endDate) {
-    // 没有结束日期，使用右侧渐变
     fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
   } else if (!startDate && endDate) {
-    // 没有开始日期，使用左侧渐变
     fill = (Cfg.layout == "v") ? "url(#gradT)" : "url(#gradL)";
   } else {
-    // 其他情况使用纯色
     fill = "#000";
   }
 
-  // 创建矩形并应用填充样式
-  let rect = board.rect(x, y, w, h, 2).attr({
-    fill: fill
-  });
-  // 直接将矩形添加到组中
-  itemBox.add(rect);
+  return { x, y, w, h, fill, startDate, endDate };
+}
 
-  //绘制name
-  let x1 = x, y1 = y - 3;
+function renderItemHeader(board, item, itemBox, color, geometry) {
+  let x1 = geometry.x;
+  let y1 = geometry.y - 3;
   if(Cfg.layout == "v"){
-      x1 = x + 10;
-      y1 = y;
-   }
+    x1 = geometry.x + 10;
+    y1 = geometry.y;
+  }
   var name = board.text(x1, y1, item.name).attr({
     class: "name",
     style: "text-shadow: 1px 1px "+ color + ", -1px -1px "+ color
@@ -1081,240 +958,227 @@ function drawItem(board, item, i, color, points) {
     }else{
       show(parent);
     }
-    e.stopPropagation(); 
-  })
-  // 直接将文本添加到组中
+    e.stopPropagation();
+  });
   itemBox.add(name);
 
-
-     //图标
-  let x2 = x - 15, y2 = y - 13;
+  let x2 = geometry.x - 15;
+  let y2 = geometry.y - 13;
   if(Cfg.layout == "v"){
-      x2 = x + 2;
-      y2 = y - 13;
-   }
+    x2 = geometry.x + 2;
+    y2 = geometry.y - 13;
+  }
 
   if(item.icon){
-    var url = Cfg.iconPath + item.icon + '.svg'
+    var url = Cfg.iconPath + item.icon + '.svg';
     var icon = board.image(url, x2, y2, 15, 12).attr({
       class:"icon",
       title:item.iconText
     });
     let title = Snap.parse('<title>'+item.iconText+'</title>');
     icon.append(title);
-    // 直接将图标添加到组中
     itemBox.add(icon);
   }
 
-   //绘制name的desc
-  let desc = "";
-  if (startDate && endDate) {
-    desc = `(${startDate.original}-${endDate.original})`;
-  } else if (startDate) {
-    desc = `(${startDate.original}-)`;
-  } else if (endDate) {
-    desc = `(-${endDate.original})`;
-  }
+  return name;
+}
 
+function renderItemDesc(board, item, itemBox, geometry, name) {
+  let desc = U.buildRangeDesc(geometry.startDate, geometry.endDate);
   if(item.iconText){
     desc += "["+item.iconText+"]";
   }
   if(item.desc) {
-    if(typeof(item.desc) == 'string'){
-      desc += item.desc;
-    }else{
-      item.desc[0] = desc + item.desc[0];
-      desc = item.desc;
-    }
+    desc = U.prependLabelToValue(desc, item.desc);
   }
-  let x3, y3;
-   if(Cfg.layout == "v"){
-     x3 = x + 10;
-     y3 = y + name.getBBox().width + 3;
-   }else if(Cfg.layout == "h"){
-     x3 = x + name.getBBox().width + 3;
-     y3 = y - 3;
-   }
+
+  let x3;
+  let y3;
+  if(Cfg.layout == "v"){
+    x3 = geometry.x + 10;
+    y3 = geometry.y + name.getBBox().width + 3;
+  }else{
+    x3 = geometry.x + name.getBBox().width + 3;
+    y3 = geometry.y - 3;
+  }
 
   let descText = board.text(x3, y3, desc).attr({
-      class: "descBox",
-      fill:"#000",
-    });
+    class: "descBox",
+    fill:"#000",
+  });
   let tspan = descText.selectAll('tspan').items;
   if(tspan.length > 0){
-      for(let i in tspan){
-        if(Cfg.layout == "v"){
-           tspan[i].attr({
-              x: x3 + 16*i,
-              y: y3
-            })
-         }else if(Cfg.layout == "h"){
-           tspan[i].attr({
-              x: x3,
-              y: y - i * 16 - 3
-            })
-         }
-      }
-  }
-  // 直接将描述文本添加到组中
-  itemBox.add(descText);
-
-  //keypoints
-  if(points){
-    // 使用g()方法创建点和连接线的组
-    let dotBox = board.g().attr({
-        class:'dotBox'
-    });
-    let contBox = board.g().attr({
-        class:'contBox'
-    });
-
-    let [x4,y4,x5,y5] = [x,y,x,y];
-    for(let i = points.length - 1; i >= 0; i--){
-      let point = points[i];
+    for(let i in tspan){
       if(Cfg.layout == "v"){
-         y4 = (point.t - Cfg.start) * Cfg.zoom;
-         y5 = y4;
-       }else if(Cfg.layout == "h"){
-         x4 = (point.t - Cfg.start) * Cfg.zoom;
-         x5 = x4
-       }
-	   
-	   //keypoints信息
-	   let desc = point.t;
-	       desc += item.start ? "[" + (point.t - item.start)+ "]" : "";
-       let displayContent = "";
-       if(point.w) {
-         if(typeof(point.w) == 'string'){
-           displayContent = point.w;
-           desc += point.w;
-         }else{
-           point.w[0] = desc + point.w[0];
-           desc = point.w;
-           displayContent = point.w.join('<br>');
-         }
-       }
-	   
-	   //绘制点和线
-	   let title = Snap.parse('<title>'+desc+'</title>');
-	   let dot = board.circle(x4, y4, 2).attr({
-	     stroke:"#f00",
-	     fill:"#fff",
-	     strokeWidth: 1,
-       id: point.id || '',
-       'data-index': i,
-       'data-time': point.t // 添加时间属性
-	   });
-	   dot.append(title);
-	   
-	   // 修改点击事件处理
-	   dot.click(function(e){
-	     show(this.parent().parent(), this.attr('data-index'));
-	     
-	     // 获取点的坐标并转换为页面坐标
-	     const pt = this.node.ownerSVGElement.createSVGPoint();
-	     pt.x = this.attr('cx');
-	     pt.y = this.attr('cy');
-	     
-	     // 转换为页面坐标
-	     const ctm = this.node.getScreenCTM();
-	     const globalPt = pt.matrixTransform(ctm);
-	     
-	     // 创建悬浮窗内容
-	     const content = `
-	       <div style="margin-bottom: 5px;">
-	         <strong>${point.t}[${point.t - item.start}]</strong>
-	       </div>
-	       ${displayContent ? `<div style="margin-top: 5px;">${displayContent}</div>` : ''}
-	       ${point.id ? `<div style="color: #666; font-size: 12px; margin-top: 5px;">ID: ${point.id}</div>` : ''}
-	     `;
-	     
-	     // 使用点的实际坐标显示悬浮窗
-	     createPopup(globalPt.x, globalPt.y, content);
-	     
-	     e.stopPropagation(); 
-	   });
-	   
-	   dotBox.add(dot);
-	   //绘制线和文本
-	   if(Cfg.layout == "v"){
-	     x5 -= itemSpacing - 2; // 使用 Cfg.size 计算线的长度
-	   }else if(Cfg.layout == "h"){
-	     y5 += itemSpacing - 2; // 使用 Cfg.size 计算线的长度
-	   }
-	   
-	   // 为每组line和text创建一个组
-	   let lineTextGroup = board.g().attr({
-	     class: 'contGroup'
-	   });
-	   
-	   // 绘制线
-	   let line = board.line(x4, y4, x5, y5).attr({
-	     stroke:"#000",
-	     strokeWidth: 2,
-	   });
-	   
-	   //显示信息
-	   let text = board.text(x5, y5, desc).attr({
-	     class:"dotText",
-	   });
-	   
-	   let tspan = text.selectAll('tspan').items;
-	   if(tspan.length > 0){
-	     for(let i in tspan){
-	       tspan[i].attr({
-	         x: x5,
-	         y: y5
-	       })
-	       if(Cfg.layout == "v"){
-	         x5 -= itemSpacing - 4 // 使用 Cfg.size 计算文本间距
-	         y5 -= itemSpacing * 6.8 // 使用 Cfg.size 计算文本垂直间距
-	       }else if(Cfg.layout == "h"){
-	         y5 += itemSpacing - 4 // 使用 Cfg.size 计算文本间距
-	       }
-	     }
-	   }
-	   
-	   // 将line和text添加到组中
-	   lineTextGroup.add(line);
-	   lineTextGroup.add(text);
-	   
-	   // 将组添加到contBox中
-	   contBox.add(lineTextGroup);
+        tspan[i].attr({
+          x: x3 + 16*i,
+          y: y3
+        });
+      }else{
+        tspan[i].attr({
+          x: x3,
+          y: geometry.y - i * 16 - 3
+        });
+      }
     }
-    // 将dotBox和contBox组添加到itemBox组中
-    itemBox.add(dotBox);
-    itemBox.add(contBox);
+  }
+  itemBox.add(descText);
+}
+
+function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
+  if(!points) return;
+
+  let dotBox = board.g().attr({
+    class:'dotBox'
+  });
+  let contBox = board.g().attr({
+    class:'contBox'
+  });
+
+  let [x4,y4,x5,y5] = [geometry.x,geometry.y,geometry.x,geometry.y];
+  for(let i = points.length - 1; i >= 0; i--){
+    let point = points[i];
+    if(Cfg.layout == "v"){
+      y4 = (point.t - Cfg.start) * Cfg.zoom;
+      y5 = y4;
+    }else if(Cfg.layout == "h"){
+      x4 = (point.t - Cfg.start) * Cfg.zoom;
+      x5 = x4;
+    }
+
+    let desc = String(point.t);
+    if (item.start !== undefined && item.start !== null) {
+      desc += "[" + (point.t - item.start)+ "]";
+    }
+    let keypointText = point.w ? U.prependLabelToValue(desc, point.w) : desc;
+    let displayLines = point.w ? U.toLines(point.w) : [];
+
+    let title = Snap.parse('<title>'+U.toPlainText(keypointText)+'</title>');
+    let dot = board.circle(x4, y4, 2).attr({
+      stroke:"#f00",
+      fill:"#fff",
+      strokeWidth: 1,
+      id: point.id || '',
+      'data-index': i,
+      'data-time': point.t
+    });
+    dot.append(title);
+
+    dot.click(function(e){
+      show(this.parent().parent(), this.attr('data-index'));
+
+      const pt = this.node.ownerSVGElement.createSVGPoint();
+      pt.x = this.attr('cx');
+      pt.y = this.attr('cy');
+      const ctm = this.node.getScreenCTM();
+      const globalPt = pt.matrixTransform(ctm);
+
+      const pointTitle = item.start !== undefined && item.start !== null
+        ? `${point.t}[${point.t - item.start}]`
+        : String(point.t);
+      createPopup(globalPt.x, globalPt.y, U.buildPopupContent({
+        title: pointTitle,
+        lines: displayLines,
+        meta: point.id ? `ID: ${point.id}` : ""
+      }));
+
+      e.stopPropagation();
+    });
+
+    dotBox.add(dot);
+    if(Cfg.layout == "v"){
+      x5 -= itemSpacing - 2;
+    }else if(Cfg.layout == "h"){
+      y5 += itemSpacing - 2;
+    }
+
+    let lineTextGroup = board.g().attr({
+      class: 'contGroup'
+    });
+
+    let line = board.line(x4, y4, x5, y5).attr({
+      stroke:"#000",
+      strokeWidth: 2,
+    });
+
+    let text = board.text(x5, y5, keypointText).attr({
+      class:"dotText",
+    });
+
+    let tspan = text.selectAll('tspan').items;
+    if(tspan.length > 0){
+      for(let i in tspan){
+        tspan[i].attr({
+          x: x5,
+          y: y5
+        });
+        if(Cfg.layout == "v"){
+          x5 -= itemSpacing - 4;
+          y5 -= itemSpacing * 6.8;
+        }else if(Cfg.layout == "h"){
+          y5 += itemSpacing - 4;
+        }
+      }
+    }
+
+    lineTextGroup.add(line);
+    lineTextGroup.add(text);
+    contBox.add(lineTextGroup);
+  }
+  itemBox.add(dotBox);
+  itemBox.add(contBox);
+}
+
+//绘制个体
+function drawItem(board, item, i, color, points) {
+  if (!item) return;
+
+  const itemSpacing = Cfg.size || 20;
+  var itemBox = board.g().attr({
+    class:"item",
+    id: item.id || item.name
+  });
+
+  if(item.offset) {
+    state.offset += item.offset;
   }
 
-  //groups
+  const geometry = computeItemGeometry(item, i, itemSpacing);
+  if (!geometry) return;
+
+  let rect = board.rect(geometry.x, geometry.y, geometry.w, geometry.h, 2).attr({
+    fill: geometry.fill
+  });
+  itemBox.add(rect);
+
+  var name = renderItemHeader(board, item, itemBox, color, geometry);
+  renderItemDesc(board, item, itemBox, geometry, name);
+  renderKeypoints(board, item, itemBox, points, itemSpacing, geometry);
+
   if(!!item.groups){
     var gp = item.groups[0];
-    if(!(gp in area)) {
-       // 使用g()方法创建组
-       area[gp] = board.g().attr({
+    if(!(gp in state.area)) {
+       state.area[gp] = board.g().attr({
         class:"group "+ gp,
       });
     }
-    // 将itemBox组添加到area[gp]组中
-    area[gp].add(itemBox);
+    state.area[gp].add(itemBox);
   } else {
-    // 如果没有组，直接将itemBox添加到board
     board.add(itemBox);
   }
 }
 
 //绘制group
 function drawItemGroup(color){
-  for(var i in area) {
-    let itemBox = area[i].getBBox(),
+  for(var i in state.area) {
+    let itemBox = state.area[i].getBBox(),
         x = itemBox.x - 2,
         y = itemBox.y + 1,
         w = itemBox.width + 4,
         h = itemBox.height - 1;
     
     // 创建组框矩形
-    let rect = board.rect(x, y, w, h, 5).attr({
+    let rect = state.board.rect(x, y, w, h, 5).attr({
         class: "block",
         stroke: "#fff",
         fill: color[i],
@@ -1338,55 +1202,54 @@ function drawItemGroup(color){
     }
     
     // 创建标题文本
-    var name = board.text(x1, y1, i).attr({
+    var name = state.board.text(x1, y1, i).attr({
       class: "title",
       fill: "#000",
       style: "text-shadow: 1px 1px "+ color[i] + ", -1px -1px "+ color[i]
     });
     
     // 使用prepend方法将元素添加到组的开头，确保它们在视觉上位于组的底层
-    area[i].prepend(name);
-    area[i].prepend(rect);
+    state.area[i].prepend(name);
+    state.area[i].prepend(rect);
   }
 }
 
 function zoom(z){
-  rh.attr({
+  if (state.rh) state.rh.attr({
     style: " transform: scale("+ z + ")"
   });
   
-  board.attr({
+  if (state.board) state.board.attr({
     style: " transform: scale("+ z + ")"
   });
-  svgBg.attr({
+  if (state.svgBg) state.svgBg.attr({
     style: "transform: scale("+ z + ")"
   });
-  period.attr({
+  if (state.period) state.period.attr({
     style: "transform: scale("+ z + ")"
   });
 }
 
 function save(){
-	var svgStr = period.outerSVG();
-	console.log(svgStr)
+	if (!state.period || !state.board || !state.svgBg || !state.rh) return;
+	var svgStr = state.period.outerSVG();
 	var image1 = new Image();
 	image1.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgStr)));
 	var image2 = new Image();
-	image2.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(board.outerSVG())));
+	image2.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(state.board.outerSVG())));
 	var image4 = new Image();
-	image4.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(rh.outerSVG())));
+	image4.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(state.rh.outerSVG())));
 	var image5 = new Image();
-	image5.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgBg.outerSVG())));
+	image5.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(state.svgBg.outerSVG())));
 	var canvas = document.createElement("canvas");
-	canvas.width = board.node.clientWidth;
-	canvas.height = board.node.clientHeight;
+	canvas.width = state.board.node.clientWidth;
+	canvas.height = state.board.node.clientHeight;
 	setTimeout(function(){
 		var ctx = canvas.getContext("2d");
 		ctx.drawImage(image5, 0, 0);
 		ctx.drawImage(image4, 0, 0);
 		    ctx.drawImage(image1, 0, 0);
 			ctx.drawImage(image2, 0, 0);
-			ctx.drawImage(image3, 0, 0);
 		    var a = document.createElement('a');
 		    a.href = canvas.toDataURL('image/png'); // 转换Canvas为PNG图片数据
 		    a.download = 'your-image-name.png'; // 定义下载文件名
@@ -1395,21 +1258,23 @@ function save(){
 }
 
 function resize(){
-  size = board.getBBox();
+  if (!state.board) return;
+  const size = state.board.getBBox();
+  state.size = size;
   var w = Math.max(size.w + size.x + 100, document.documentElement.offsetWidth - 16),
       h = Math.max(size.h + size.y + 100, document.documentElement.offsetHeight - 16);
   drawRuler(w,h);
 
-  board.attr({
+  state.board.attr({
     width : w,
     height : h,
   });
-  if(Cfg.layout == "v"){
-      period.attr({
+  if(Cfg.layout == "v" && state.period){
+      state.period.attr({
         height : h,
       });
-   }else{
-     period.attr({
+   }else if (state.period){
+     state.period.attr({
         width : w,
       });
    }
@@ -1423,18 +1288,16 @@ let currentSelection = {
 };
 
 
-// 在文件中添加新的函数来创建和显示悬浮窗
+// 悬浮窗渲染
 function createPopup(x, y, content) {
-  // 移除已存在的悬浮窗
-  const existingPopup = document.querySelector('.connection-popup');
-  if (existingPopup) {
-    existingPopup.remove();
-  }
+  // 输入: 鼠标坐标与结构化文本内容
+  // 处理: 构建安全文本节点并绑定关闭行为
+  // 输出: 页面上一个可关闭的悬浮窗
+  removePopup();
 
   // 创建悬浮窗元素
   const popup = document.createElement('div');
   popup.className = 'connection-popup';
-  popup.innerHTML = content;
   
   // 设置样式 - 在 x 和 y 坐标上分别减去 2 像素
   popup.style.cssText = `
@@ -1451,9 +1314,39 @@ function createPopup(x, y, content) {
     max-width: 240px;
   `;
 
+  if (content && typeof content === 'object') {
+    if (content.title) {
+      const titleNode = document.createElement('div');
+      titleNode.style.marginBottom = '5px';
+      const strong = document.createElement('strong');
+      strong.textContent = content.title;
+      titleNode.appendChild(strong);
+      popup.appendChild(titleNode);
+    }
+    if (Array.isArray(content.lines)) {
+      content.lines.forEach(function(line) {
+        if (!line) return;
+        const lineNode = document.createElement('div');
+        lineNode.style.marginTop = '5px';
+        lineNode.textContent = line;
+        popup.appendChild(lineNode);
+      });
+    }
+    if (content.meta) {
+      const metaNode = document.createElement('div');
+      metaNode.style.cssText = 'color:#666;font-size:12px;margin-top:5px;';
+      metaNode.textContent = content.meta;
+      popup.appendChild(metaNode);
+    }
+  } else if (content !== undefined && content !== null) {
+    const textNode = document.createElement('div');
+    textNode.textContent = String(content);
+    popup.appendChild(textNode);
+  }
+
   // 添加关闭按钮
   const closeBtn = document.createElement('span');
-  closeBtn.innerHTML = '×';
+  closeBtn.textContent = '×';
   closeBtn.style.cssText = `
     position: absolute;
     right: 5px;
@@ -1462,19 +1355,23 @@ function createPopup(x, y, content) {
     color: #999;
     font-size: 16px;
   `;
-  closeBtn.onclick = () => popup.remove();
+  closeBtn.onclick = () => removePopup();
   popup.appendChild(closeBtn);
 
   // 添加到文档中
   document.body.appendChild(popup);
 
-  // 点击空白处关闭悬浮窗
-  document.addEventListener('click', function closePopup(e) {
-    if (!popup.contains(e.target) && !e.target.closest('.connection')) {
-      popup.remove();
-      document.removeEventListener('click', closePopup);
-    }
+  popup.addEventListener('click', function(e) {
+    e.stopPropagation();
   });
+
+  // 点击空白处关闭悬浮窗
+  state.popupCloseHandler = function closePopup(e) {
+    if (!popup.contains(e.target) && !e.target.closest('.connection')) {
+      removePopup();
+    }
+  };
+  document.addEventListener('click', state.popupCloseHandler);
 
   // 调整位置以确保在视窗内
   const rect = popup.getBoundingClientRect();
@@ -1497,9 +1394,9 @@ function show(that, i) {
       len = pointNode.length,
       currPoint = pointNode[len - i - 1];
    
-  board.addClass("focus");
+  state.board.addClass("focus");
   if(i != undefined) { // 只显示 item。不显示 point
-    board.addClass("focus-item");
+    state.board.addClass("focus-item");
     if(currPoint) currPoint.addClass('currPoint');
   }
   that.addClass("show");
@@ -1516,24 +1413,39 @@ function show(that, i) {
   }
 }
 
+function hide(node) {
+  if (!node) return;
+  node.removeClass("show");
+  node.selectAll(".currPoint").forEach(function(activePoint) {
+    activePoint.removeClass('currPoint');
+  });
+  removePopup();
+
+  if (!state.board || state.board.selectAll(".show").items.length > 0) return;
+  state.board.removeClass("focus focus-item");
+  currentSelection = {
+    item: null,
+    points: [],
+    currentIndex: -1
+  };
+  document.removeEventListener('keydown', handleKeyNavigation);
+}
+
 // 修改 hideAll 函数，清除选中状态
 function hideAll() {
-  board.removeClass("focus focus-item");
-  board.selectAll(".show").forEach(function(activeConn) {
+  if (!state.board) return;
+  state.board.removeClass("focus focus-item");
+  state.board.selectAll(".show").forEach(function(activeConn) {
     activeConn.removeClass('show');
   });
-  board.selectAll(".currPoint").forEach(function(activeConn) {
+  state.board.selectAll(".currPoint").forEach(function(activeConn) {
     activeConn.removeClass('currPoint');
   });
-  board.selectAll('.connection.active').forEach(function(activeConn) {
+  state.board.selectAll('.connection.active').forEach(function(activeConn) {
     activeConn.removeClass('active');
   });
   
-  // 移除悬浮窗
-  const popup = document.querySelector('.connection-popup');
-  if (popup) {
-    popup.remove();
-  }
+  removePopup();
 
   // 清除当前选中状态
   currentSelection = {
