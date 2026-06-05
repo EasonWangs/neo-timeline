@@ -19,7 +19,7 @@
         if (!wrapper) return;
         wrapper.textContent = "";
         const node = document.createElement("div");
-        node.style.cssText = "padding:20px;color:#c00;font-family:sans-serif;line-height:1.6;white-space:pre-line;";
+        node.style.cssText = "max-width:720px;margin:48px auto;padding:24px;color:#8a1f11;background:#fff8f2;border:1px solid #e2b8a7;font-family:sans-serif;line-height:1.7;white-space:pre-line;";
         node.textContent = message;
         wrapper.appendChild(node);
       }
@@ -28,6 +28,10 @@
         const url = "./data/" + pars.name + ".json5";
         if (!pars.name) {
           showLoadError("缺少 name 参数，请从 index.html 进入。");
+          return;
+        }
+        if (location.protocol == "file:") {
+          showLoadError("数据加载失败：" + url + "\n当前页面是通过 file:// 直接打开的，浏览器会阻止读取本地 JSON5 数据文件。\n请在项目目录运行：npm run dev\n然后访问：http://127.0.0.1:5173/index.html");
           return;
         }
         fetch(url).then(function(response) {
@@ -47,7 +51,7 @@
           }
         }).catch(function(err) {
           console.error("Failed to load timeline data:", err);
-          showLoadError("数据加载失败：" + url + "\n请确认文件存在且格式正确。");
+          showLoadError("数据加载失败：" + url + "\n错误信息：" + err.message + "\n请确认文件存在、格式正确，并通过本地服务器访问页面。");
         });
       };
       window.onscroll = function() {

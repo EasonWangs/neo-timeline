@@ -1,33 +1,649 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8">
-    <title></title>
+    <title>Neo Timeline</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    
+    <style>
+      :root {
+        --paper: #f8f4ea;
+        --paper-deep: #eee2cc;
+        --ink: #1f2a2d;
+        --muted: #64716b;
+        --line: rgba(31, 42, 45, 0.16);
+        --line-strong: rgba(31, 42, 45, 0.34);
+        --blue: #2364aa;
+        --jade: #177e64;
+        --red: #b63f2f;
+        --gold: #b98324;
+        --violet: #7253a5;
+        --shadow: 0 18px 42px rgba(47, 39, 24, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-height: 100%;
+        background: var(--paper);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Songti SC", "Noto Serif CJK SC", Georgia, serif;
+        letter-spacing: 0;
+        background:
+          linear-gradient(90deg, rgba(31, 42, 45, 0.04) 1px, transparent 1px) 0 0 / 44px 44px,
+          linear-gradient(rgba(31, 42, 45, 0.035) 1px, transparent 1px) 0 0 / 44px 44px,
+          radial-gradient(circle at 18% 12%, rgba(177, 63, 47, 0.18), transparent 34%),
+          radial-gradient(circle at 82% 8%, rgba(35, 100, 170, 0.16), transparent 30%),
+          linear-gradient(135deg, #fbf7ee 0%, #f3eadb 58%, #e7dac3 100%);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 36px 0 48px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 440px);
+        gap: 28px;
+        align-items: stretch;
+        min-height: 330px;
+        padding: 20px 0 30px;
+      }
+
+      .hero-copy {
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 28px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid var(--line-strong);
+        padding-bottom: 9px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 34px;
+        height: 2px;
+        background: var(--red);
+      }
+
+      h1 {
+        max-width: 720px;
+        margin: 18px 0 0;
+        font-family: "Baskerville", "Songti SC", "Noto Serif CJK SC", Georgia, serif;
+        font-size: clamp(48px, 8vw, 104px);
+        font-weight: 700;
+        line-height: 0.92;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 620px;
+        margin: 22px 0 0;
+        color: #3d4a45;
+        font-size: 18px;
+        line-height: 1.8;
+      }
+
+      .quick-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .stat {
+        min-width: 128px;
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--jade);
+        padding: 14px 16px;
+        background: rgba(255, 252, 245, 0.62);
+        box-shadow: 0 8px 24px rgba(47, 39, 24, 0.08);
+      }
+
+      .stat:nth-child(2) {
+        border-left-color: var(--blue);
+      }
+
+      .stat:nth-child(3) {
+        border-left-color: var(--gold);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 28px;
+        line-height: 1;
+      }
+
+      .stat span {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .timeline-plate {
+        position: relative;
+        overflow: hidden;
+        min-height: 330px;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(90deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.18)),
+          repeating-linear-gradient(90deg, transparent 0 29px, rgba(31, 42, 45, 0.12) 30px 31px),
+          rgba(255, 252, 245, 0.54);
+        box-shadow: var(--shadow);
+        isolation: isolate;
+      }
+
+      .timeline-plate::before,
+      .timeline-plate::after {
+        position: absolute;
+        inset: auto 34px;
+        z-index: -1;
+        content: "";
+      }
+
+      .timeline-plate::before {
+        top: 50%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--ink), transparent);
+        opacity: 0.62;
+      }
+
+      .timeline-plate::after {
+        top: 22px;
+        bottom: 22px;
+        border: 1px solid rgba(31, 42, 45, 0.12);
+      }
+
+      .plate-title {
+        position: absolute;
+        top: 28px;
+        left: 28px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .plate-mark {
+        position: absolute;
+        display: grid;
+        width: 82px;
+        height: 82px;
+        place-items: center;
+        border: 1px solid rgba(31, 42, 45, 0.18);
+        border-radius: 50%;
+        background: rgba(248, 244, 234, 0.9);
+        box-shadow: 0 12px 28px rgba(31, 42, 45, 0.14);
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .plate-mark::after {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      .plate-mark span {
+        transform: translateY(52px);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .mark-ancient {
+        top: 118px;
+        left: 42px;
+        color: var(--red);
+      }
+
+      .mark-classic {
+        top: 66px;
+        right: 168px;
+        color: var(--blue);
+      }
+
+      .mark-modern {
+        right: 46px;
+        bottom: 72px;
+        color: var(--jade);
+      }
+
+      .plate-caption {
+        position: absolute;
+        right: 28px;
+        bottom: 26px;
+        max-width: 220px;
+        margin: 0;
+        color: #4b554f;
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 20px;
+        border-top: 1px solid var(--line-strong);
+        padding-top: 24px;
+      }
+
+      .section-head h2 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: 0;
+      }
+
+      .section-head p {
+        max-width: 430px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+        text-align: right;
+      }
+
+      .catalog {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 22px;
+      }
+
+      .timeline-card {
+        position: relative;
+        min-height: 150px;
+        border: 1px solid var(--line);
+        padding: 18px;
+        background: rgba(255, 252, 245, 0.76);
+        box-shadow: 0 10px 24px rgba(47, 39, 24, 0.08);
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      .timeline-card::before {
+        display: block;
+        width: 38px;
+        height: 3px;
+        margin-bottom: 20px;
+        background: var(--accent, var(--jade));
+        content: "";
+      }
+
+      .timeline-card::after {
+        position: absolute;
+        right: 16px;
+        bottom: 14px;
+        color: var(--accent, var(--jade));
+        content: "↗";
+        font-family: Georgia, serif;
+        font-size: 21px;
+        line-height: 1;
+      }
+
+      .timeline-card:hover,
+      .timeline-card:focus-visible {
+        border-color: var(--accent, var(--jade));
+        box-shadow: 0 18px 34px rgba(47, 39, 24, 0.14);
+        transform: translateY(-4px);
+        outline: none;
+      }
+
+      .timeline-card h3 {
+        margin: 0;
+        font-size: 21px;
+        line-height: 1.25;
+        letter-spacing: 0;
+      }
+
+      .timeline-card p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .tag {
+        position: absolute;
+        left: 18px;
+        bottom: 16px;
+        color: rgba(31, 42, 45, 0.46);
+        font-family: Menlo, Consolas, monospace;
+        font-size: 11px;
+      }
+
+      .science {
+        --accent: var(--blue);
+      }
+
+      .history {
+        --accent: var(--red);
+      }
+
+      .civilization {
+        --accent: var(--gold);
+      }
+
+      .culture {
+        --accent: var(--violet);
+      }
+
+      .modern {
+        --accent: var(--jade);
+      }
+
+      @media (max-width: 980px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+
+        .timeline-plate {
+          min-height: 260px;
+        }
+
+        .catalog {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          width: min(100% - 24px, 1180px);
+          padding-top: 20px;
+        }
+
+        .hero {
+          gap: 16px;
+          min-height: 0;
+          padding-bottom: 22px;
+        }
+
+        h1 {
+          font-size: 52px;
+        }
+
+        .lead {
+          font-size: 16px;
+        }
+
+        .section-head {
+          display: block;
+        }
+
+        .quick-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .stat {
+          min-width: 0;
+          padding: 10px 8px;
+          border-left-width: 3px;
+          margin-top: 0;
+        }
+
+        .stat strong {
+          font-size: 22px;
+        }
+
+        .stat span {
+          font-size: 11px;
+          line-height: 1.35;
+        }
+
+        .section-head p {
+          margin-top: 10px;
+          text-align: left;
+        }
+
+        .catalog {
+          grid-template-columns: 1fr;
+        }
+
+        .timeline-card {
+          min-height: 138px;
+        }
+
+        .timeline-plate {
+          min-height: 166px;
+        }
+
+        .plate-caption {
+          display: none;
+        }
+
+        .plate-title {
+          top: 18px;
+          left: 18px;
+        }
+
+        .plate-mark {
+          width: 54px;
+          height: 54px;
+          font-size: 12px;
+        }
+
+        .plate-mark span {
+          transform: translateY(38px);
+          font-size: 11px;
+        }
+
+        .mark-ancient {
+          top: 76px;
+          left: 24px;
+        }
+
+        .mark-classic {
+          top: 58px;
+          right: 86px;
+        }
+
+        .mark-modern {
+          right: 24px;
+          bottom: 42px;
+        }
+      }
+    </style>
   </head>
-  <body >
-      <p><a href="./timeline.html?name=science&title=科学史">科学史</a>
-      <p><a href="./timeline.html?name=math&title=现代数学史">现代数学史</a>
-       <p><a href="./timeline.html?name=newton&title=一代科皇牛顿">一代科皇牛顿</a>
-      <p><a href="./timeline.html?name=ming&title=明朝那些事">明朝那些事</a>
-      <p><a href="./timeline.html?name=spring&title=东周列国志">东周列国志</a>
-	  <p><a href="./timeline.html?name=zhou&title=周朝诸侯国">周朝诸侯国</a>
-      <p><a href="./timeline.html?name=civilization&title=早期文明">早期文明</a>
-      <p><a href="./timeline.html?name=wu&title=武庙七十二将">武庙七十二将</a>
-      <p><a href="./timeline.html?name=china&title=中国历朝历代">中国历朝历代</a>
-	  <p><a href="./timeline.html?name=threeKindoms&title=三国演义">三国演义</a>
-      <p><a href="./timeline.html?name=optics&title=光学史">光学史</a>
-      <p><a href="./timeline.html?name=quantum&title=量子力学">量子力学史</a>
-      <p><a href="./timeline.html?name=geological&title=地质年代">地质年代</a>
-      <p><a href="./timeline.html?name=mankind&title=人类简史">人类简史</a>
-      <p><a href="./timeline.html?name=sci-fi&title=科幻史">科幻史</a>
-      <p><a href="./timeline.html?name=wuxia&title=近代武侠史">近代武侠史</a>
-      <p><a href="./timeline.html?name=scientistName&title=费马费米费曼傻傻分不清楚">费马费米费曼傻傻分不清楚</a>
-        <p><a href="./timeline.html?name=qin2qing&title=从嬴政到溥仪">从嬴政到溥仪</a>
-		<p><a href="./timeline.html?name=nationalPolicy&title=置身事内">置身事内</a>
-      <p><a href="./timeline.html?name=onTopOfTides&title=浪潮之巅">浪潮之巅</a>
-	  <p><a href="./timeline.html?name=KMTvsCPC&title=国共">国共</a>
-	  <p><a href="./timeline.html?name=AI&title=AI发展史">AI发展史</a>
+  <body>
+    <main class="page">
+      <section class="hero" aria-labelledby="site-title">
+        <div class="hero-copy">
+          <div>
+            <span class="eyebrow">Neo Timeline</span>
+            <h1 id="site-title">时间线档案馆</h1>
+            <p class="lead">把科学、文明、历史与技术放回同一张长卷里。选择一个主题，进入可以拖拽、缩放视野的时间线。</p>
+          </div>
+
+          <div class="quick-stats" aria-label="站点概览">
+            <div class="stat">
+              <strong>24</strong>
+              <span>个主题入口</span>
+            </div>
+            <div class="stat">
+              <strong>5</strong>
+              <span>组知识线索</span>
+            </div>
+            <div class="stat">
+              <strong>∞</strong>
+              <span>从古代到未来</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline-plate" aria-hidden="true">
+          <p class="plate-title">Index / Chronology</p>
+          <div class="plate-mark mark-ancient"><span>-650</span></div>
+          <div class="plate-mark mark-classic"><span>1643</span></div>
+          <div class="plate-mark mark-modern"><span>2026</span></div>
+          <p class="plate-caption">横向展开时代，纵向交错人物、事件与王朝。</p>
+        </div>
+      </section>
+
+      <section aria-labelledby="catalog-title">
+        <div class="section-head">
+          <h2 id="catalog-title">选择一条时间线</h2>
+          <p>每张卡片都会打开对应的 JSON5 数据集，继续使用现有时间线渲染器。</p>
+        </div>
+
+        <div class="catalog">
+          <a class="timeline-card science" href="./timeline.html?name=science&title=科学史">
+            <h3>科学史</h3>
+            <p>从古希腊自然哲学到现代科学范式。</p>
+            <span class="tag">science</span>
+          </a>
+          <a class="timeline-card science" href="./timeline.html?name=math&title=现代数学史">
+            <h3>现代数学史</h3>
+            <p>数学思想、人物与分支的现代展开。</p>
+            <span class="tag">math</span>
+          </a>
+          <a class="timeline-card science" href="./timeline.html?name=newton&title=一代科皇牛顿">
+            <h3>一代科皇牛顿</h3>
+            <p>围绕牛顿时代的科学坐标。</p>
+            <span class="tag">newton</span>
+          </a>
+          <a class="timeline-card science" href="./timeline.html?name=optics&title=光学史">
+            <h3>光学史</h3>
+            <p>光、视觉、仪器和理论的演进。</p>
+            <span class="tag">optics</span>
+          </a>
+          <a class="timeline-card science" href="./timeline.html?name=quantum&title=量子力学史">
+            <h3>量子力学史</h3>
+            <p>从经典危机到量子图景的建立。</p>
+            <span class="tag">quantum</span>
+          </a>
+          <a class="timeline-card modern" href="./timeline.html?name=AI&title=AI发展史">
+            <h3>AI发展史</h3>
+            <p>人工智能浪潮、寒冬与突破节点。</p>
+            <span class="tag">AI</span>
+          </a>
+          <a class="timeline-card science" href="./timeline.html?name=scientistName&title=费马费米费曼傻傻分不清楚">
+            <h3>费马费米费曼</h3>
+            <p>名字相近的科学人物辨认索引。</p>
+            <span class="tag">scientistName</span>
+          </a>
+          <a class="timeline-card science" href="./timeline.html?name=spectrum&title=光谱史">
+            <h3>光谱史</h3>
+            <p>把光拆成线索，追踪物质与宇宙。</p>
+            <span class="tag">spectrum</span>
+          </a>
+
+          <a class="timeline-card history" href="./timeline.html?name=china&title=中国历朝历代">
+            <h3>中国历朝历代</h3>
+            <p>王朝更替、政权并立与历史分期。</p>
+            <span class="tag">china</span>
+          </a>
+          <a class="timeline-card history" href="./timeline.html?name=qin2qing&title=从嬴政到溥仪">
+            <h3>从嬴政到溥仪</h3>
+            <p>帝制中国的关键人物与终章。</p>
+            <span class="tag">qin2qing</span>
+          </a>
+          <a class="timeline-card history" href="./timeline.html?name=ming&title=明朝那些事">
+            <h3>明朝那些事</h3>
+            <p>明代人物、事件与王朝节奏。</p>
+            <span class="tag">ming</span>
+          </a>
+          <a class="timeline-card history" href="./timeline.html?name=spring&title=东周列国志">
+            <h3>东周列国志</h3>
+            <p>春秋战国的诸侯、纵横与变法。</p>
+            <span class="tag">spring</span>
+          </a>
+          <a class="timeline-card history" href="./timeline.html?name=zhou&title=周朝诸侯国">
+            <h3>周朝诸侯国</h3>
+            <p>诸侯国谱系与周代政治空间。</p>
+            <span class="tag">zhou</span>
+          </a>
+          <a class="timeline-card history" href="./timeline.html?name=threeKindoms&title=三国演义">
+            <h3>三国演义</h3>
+            <p>人物登场、战役与叙事推进。</p>
+            <span class="tag">threeKindoms</span>
+          </a>
+          <a class="timeline-card history" href="./timeline.html?name=wu&title=武庙七十二将">
+            <h3>武庙七十二将</h3>
+            <p>古代名将的时代坐标。</p>
+            <span class="tag">wu</span>
+          </a>
+          <a class="timeline-card history" href="./timeline.html?name=KMTvsCPC&title=国共">
+            <h3>国共</h3>
+            <p>近现代政治关系与关键阶段。</p>
+            <span class="tag">KMTvsCPC</span>
+          </a>
+
+          <a class="timeline-card civilization" href="./timeline.html?name=civilization&title=早期文明">
+            <h3>早期文明</h3>
+            <p>文明起源与区域发展的并行观察。</p>
+            <span class="tag">civilization</span>
+          </a>
+          <a class="timeline-card civilization" href="./timeline.html?name=geological&title=地质年代">
+            <h3>地质年代</h3>
+            <p>把地球深时压进可阅读的尺度。</p>
+            <span class="tag">geological</span>
+          </a>
+          <a class="timeline-card civilization" href="./timeline.html?name=mankind&title=人类简史">
+            <h3>人类简史</h3>
+            <p>人类演化、迁徙与文明节点。</p>
+            <span class="tag">mankind</span>
+          </a>
+          <a class="timeline-card modern" href="./timeline.html?name=nationalPolicy&title=置身事内">
+            <h3>置身事内</h3>
+            <p>政策、地方治理与发展脉络。</p>
+            <span class="tag">nationalPolicy</span>
+          </a>
+
+          <a class="timeline-card culture" href="./timeline.html?name=sci-fi&title=科幻史">
+            <h3>科幻史</h3>
+            <p>想象力作品与时代技术互相照亮。</p>
+            <span class="tag">sci-fi</span>
+          </a>
+          <a class="timeline-card culture" href="./timeline.html?name=wuxia&title=近代武侠史">
+            <h3>近代武侠史</h3>
+            <p>武侠文本、作者与流派变迁。</p>
+            <span class="tag">wuxia</span>
+          </a>
+          <a class="timeline-card modern" href="./timeline.html?name=onTopOfTides&title=浪潮之巅">
+            <h3>浪潮之巅</h3>
+            <p>科技产业公司与时代浪潮。</p>
+            <span class="tag">onTopOfTides</span>
+          </a>
+          <a class="timeline-card modern" href="./timeline.html?name=economics&title=经济学">
+            <h3>经济学</h3>
+            <p>思想流派、理论人物与经济问题。</p>
+            <span class="tag">economics</span>
+          </a>
+        </div>
+      </section>
+    </main>
   </body>
 </html>
