@@ -806,7 +806,7 @@ function drawList(data){
   bindHideAllListener();
   state.area = {};
   state.offset = 0;
-  var roles = data.roles;
+  var roles = Array.isArray(data.roles) ? data.roles : [];
   for (var i = 0; i < roles.length; i++) {
     let item = roles[i],
         color = "#fff";
@@ -825,7 +825,7 @@ function drawList(data){
 
   //画事件线
   var events = data.events;
-  if(events) drawEvents(events, data.roles);
+  if(events) drawEvents(events, roles);
 }
 
 
