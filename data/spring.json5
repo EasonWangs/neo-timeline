@@ -6,7 +6,6 @@
 	    o : {
 	      hs:20, //纵向大刻度
 	    },
-	    iconPath : "//cssass.com/public/flags/",
 	    p:{
 	      textAnchor : "start", //start,middle,end
 	      colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],

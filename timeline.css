@@ -113,6 +113,24 @@ height:100%;
   pointer-events: auto;
   cursor: pointer;
 }
+.item-icon{
+  pointer-events: none;
+  user-select: none;
+}
+.country-icon{
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 13px;
+}
+.number-badge rect{
+  fill: #475569;
+}
+.number-badge text{
+  fill: #fff;
+  font-family: Menlo, Consolas, monospace;
+  font-size: 8px;
+  font-weight: bold;
+  text-anchor: middle;
+}
 .item .descBox{
   text-shadow: 3px 3px 3px #ddd;
 }
@@ -152,5 +170,4 @@ height:100%;
 .vertical .title, .vertical .events.common .text{
   writing-mode: horizontal-tb
 }
-
 

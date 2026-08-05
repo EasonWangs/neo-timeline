@@ -940,6 +940,70 @@ function computeItemGeometry(item, index, itemSpacing) {
   return { x, y, w, h, fill, startDate, endDate };
 }
 
+const COUNTRY_CODE_ALIASES = {
+  hl: "nl",
+  ne: "nl"
+};
+
+function getFlagEmoji(code) {
+  code = String(code || "").toLowerCase();
+  code = COUNTRY_CODE_ALIASES[code] || code;
+  if (!/^[a-z]{2}$/.test(code)) return "";
+
+  return code.toUpperCase().replace(/./g, function(char) {
+    return String.fromCodePoint(127397 + char.charCodeAt());
+  });
+}
+
+function appendSvgTitle(element, label) {
+  if (!element || !element.node || !label) return;
+  const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+  title.textContent = label;
+  element.node.appendChild(title);
+}
+
+function renderItemIcon(board, item, geometry) {
+  const legacyIcon = item.icon === undefined || item.icon === null
+    ? ""
+    : String(item.icon);
+  const countryCode = item.country || (/^[a-z]{2}$/i.test(legacyIcon) ? legacyIcon : "");
+  const badgeValue = item.badge !== undefined && item.badge !== null
+    ? String(item.badge)
+    : (/^\d+$/.test(legacyIcon) ? legacyIcon : "");
+  const countryLabel = item.countryText || item.iconText || String(countryCode).toUpperCase();
+
+  let x = geometry.x - 16;
+  let y = geometry.y - 13;
+  if (Cfg.layout == "v") {
+    x = geometry.x + 2;
+  }
+
+  const flag = getFlagEmoji(countryCode);
+  if (flag) {
+    const icon = board.text(x, y + 11, flag).attr({
+      class: "item-icon country-icon",
+      role: "img",
+      "aria-label": countryLabel
+    });
+    appendSvgTitle(icon, countryLabel);
+    return icon;
+  }
+
+  if (badgeValue) {
+    const badge = board.g().attr({
+      class: "item-icon number-badge",
+      role: "img",
+      "aria-label": item.iconText || `编号 ${badgeValue}`
+    });
+    badge.add(board.rect(x, y, 15, 12, 3));
+    badge.add(board.text(x + 7.5, y + 9, badgeValue));
+    appendSvgTitle(badge, item.iconText || `编号 ${badgeValue}`);
+    return badge;
+  }
+
+  return null;
+}
+
 function renderItemHeader(board, item, itemBox, color, geometry) {
   let x1 = geometry.x;
   let y1 = geometry.y - 3;
@@ -962,21 +1026,8 @@ function renderItemHeader(board, item, itemBox, color, geometry) {
   });
   itemBox.add(name);
 
-  let x2 = geometry.x - 15;
-  let y2 = geometry.y - 13;
-  if(Cfg.layout == "v"){
-    x2 = geometry.x + 2;
-    y2 = geometry.y - 13;
-  }
-
-  if(item.icon){
-    var url = Cfg.iconPath + item.icon + '.svg';
-    var icon = board.image(url, x2, y2, 15, 12).attr({
-      class:"icon",
-      title:item.iconText
-    });
-    let title = Snap.parse('<title>'+item.iconText+'</title>');
-    icon.append(title);
+  var icon = renderItemIcon(board, item, geometry);
+  if(icon){
     itemBox.add(icon);
   }
 
@@ -985,8 +1036,9 @@ function renderItemHeader(board, item, itemBox, color, geometry) {
 
 function renderItemDesc(board, item, itemBox, geometry, name) {
   let desc = U.buildRangeDesc(geometry.startDate, geometry.endDate);
-  if(item.iconText){
-    desc += "["+item.iconText+"]";
+  const countryText = item.countryText || item.iconText;
+  if(countryText){
+    desc += "["+countryText+"]";
   }
   if(item.desc) {
     desc = U.prependLabelToValue(desc, item.desc);
