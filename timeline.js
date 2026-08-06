@@ -1,6 +1,10 @@
+import Snap from "snapsvg-cjs";
+import * as U from "./utils.js";
+
 const $id = function(e){
   return document.getElementById(e)
 }
+let Cfg = null;
 const state = {
   rh: null,
   rv: null,
@@ -13,8 +17,6 @@ const state = {
   hideAllBound: false,
   popupCloseHandler: null
 };
-const U = window.TimelineUtils;
-
 function removePopup() {
   const popup = document.querySelector('.connection-popup');
   if (popup) popup.remove();
@@ -800,7 +802,6 @@ function createTextPath(board, pathId, text, options = {}) {
 
 //绘制列表
 function drawList(data){
-  Cfg = U.normalizeConfig(Cfg);
   const board = Snap("#content");
   state.board = board;
   bindHideAllListener();
@@ -890,15 +891,15 @@ function computeItemGeometry(item, index, itemSpacing) {
   const endDate = U.parseDate(item.end);
 
   if (startDate) {
-    x = U.getDatePosition(startDate, Cfg.zoom);
+    x = U.getDatePosition(startDate, Cfg.zoom, Cfg.start);
   } else if (endDate) {
-    x = U.getDatePosition(endDate, Cfg.zoom) - (60 * Cfg.zoom);
+    x = U.getDatePosition(endDate, Cfg.zoom, Cfg.start) - (60 * Cfg.zoom);
   } else {
     x = 0;
   }
 
   if (endDate) {
-    w = U.getDatePosition(endDate, Cfg.zoom) - x;
+    w = U.getDatePosition(endDate, Cfg.zoom, Cfg.start) - x;
   } else if (startDate) {
     w = 90 * Cfg.zoom;
   } else {
@@ -1445,11 +1446,17 @@ function show(that, i) {
   let pointNode = that.selectAll(".contGroup").items,
       len = pointNode.length,
       currPoint = pointNode[len - i - 1];
-   
+
+  state.board.selectAll(".currPoint").forEach(function(activePoint) {
+    activePoint.removeClass("currPoint");
+  });
+
   state.board.addClass("focus");
   if(i != undefined) { // 只显示 item。不显示 point
     state.board.addClass("focus-item");
     if(currPoint) currPoint.addClass('currPoint');
+  }else{
+    state.board.removeClass("focus-item");
   }
   that.addClass("show");
 
@@ -1597,4 +1604,31 @@ function initDragPan() {
   document.addEventListener('touchmove', dragTouchScroll, { passive: false });
   document.addEventListener('touchend', stopTouchDrag, { passive: true });
   document.addEventListener('touchcancel', stopTouchDrag, { passive: true });
+}
+
+export function initializeTimeline(data) {
+  Cfg = U.normalizeConfig(data.config);
+  drawList(data);
+  resize();
+  initDragPan();
+
+  if (Cfg.layout == "v") {
+    $id("wapper").className = "wapper vertical";
+  }
+}
+
+export function syncTimelineScroll() {
+  if (!Cfg) return;
+  const sh = -Math.max(document.body.scrollLeft, document.documentElement.scrollLeft);
+  const sv = -Math.max(document.body.scrollTop, document.documentElement.scrollTop);
+  if ($id("ruler-v")) $id("ruler-v").style.top = sv + "px";
+  if ($id("ruler-h")) $id("ruler-h").style.left = sh + "px";
+
+  if (Cfg.layout == "h") {
+    if (Cfg.p.position != "absolute" && $id("period")) $id("period").style.left = sh + "px";
+    if ($id("events")) $id("events").style.left = sh + "px";
+  } else {
+    if (Cfg.p.position != "absolute" && $id("period")) $id("period").style.top = sv + "px";
+    if ($id("events")) $id("events").style.top = sv + "px";
+  }
 }

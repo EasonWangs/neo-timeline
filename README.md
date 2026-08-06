@@ -1,6 +1,6 @@
 # neo-timeline
 
-本项目使用静态 HTML/CSS/JS 绘制时间线，开发服务器已切换为 Vite（仅开发模式）。
+本项目使用 Vite 构建多页面时间线应用。页面脚本采用 ES Modules，JSON5 数据按时间线拆分并按需加载。
 
 ## 本地运行
 
@@ -13,9 +13,19 @@ npm run dev
 
 - http://localhost:5173/index.html
 
+## 校验与构建
+
+```bash
+npm run validate:data
+npm run build
+npm run preview
+```
+
+生产文件输出到 `dist/`。GitHub Pages 工作流只会发布通过数据校验和 Vite 构建后的 `dist` 目录。
+
 ## 说明
 
 - 入口页面：`index.html`
 - 时间线页面：`timeline.html?name=<dataset>&title=<title>`
 - 数据目录：`data/*.json5`
-- 当前仅提供开发服务器，不包含 `build/preview` 流程。
+- 构建入口：`index.html`、`timeline.html`

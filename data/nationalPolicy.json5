@@ -15,9 +15,12 @@
 		      textAnchor : "start",
 		    },
 		    g : {
-	    		show : true,
+	        show : true,
 	        colors : {
-	          
+	          "南向北赵": "#D9E3E5",
+	          "北派五大家": "#F4E3B1",
+	          "新派大家": "#CDD8D1",
+	          "三剑客": "#E6DAC4",
 	        },
 	      },
       },

@@ -30,11 +30,11 @@ height:100%;
 
 .svgBg .thickLine{
   opacity: 0.7;
-  strokeWidth : 1.2,
+  stroke-width: 1.2;
 }
 .svgBg .thinLine{
   opacity: 0.5;
-  strokeWidth : 1,
+  stroke-width: 1;
 }
 .period{
   position: fixed;
@@ -170,4 +170,3 @@ height:100%;
 .vertical .title, .vertical .events.common .text{
   writing-mode: horizontal-tb
 }
-

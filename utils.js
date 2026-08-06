@@ -1,5 +1,4 @@
-(function(global) {
-  function getParams() {
+  export function getParams() {
     var params = {};
     var searchParams = new URLSearchParams(window.location.search || "");
     searchParams.forEach(function(value, key) {
@@ -8,7 +7,7 @@
     return params;
   }
 
-  function normalizeConfig(cfg) {
+  export function normalizeConfig(cfg) {
     cfg = cfg || {};
     cfg.layout = cfg.layout === "v" ? "v" : "h";
     cfg.start = parseInt(cfg.start, 10);
@@ -28,19 +27,17 @@
     }
     if (typeof cfg.g.colors !== "object" || cfg.g.colors === null) cfg.g.colors = {};
     if (typeof cfg.g.show !== "boolean") cfg.g.show = Object.keys(cfg.g.colors).length > 0;
-    if (!cfg.iconPath) cfg.iconPath = "";
-
     return cfg;
   }
 
-  function buildRangeDesc(startDate, endDate) {
+  export function buildRangeDesc(startDate, endDate) {
     if (startDate && endDate) return `(${startDate.original}-${endDate.original})`;
     if (startDate) return `(${startDate.original}-)`;
     if (endDate) return `(-${endDate.original})`;
     return "";
   }
 
-  function prependLabelToValue(prefix, value) {
+  export function prependLabelToValue(prefix, value) {
     if (value === undefined || value === null || value === "") return prefix;
     if (typeof value === "string") return prefix + value;
     if (Array.isArray(value)) {
@@ -52,18 +49,18 @@
     return prefix + String(value);
   }
 
-  function toPlainText(value) {
+  export function toPlainText(value) {
     if (Array.isArray(value)) return value.join(" ");
     return value === undefined || value === null ? "" : String(value);
   }
 
-  function toLines(value) {
+  export function toLines(value) {
     if (value === undefined || value === null || value === "") return [];
     if (Array.isArray(value)) return value.map(function(v) { return String(v); });
     return [String(value)];
   }
 
-  function buildPopupContent(options) {
+  export function buildPopupContent(options) {
     options = options || {};
     return {
       title: options.title ? String(options.title) : "",
@@ -72,18 +69,18 @@
     };
   }
 
-  function isApproxDate(date) {
+  export function isApproxDate(date) {
     return typeof date === 'string' && date.startsWith('~');
   }
 
-  function parseApproxDate(date) {
+  export function parseApproxDate(date) {
     if (isApproxDate(date)) {
       return date.substring(1).trim();
     }
     return date;
   }
 
-  function parseDate(dateStr) {
+  export function parseDate(dateStr) {
     if (!dateStr) return null;
 
     try {
@@ -147,14 +144,14 @@
     }
   }
 
-  function getDatePosition(date, zoom) {
+  export function getDatePosition(date, zoom, start) {
     if (!date) return 0;
 
     try {
       var year = parseInt(date.year, 10) || 0;
       var month = parseInt(date.month, 10) || 0;
       var day = parseInt(date.day, 10) || 1;
-      var start = parseInt((global.Cfg || {}).start, 10) || 0;
+      start = parseInt(start, 10) || 0;
 
       var yearOffset = year - start;
       var monthFraction = month / 12;
@@ -167,18 +164,3 @@
       return 0;
     }
   }
-
-  global.TimelineUtils = {
-    getParams: getParams,
-    normalizeConfig: normalizeConfig,
-    buildRangeDesc: buildRangeDesc,
-    prependLabelToValue: prependLabelToValue,
-    toPlainText: toPlainText,
-    toLines: toLines,
-    buildPopupContent: buildPopupContent,
-    isApproxDate: isApproxDate,
-    parseApproxDate: parseApproxDate,
-    parseDate: parseDate,
-    getDatePosition: getDatePosition
-  };
-})(window);
