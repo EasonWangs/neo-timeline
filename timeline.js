@@ -4,8 +4,8 @@ import * as U from "./utils.js";
 const $id = function(e){
   return document.getElementById(e)
 }
-let Cfg = null;
 const state = {
+  config: null,
   rh: null,
   rv: null,
   svgBg: null,
@@ -15,7 +15,21 @@ const state = {
   offset: 0,
   size: null,
   hideAllBound: false,
-  popupCloseHandler: null
+  popupCloseHandler: null,
+  currentSelection: {
+    item: null,
+    points: [],
+    currentIndex: -1
+  },
+  drag: {
+    active: false,
+    initialMouseX: 0,
+    initialMouseY: 0,
+    initialScrollLeft: 0,
+    initialScrollTop: 0,
+    bound: false,
+    touchActive: false
+  }
 };
 function removePopup() {
   const popup = document.querySelector('.connection-popup');
@@ -47,13 +61,13 @@ function drawRuler(w, h) {
   }
 
   //绘制标尺[横]
-  const o = Cfg.o;
+  const o = state.config.o;
   let rulerH = null;
   let rulerV = null;
   let bgGrid = null;
   if(o.hs){
     // 动态计算合适的小标间隔
-    const mainMarkWidth = o.hs * Cfg.zoom; // 主刻度之间的像素宽度
+    const mainMarkWidth = o.hs * state.config.zoom; // 主刻度之间的像素宽度
     const MIN_SPACE = 25; // 最小文字间隔
     const suggestedDivisions = Math.floor(mainMarkWidth / MIN_SPACE); // 建议划分次数
     o.hm = o.hm || Math.max(1, Math.floor(o.hs / suggestedDivisions));
@@ -63,18 +77,18 @@ function drawRuler(w, h) {
     });
     // 添加背景矩形
     rulerH.rect(0, 0, w, 25).attr({
-      fill: Cfg.rulerBg || "#383838",
+      fill: state.config.rulerBg || "#383838",
       fillOpacity: 0.8
     });
-    for(var i = 0; i < w / Cfg.zoom; i += o.hm){
-      let x =  i * Cfg.zoom;
+    for(var i = 0; i < w / state.config.zoom; i += o.hm){
+      let x =  i * state.config.zoom;
       if(i % o.hs == 0){
         //此时是大标
         rulerH.line(x, 0, x, 25).attr({
           stroke: "#8f9292",
           strokeWidth: 1,
         });
-        let text = (Cfg.start + i) + '';
+        let text = (state.config.start + i) + '';
         rulerH.text(x + 2, 12.5, text).attr({
           fill: "#b1b4b4"
         });
@@ -85,9 +99,9 @@ function drawRuler(w, h) {
           strokeWidth: 1,
         });
         // 检查相邻大标之间的空间
-        let spaceToNextMark = o.hs * Cfg.zoom;
+        let spaceToNextMark = o.hs * state.config.zoom;
         if(spaceToNextMark >= 100) { // 如果空间大于100px，显示小标值
-          let text = (Cfg.start + i) + '';
+          let text = (state.config.start + i) + '';
           rulerH.text(x + 2, 12.5, text).attr({
             fill: "#b1b4b4",
             fontSize: "0.8em" // 小标文字稍小
@@ -98,7 +112,7 @@ function drawRuler(w, h) {
         // 当 hs：1 时。额外绘制月标
         let len =[12, 6, 4, 3, 2, 1].find(m => m <= Math.max(suggestedDivisions, 1))
         for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
-          let posx = x + j/len * Cfg.zoom;
+          let posx = x + j/len * state.config.zoom;
           // 月份标记
           rulerH.line(posx, 16, posx, 25).attr({
             stroke: "#8f9292",
@@ -120,7 +134,7 @@ function drawRuler(w, h) {
   //绘制标尺[竖]
   if(o.vs){
     // 同样应用动态计算逻辑到垂直标尺
-    const mainMarkWidth = o.vs * Cfg.zoom; // 主刻度之间的像素宽度
+    const mainMarkWidth = o.vs * state.config.zoom; // 主刻度之间的像素宽度
     let MIN_SPACE = 20;// 最小文字间v
     let suggestedDivisions = Math.floor((mainMarkWidth) / MIN_SPACE);
     o.vm = o.vm || Math.max(1, Math.floor(o.vs / suggestedDivisions));
@@ -131,18 +145,18 @@ function drawRuler(w, h) {
     });
     // 添加背景矩形
     rulerV.rect(0, 0, 25, h).attr({
-      fill: Cfg.rulerBg || "#383838",
+      fill: state.config.rulerBg || "#383838",
       fillOpacity: 0.8
     });
-    for (var i = 0; i < h / Cfg.zoom; i += o.vm) {
-      let y = i * Cfg.zoom;
+    for (var i = 0; i < h / state.config.zoom; i += o.vm) {
+      let y = i * state.config.zoom;
       if(i % o.vs == 0){ 
         //大标
         rulerV.line(0, y, 25, y).attr({
           stroke: "#8f9292",
           strokeWidth: 1,
         });
-        let text = (Cfg.start + i) + '';
+        let text = (state.config.start + i) + '';
         let ruletext = rulerV.text(0,  y - 2,  text).attr({
           fill: "#b1b4b4"
         });
@@ -155,9 +169,9 @@ function drawRuler(w, h) {
           strokeWidth: 1,
         });
         // 检查相邻大标之间的空间
-        let spaceToNextMark = o.vs * Cfg.zoom;
+        let spaceToNextMark = o.vs * state.config.zoom;
         if(spaceToNextMark >= 100) { // 如果空间大于100px，显示小标值
-          let text = (Cfg.start + i) + '';
+          let text = (state.config.start + i) + '';
           rulerV.text(0, y - 2, text).attr({
             fill: "#b1b4b4",
             fontSize: "0.8em" // 小标文字稍小
@@ -168,7 +182,7 @@ function drawRuler(w, h) {
         // 当 vs：1 时。额外绘制月标
         let len =[12, 6, 4, 3, 2, 1].find(m => m <= Math.max(suggestedDivisions, 1))
         for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
-          let posy = y + j/len * Cfg.zoom;
+          let posy = y + j/len * state.config.zoom;
           // 月份标记
           rulerV.line(16, posy, 25, posy).attr({
             stroke: "#8f9292",
@@ -193,7 +207,7 @@ function drawRuler(w, h) {
   
   // 添加背景矩形
   bgGrid.rect(0, 0, w, h).attr({
-    fill: Cfg.svgBg || "#faf7ec"
+    fill: state.config.svgBg || "#faf7ec"
   });
 
   if(!o.hm){
@@ -206,16 +220,16 @@ function drawRuler(w, h) {
   }
   
   // 纵向栅格线
-  for (var i = 0; i < w/Cfg.zoom; i += o.hm) {
-    let line = bgGrid.line(i * Cfg.zoom, 0, i * Cfg.zoom, "100%").attr({
+  for (var i = 0; i < w/state.config.zoom; i += o.hm) {
+    let line = bgGrid.line(i * state.config.zoom, 0, i * state.config.zoom, "100%").attr({
         stroke:  (i % o.hs == 0) ? "#f0ebdc" : "#f5f0e0",
         class : (i % o.hs == 0) ? "thickLine" : "thinLine"
      })
   }
 
   // 横向栅格线
-  for (var i = 0; i < h/Cfg.zoom; i+= o.vm) {
-    let line = bgGrid.line(0,  i * Cfg.zoom, "100%",  i * Cfg.zoom).attr({
+  for (var i = 0; i < h/state.config.zoom; i+= o.vm) {
+    let line = bgGrid.line(0,  i * state.config.zoom, "100%",  i * state.config.zoom).attr({
         stroke:  (i % o.vs == 0) ? "#f0ebdc" : "#f5f0e0",
         class : (i % o.vs == 0) ? "thickLine" : "thinLine"
      });
@@ -230,20 +244,20 @@ function drawRuler(w, h) {
 function drawPeriod(pers){
 	const periodBoard = Snap("#period");
   state.period = periodBoard;
-	if(Cfg.p.position) periodBoard.node.style.position = Cfg.p.position;
-  let p = (Cfg.p.padding || 50) * Cfg.zoom;
+	if(state.config.p.position) periodBoard.node.style.position = state.config.p.position;
+  let p = (state.config.p.padding || 50) * state.config.zoom;
   
   for (var i = 0; i < pers.length; i++) {
       var l = pers[i].level || 1,
-        x = (pers[i].start - Cfg.start) * Cfg.zoom,
+        x = (pers[i].start - state.config.start) * state.config.zoom,
         y = 25 + (l - 1) * p,
-        w = (pers[i].end - pers[i].start) * Cfg.zoom,
-        h = Cfg.p.type == "part" ? p : "calc(100% - "+ y +"px)",
+        w = (pers[i].end - pers[i].start) * state.config.zoom,
+        h = state.config.p.type == "part" ? p : "calc(100% - "+ y +"px)",
         tX = x,
         tY = 38 + (l - 1) * p,
         wm = "lr";
 
-    switch(Cfg.p.textAnchor){
+    switch(state.config.p.textAnchor){
       case 'middle': 
         tX = x + w/2;
         break;
@@ -256,7 +270,7 @@ function drawPeriod(pers){
         break;
     }
    
-    if(Cfg.layout == "v"){
+    if(state.config.layout == "v"){
       wm = "tb";
       [x, y, w, h] = [y, x, h, w];
       [tX, tY] =  [tY, tX];
@@ -269,7 +283,7 @@ function drawPeriod(pers){
     
     //时期矩形
     var rect = periodBoard.rect(x, y, w, h).attr({
-      fill: Cfg.p.colors[i % Cfg.p.colors.length], 
+      fill: state.config.p.colors[i % state.config.p.colors.length],
       fillOpacity: 0.2,
     }).hover(function() {
         this.animate({
@@ -288,7 +302,7 @@ function drawPeriod(pers){
     var text = periodBoard.text(tX, tY, pers[i].name).attr({
           class: 'text',
           writingMode: wm,
-          textAnchor: Cfg.p.textAnchor,
+          textAnchor: state.config.p.textAnchor,
         });
 
     let textBox = text.getBBox(),
@@ -335,7 +349,7 @@ function drawPeriod(pers){
           class: 'point'
         });
         
-        let x = (points[n].t - Cfg.start) * Cfg.zoom;
+        let x = (points[n].t - state.config.start) * state.config.zoom;
         let pointSVG = periodBoard.circle(x, y + 35, 3).attr({
           stroke: "#f00",
           strokeWidth: 1,
@@ -377,14 +391,14 @@ function drawEvents(evts, roles){
         class: 'events common'
       });
       
-      var x1 = (evts[i].time - Cfg.start) * Cfg.zoom,
+      var x1 = (evts[i].time - state.config.start) * state.config.zoom,
           y1 = 0,
           x2 = x1,
           y2 = "100%",
           tX = x1,
           tY = 40;
 
-      switch(Cfg.e.textAnchor){
+      switch(state.config.e.textAnchor){
         case 'middle': 
           tY = "50%";
           break;
@@ -397,7 +411,7 @@ function drawEvents(evts, roles){
           break;
       }
 
-      if(Cfg.layout == "v"){
+      if(state.config.layout == "v"){
         [x1, y1, x2, y2, tX, tY] = [y1, x1, y2, x2, tY, tX];
       }
     
@@ -414,7 +428,7 @@ function drawEvents(evts, roles){
       // 创建事件文本
       var text = eventsBoard.text(tX, tY, evts[i].name).attr({
         class: 'text',
-        textAnchor: Cfg.e.textAnchor,
+        textAnchor: state.config.e.textAnchor,
       });
       
       // 添加标题
@@ -534,7 +548,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
 
   // 添加偏移量
   const offset = 2; // 设置偏移距离
-  if (Cfg.layout == "v") {
+  if (state.config.layout == "v") {
     // 垂直布局时，水平方向偏移
     fp.x -= offset;
     tp.x += offset;
@@ -566,7 +580,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   // 方向系数，根据索引交替，使相邻曲线不会重叠
   const direction = (index % 2 === 0) ? 1 : -1;
   
-  if (Cfg.layout == "v") {
+  if (state.config.layout == "v") {
     if (Math.abs(fp.y - tp.y) < 1) {
       // 当两点在同一水平线上时，使用S形曲线
       const offsetY = 30 * direction; // 垂直偏移量
@@ -720,14 +734,14 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
 function calculatePointCoordinates(roleIndex, time) {
   const offset = state.offset || 0;
   
-  if (Cfg.layout == "v") {
+  if (state.config.layout == "v") {
     return {
       x: (roleIndex - offset) * 20 + 45,
-      y: (time - Cfg.start) * Cfg.zoom
+      y: (time - state.config.start) * state.config.zoom
     };
   } else {
     return {
-      x: (time - Cfg.start) * Cfg.zoom,
+      x: (time - state.config.start) * state.config.zoom,
       y: (roleIndex - offset) * 20 + 45
     };
   }
@@ -801,7 +815,8 @@ function createTextPath(board, pathId, text, options = {}) {
 }
 
 //绘制列表
-function drawList(data){
+function drawList(data, config){
+  state.config = config;
   const board = Snap("#content");
   state.board = board;
   bindHideAllListener();
@@ -811,14 +826,14 @@ function drawList(data){
   for (var i = 0; i < roles.length; i++) {
     let item = roles[i],
         color = "#fff";
-    if(!!item.groups && Cfg.g.colors[item.groups[0]]){
-      color = Cfg.g.colors[item.groups[0]];
+    if(!!item.groups && state.config.g.colors[item.groups[0]]){
+      color = state.config.g.colors[item.groups[0]];
     }
     drawItem(board, item, i, color, item.keypoints)
   }
 
   //画分组框
-  if(Cfg.g.show) drawItemGroup(Cfg.g.colors)
+  if(state.config.g.show) drawItemGroup(state.config.g.colors)
   
   //画区域框
   var periods = data.periods;
@@ -832,9 +847,10 @@ function drawList(data){
 
 // 修改键盘导航处理函数
 function handleKeyNavigation(e) {
-  if (!currentSelection.item || !currentSelection.points.length) return;
+  if (!state.currentSelection.item || !state.currentSelection.points.length) return;
 
-  const { points, currentIndex } = currentSelection;
+  const { points, currentIndex } = state.currentSelection;
+  if (!Number.isInteger(currentIndex)) return;
   let newIndex = currentIndex;
   switch (e.key) {
     case 'ArrowLeft':
@@ -845,71 +861,69 @@ function handleKeyNavigation(e) {
     case 'ArrowRight':
     case 'ArrowDown':
       // 向下/右移动时，index 增加（更新的事件）
-      newIndex = Math.min(points.length - 1, currentIndex - 0 + 1);
+      newIndex = Math.min(points.length - 1, currentIndex + 1);
       break;
     default:
       return;
   }
-  if (newIndex !== currentIndex) {
-    e.preventDefault();
-    
-    // 更新当前索引
-    currentSelection.currentIndex = newIndex;
-    
-    // 获取当前点并触发点击事件
-    const currentDot = points.find(dot => parseInt(dot.attr('data-index')) === newIndex);
-    if (!currentDot) return;
+  e.preventDefault();
+  if (newIndex === currentIndex) return;
 
-    // 创建并触发点击事件
-    const pt = currentDot.node.ownerSVGElement.createSVGPoint();
-    pt.x = currentDot.attr('cx');
-    pt.y = currentDot.attr('cy');
-    
-    // 转换为页面坐标
-    const ctm = currentDot.node.getScreenCTM();
-    const globalPt = pt.matrixTransform(ctm);
+  // 获取当前点并触发点击事件
+  const currentDot = points.find(dot => Number(dot.attr('data-index')) === newIndex);
+  if (!currentDot) return;
 
-    // 创建自定义事件，包含转换后的坐标
-    const clickEvent = new MouseEvent('click', {
-      bubbles: true,
-      cancelable: true,
-      view: window,
-      clientX: globalPt.x,
-      clientY: globalPt.y
-    });
-    
-    currentDot.node.dispatchEvent(clickEvent);
-  }
+  state.currentSelection.currentIndex = newIndex;
+
+  // 创建并触发点击事件
+  const pt = currentDot.node.ownerSVGElement.createSVGPoint();
+  pt.x = currentDot.attr('cx');
+  pt.y = currentDot.attr('cy');
+
+  // 转换为页面坐标
+  const ctm = currentDot.node.getScreenCTM();
+  const globalPt = pt.matrixTransform(ctm);
+
+  // 创建自定义事件，包含转换后的坐标
+  const clickEvent = new MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+    view: window,
+    clientX: globalPt.x,
+    clientY: globalPt.y
+  });
+
+  currentDot.node.dispatchEvent(clickEvent);
 }
 
 function computeItemGeometry(item, index, itemSpacing) {
   let w;
   let h = 2;
-  let x = (item.start - Cfg.start) * Cfg.zoom;
+  let x = (item.start - state.config.start) * state.config.zoom;
   let y = (index - state.offset) * itemSpacing + 45;
   const startDate = U.parseDate(item.start);
   const endDate = U.parseDate(item.end);
 
   if (startDate) {
-    x = U.getDatePosition(startDate, Cfg.zoom, Cfg.start);
+    x = U.getDatePosition(startDate, state.config.zoom, state.config.start);
   } else if (endDate) {
-    x = U.getDatePosition(endDate, Cfg.zoom, Cfg.start) - (60 * Cfg.zoom);
+    x = U.getDatePosition(endDate, state.config.zoom, state.config.start) - (60 * state.config.zoom);
   } else {
     x = 0;
   }
 
   if (endDate) {
-    w = U.getDatePosition(endDate, Cfg.zoom, Cfg.start) - x;
+    w = U.getDatePosition(endDate, state.config.zoom, state.config.start) - x;
   } else if (startDate) {
-    w = 90 * Cfg.zoom;
+    w = 90 * state.config.zoom;
   } else {
-    w = Cfg.zoom;
+    w = state.config.zoom;
   }
 
   x = isFinite(x) ? x : 0;
-  w = isFinite(w) ? Math.max(w, 1) : Cfg.zoom;
+  w = isFinite(w) ? Math.max(w, 1) : state.config.zoom;
 
-  if (Cfg.layout == "v") {
+  if (state.config.layout == "v") {
     const temp = h;
     h = w;
     w = temp;
@@ -925,15 +939,15 @@ function computeItemGeometry(item, index, itemSpacing) {
 
   let fill;
   if (startDate && startDate.isApprox && endDate && endDate.isApprox) {
-    fill = (Cfg.layout == "v") ? "url(#gradTB)" : "url(#gradLR)";
+    fill = (state.config.layout == "v") ? "url(#gradTB)" : "url(#gradLR)";
   } else if (startDate && startDate.isApprox) {
-    fill = (Cfg.layout == "v") ? "url(#gradT)" : "url(#gradL)";
+    fill = (state.config.layout == "v") ? "url(#gradT)" : "url(#gradL)";
   } else if (endDate && endDate.isApprox) {
-    fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
+    fill = (state.config.layout == "v") ? "url(#gradB)" : "url(#gradR)";
   } else if (startDate && !endDate) {
-    fill = (Cfg.layout == "v") ? "url(#gradB)" : "url(#gradR)";
+    fill = (state.config.layout == "v") ? "url(#gradB)" : "url(#gradR)";
   } else if (!startDate && endDate) {
-    fill = (Cfg.layout == "v") ? "url(#gradT)" : "url(#gradL)";
+    fill = (state.config.layout == "v") ? "url(#gradT)" : "url(#gradL)";
   } else {
     fill = "#000";
   }
@@ -975,7 +989,7 @@ function renderItemIcon(board, item, geometry) {
 
   let x = geometry.x - 16;
   let y = geometry.y - 13;
-  if (Cfg.layout == "v") {
+  if (state.config.layout == "v") {
     x = geometry.x + 2;
   }
 
@@ -1008,7 +1022,7 @@ function renderItemIcon(board, item, geometry) {
 function renderItemHeader(board, item, itemBox, color, geometry) {
   let x1 = geometry.x;
   let y1 = geometry.y - 3;
-  if(Cfg.layout == "v"){
+  if(state.config.layout == "v"){
     x1 = geometry.x + 10;
     y1 = geometry.y;
   }
@@ -1047,7 +1061,7 @@ function renderItemDesc(board, item, itemBox, geometry, name) {
 
   let x3;
   let y3;
-  if(Cfg.layout == "v"){
+  if(state.config.layout == "v"){
     x3 = geometry.x + 10;
     y3 = geometry.y + name.getBBox().width + 3;
   }else{
@@ -1062,7 +1076,7 @@ function renderItemDesc(board, item, itemBox, geometry, name) {
   let tspan = descText.selectAll('tspan').items;
   if(tspan.length > 0){
     for(let i in tspan){
-      if(Cfg.layout == "v"){
+      if(state.config.layout == "v"){
         tspan[i].attr({
           x: x3 + 16*i,
           y: y3
@@ -1091,11 +1105,11 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
   let [x4,y4,x5,y5] = [geometry.x,geometry.y,geometry.x,geometry.y];
   for(let i = points.length - 1; i >= 0; i--){
     let point = points[i];
-    if(Cfg.layout == "v"){
-      y4 = (point.t - Cfg.start) * Cfg.zoom;
+    if(state.config.layout == "v"){
+      y4 = (point.t - state.config.start) * state.config.zoom;
       y5 = y4;
-    }else if(Cfg.layout == "h"){
-      x4 = (point.t - Cfg.start) * Cfg.zoom;
+    }else if(state.config.layout == "h"){
+      x4 = (point.t - state.config.start) * state.config.zoom;
       x5 = x4;
     }
 
@@ -1139,9 +1153,9 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
     });
 
     dotBox.add(dot);
-    if(Cfg.layout == "v"){
+    if(state.config.layout == "v"){
       x5 -= itemSpacing - 2;
-    }else if(Cfg.layout == "h"){
+    }else if(state.config.layout == "h"){
       y5 += itemSpacing - 2;
     }
 
@@ -1165,10 +1179,10 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
           x: x5,
           y: y5
         });
-        if(Cfg.layout == "v"){
+        if(state.config.layout == "v"){
           x5 -= itemSpacing - 4;
           y5 -= itemSpacing * 6.8;
-        }else if(Cfg.layout == "h"){
+        }else if(state.config.layout == "h"){
           y5 += itemSpacing - 4;
         }
       }
@@ -1186,7 +1200,7 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
 function drawItem(board, item, i, color, points) {
   if (!item) return;
 
-  const itemSpacing = Cfg.size || 20;
+  const itemSpacing = state.config.size || 20;
   var itemBox = board.g().attr({
     class:"item",
     id: item.id || item.name
@@ -1249,7 +1263,7 @@ function drawItemGroup(color){
 
     // 分组title
     let x1 = x - 8, y1 = y + h/2;
-    if(Cfg.layout == "v"){
+    if(state.config.layout == "v"){
       x1 = x + w/2;
       y1 = y - 2;
     }
@@ -1322,7 +1336,7 @@ function resize(){
     width : w,
     height : h,
   });
-  if(Cfg.layout == "v" && state.period){
+  if(state.config.layout == "v" && state.period){
       state.period.attr({
         height : h,
       });
@@ -1332,14 +1346,6 @@ function resize(){
       });
    }
 }
-
-// 添加一个全局变量来跟踪当前选中的状态
-let currentSelection = {
-  item: null,
-  points: [],
-  currentIndex: -1
-};
-
 
 // 悬浮窗渲染
 function createPopup(x, y, content) {
@@ -1443,16 +1449,18 @@ function createPopup(x, y, content) {
 
 // 修改 show 函数，记录选中状态
 function show(that, i) {
+  const pointIndex = i === undefined || i === null || i === "" ? -1 : Number(i);
   let pointNode = that.selectAll(".contGroup").items,
-      len = pointNode.length,
-      currPoint = pointNode[len - i - 1];
+      len = pointNode.length;
+  const hasPoint = Number.isInteger(pointIndex) && pointIndex >= 0 && pointIndex < len;
+  const currPoint = hasPoint ? pointNode[len - pointIndex - 1] : null;
 
   state.board.selectAll(".currPoint").forEach(function(activePoint) {
     activePoint.removeClass("currPoint");
   });
 
   state.board.addClass("focus");
-  if(i != undefined) { // 只显示 item。不显示 point
+  if(hasPoint) { // 显示指定关键点
     state.board.addClass("focus-item");
     if(currPoint) currPoint.addClass('currPoint');
   }else{
@@ -1463,9 +1471,9 @@ function show(that, i) {
   // 记录当前选中的 item 和它的关键点
   const dots = that.selectAll(".dotBox circle").items;
   if (dots && dots.length > 0) {
-    currentSelection.item = that;
-    currentSelection.points = dots;
-    currentSelection.currentIndex = i !== undefined ? i : -1;
+    state.currentSelection.item = that;
+    state.currentSelection.points = dots;
+    state.currentSelection.currentIndex = hasPoint ? pointIndex : -1;
     
     // 添加键盘事件监听器
     document.addEventListener('keydown', handleKeyNavigation);
@@ -1482,7 +1490,7 @@ function hide(node) {
 
   if (!state.board || state.board.selectAll(".show").items.length > 0) return;
   state.board.removeClass("focus focus-item");
-  currentSelection = {
+  state.currentSelection = {
     item: null,
     points: [],
     currentIndex: -1
@@ -1507,7 +1515,7 @@ function hideAll() {
   removePopup();
 
   // 清除当前选中状态
-  currentSelection = {
+  state.currentSelection = {
     item: null,
     points: [],
     currentIndex: -1
@@ -1516,14 +1524,6 @@ function hideAll() {
   // 移除键盘事件监听器
   document.removeEventListener('keydown', handleKeyNavigation);
 }
-
-var isDragging = false;
-var initialMouseX = 0;
-var initialMouseY = 0;
-var initialScrollLeft = 0;
-var initialScrollTop = 0;
-var dragPanBound = false;
-var touchDragging = false;
 
 function getScrollLeft() {
   return document.documentElement.scrollLeft || document.body.scrollLeft || 0;
@@ -1542,23 +1542,23 @@ function setScroll(left, top) {
 
 function startDrag(e) {
   if (e.button === 2) {
-    isDragging = true;
-    initialMouseX = e.clientX;
-    initialMouseY = e.clientY;
-    initialScrollLeft = getScrollLeft();
-    initialScrollTop = getScrollTop();
+    state.drag.active = true;
+    state.drag.initialMouseX = e.clientX;
+    state.drag.initialMouseY = e.clientY;
+    state.drag.initialScrollLeft = getScrollLeft();
+    state.drag.initialScrollTop = getScrollTop();
   }
 }
 
 function stopDrag() {
-  isDragging = false;
+  state.drag.active = false;
 }
 
 function dragScroll(e) {
-  if (!isDragging || touchDragging) return;
-  var deltaX = e.clientX - initialMouseX;
-  var deltaY = e.clientY - initialMouseY;
-  setScroll(initialScrollLeft - deltaX, initialScrollTop - deltaY);
+  if (!state.drag.active || state.drag.touchActive) return;
+  var deltaX = e.clientX - state.drag.initialMouseX;
+  var deltaY = e.clientY - state.drag.initialMouseY;
+  setScroll(state.drag.initialScrollLeft - deltaX, state.drag.initialScrollTop - deltaY);
 }
 
 function getTouchCenter(touches) {
@@ -1569,33 +1569,33 @@ function getTouchCenter(touches) {
 
 function startTouchDrag(e) {
   if (e.touches.length !== 2) return;
-  touchDragging = true;
-  isDragging = true;
+  state.drag.touchActive = true;
+  state.drag.active = true;
   var center = getTouchCenter(e.touches);
-  initialMouseX = center.x;
-  initialMouseY = center.y;
-  initialScrollLeft = getScrollLeft();
-  initialScrollTop = getScrollTop();
+  state.drag.initialMouseX = center.x;
+  state.drag.initialMouseY = center.y;
+  state.drag.initialScrollLeft = getScrollLeft();
+  state.drag.initialScrollTop = getScrollTop();
 }
 
 function dragTouchScroll(e) {
-  if (!touchDragging || e.touches.length !== 2) return;
+  if (!state.drag.touchActive || e.touches.length !== 2) return;
   e.preventDefault();
   var center = getTouchCenter(e.touches);
-  var deltaX = center.x - initialMouseX;
-  var deltaY = center.y - initialMouseY;
-  setScroll(initialScrollLeft - deltaX, initialScrollTop - deltaY);
+  var deltaX = center.x - state.drag.initialMouseX;
+  var deltaY = center.y - state.drag.initialMouseY;
+  setScroll(state.drag.initialScrollLeft - deltaX, state.drag.initialScrollTop - deltaY);
 }
 
 function stopTouchDrag(e) {
   if (e && e.touches && e.touches.length >= 2) return;
-  touchDragging = false;
-  isDragging = false;
+  state.drag.touchActive = false;
+  state.drag.active = false;
 }
 
 function initDragPan() {
-  if (dragPanBound) return;
-  dragPanBound = true;
+  if (state.drag.bound) return;
+  state.drag.bound = true;
   document.addEventListener('mousedown', startDrag);
   document.addEventListener('mouseup', stopDrag);
   document.addEventListener('mouseleave', stopDrag);
@@ -1607,28 +1607,28 @@ function initDragPan() {
 }
 
 export function initializeTimeline(data) {
-  Cfg = U.normalizeConfig(data.config);
-  drawList(data);
+  const config = U.normalizeConfig(data.config);
+  drawList(data, config);
   resize();
   initDragPan();
 
-  if (Cfg.layout == "v") {
+  if (config.layout == "v") {
     $id("wapper").className = "wapper vertical";
   }
 }
 
 export function syncTimelineScroll() {
-  if (!Cfg) return;
+  if (!state.config) return;
   const sh = -Math.max(document.body.scrollLeft, document.documentElement.scrollLeft);
   const sv = -Math.max(document.body.scrollTop, document.documentElement.scrollTop);
   if ($id("ruler-v")) $id("ruler-v").style.top = sv + "px";
   if ($id("ruler-h")) $id("ruler-h").style.left = sh + "px";
 
-  if (Cfg.layout == "h") {
-    if (Cfg.p.position != "absolute" && $id("period")) $id("period").style.left = sh + "px";
+  if (state.config.layout == "h") {
+    if (state.config.p.position != "absolute" && $id("period")) $id("period").style.left = sh + "px";
     if ($id("events")) $id("events").style.left = sh + "px";
   } else {
-    if (Cfg.p.position != "absolute" && $id("period")) $id("period").style.top = sv + "px";
+    if (state.config.p.position != "absolute" && $id("period")) $id("period").style.top = sv + "px";
     if ($id("events")) $id("events").style.top = sv + "px";
   }
 }
