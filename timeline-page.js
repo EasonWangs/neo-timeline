@@ -1,6 +1,7 @@
 import JSON5 from "json5";
 import { getParams } from "./utils.js";
-import { initializeTimeline, save, syncTimelineScroll, zoom } from "./timeline.js";
+import { initializeTimeline, syncTimelineScroll } from "./timeline.js";
+import { saveTimeline, zoomTimeline } from "./timeline-actions.js";
 import "./timeline.css";
 
 const datasetLoaders = import.meta.glob("./data/*.json5", {
@@ -23,6 +24,7 @@ const ZOOM_STEP = 0.25;
 const TOOL_MARGIN = 6;
 let zoomLevel = 1;
 let timelineReady = false;
+let timeline = null;
 let statusTimer = null;
 let activeDrag = null;
 
@@ -38,7 +40,7 @@ function renderZoomControls() {
 function setZoom(nextZoom) {
   zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
   zoomLevel = Math.round(zoomLevel * 100) / 100;
-  zoom(zoomLevel);
+  zoomTimeline(timeline, zoomLevel);
   renderZoomControls();
 }
 
@@ -158,7 +160,7 @@ saveButton.addEventListener("click", async function() {
   saveButton.setAttribute("aria-busy", "true");
   setToolStatus("正在生成图片…");
 
-  const saved = await save();
+  const saved = await saveTimeline(timeline, params.name || "timeline");
   saveButton.removeAttribute("aria-busy");
   saveButton.disabled = false;
   setToolStatus(
@@ -206,7 +208,7 @@ async function loadTimeline() {
 
   try {
     const source = await loadDataset();
-    initializeTimeline(JSON5.parse(source));
+    timeline = initializeTimeline(JSON5.parse(source));
     enableTimelineTools();
   } catch (error) {
     console.error("Failed to load timeline data:", error);

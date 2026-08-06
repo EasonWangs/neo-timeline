@@ -15,7 +15,6 @@ const state = {
   area: {},
   offset: 0,
   size: null,
-  scale: 1,
   hideAllBound: false,
   popupCloseHandler: null,
   currentSelection: {
@@ -1281,86 +1280,6 @@ function drawItemGroup(color){
   }
 }
 
-export function zoom(z){
-  const scale = Number(z);
-  if (!isFinite(scale) || scale <= 0) return state.scale;
-  state.scale = scale;
-  if (state.rh) state.rh.attr({
-    style: "transform: scale("+ scale + ")"
-  });
-  if (state.rv) state.rv.attr({
-    style: "transform: scale("+ scale + ")"
-  });
-  if (state.board) state.board.attr({
-    style: "transform: scale("+ scale + ")"
-  });
-  if (state.svgBg) state.svgBg.attr({
-    style: "transform: scale("+ scale + ")"
-  });
-  if (state.period) state.period.attr({
-    style: "transform: scale("+ scale + ")"
-  });
-  if (state.events) state.events.attr({
-    style: "transform: scale("+ scale + ")"
-  });
-
-  const wrapper = $id("wapper");
-  if (wrapper && state.board) {
-    const width = Number(state.board.attr("width"));
-    const height = Number(state.board.attr("height"));
-    if (isFinite(width)) wrapper.style.width = `${width * scale}px`;
-    if (isFinite(height)) wrapper.style.height = `${height * scale}px`;
-  }
-  return state.scale;
-}
-
-function loadSvgLayer(layer) {
-  return new Promise(function(resolve, reject) {
-    const image = new Image();
-    image.onload = function() { resolve(image); };
-    image.onerror = function() { reject(new Error("SVG 图层加载失败")); };
-    const clone = layer.node.cloneNode(true);
-    clone.style.transform = "";
-    image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(clone.outerHTML);
-  });
-}
-
-export async function save(){
-  if (!state.board || !state.svgBg) return false;
-
-  const layers = [
-    state.svgBg,
-    state.period,
-    state.events,
-    state.board,
-    state.rh,
-    state.rv
-  ].filter(Boolean);
-
-  try {
-    const images = await Promise.all(layers.map(loadSvgLayer));
-    const canvas = document.createElement("canvas");
-    canvas.width = state.board.node.clientWidth;
-    canvas.height = state.board.node.clientHeight;
-    const context = canvas.getContext("2d");
-    images.forEach(function(image) {
-      context.drawImage(image, 0, 0);
-    });
-
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    const datasetName = U.getParams().name || 'timeline';
-    link.download = datasetName.replace(/[\\/:*?"<>|]/g, '_') + '.png';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    return true;
-  } catch (error) {
-    console.error("时间线导出失败:", error);
-    return false;
-  }
-}
-
 function resize(){
   if (!state.board) return;
   const size = state.board.getBBox();
@@ -1658,6 +1577,28 @@ export function initializeTimeline(data) {
   if (config.layout == "v") {
     $id("wapper").className = "wapper vertical";
   }
+
+  let scale = 1;
+  return Object.freeze({
+    getSnapshot: function() {
+      return {
+        wrapper: $id("wapper"),
+        board: state.board,
+        scale,
+        layers: {
+          horizontalRuler: state.rh,
+          verticalRuler: state.rv,
+          background: state.svgBg,
+          period: state.period,
+          events: state.events,
+          content: state.board
+        }
+      };
+    },
+    setScale: function(nextScale) {
+      scale = nextScale;
+    }
+  });
 }
 
 export function syncTimelineScroll() {
