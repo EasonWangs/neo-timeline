@@ -71,7 +71,7 @@ function drawRuler(w, h) {
     const mainMarkWidth = o.hs * state.config.zoom; // 主刻度之间的像素宽度
     const MIN_SPACE = 25; // 最小文字间隔
     const suggestedDivisions = Math.floor(mainMarkWidth / MIN_SPACE); // 建议划分次数
-    o.hm = o.hm || Math.max(1, Math.floor(o.hs / suggestedDivisions));
+    o.hm = U.getRulerInterval(o.hs, state.config.zoom, MIN_SPACE, o.hm);
     rulerH = Snap(w, 25).attr({
       id:"ruler-h",
       class:"ruler",
@@ -138,7 +138,7 @@ function drawRuler(w, h) {
     const mainMarkWidth = o.vs * state.config.zoom; // 主刻度之间的像素宽度
     let MIN_SPACE = 20;// 最小文字间v
     let suggestedDivisions = Math.floor((mainMarkWidth) / MIN_SPACE);
-    o.vm = o.vm || Math.max(1, Math.floor(o.vs / suggestedDivisions));
+    o.vm = U.getRulerInterval(o.vs, state.config.zoom, MIN_SPACE, o.vm);
     
     rulerV = Snap(25, h).attr({
       id:"ruler-v",
@@ -850,21 +850,9 @@ function handleKeyNavigation(e) {
 
   const { points, currentIndex } = state.currentSelection;
   if (!Number.isInteger(currentIndex)) return;
-  let newIndex = currentIndex;
-  switch (e.key) {
-    case 'ArrowLeft':
-    case 'ArrowUp':
-      // 向上/左移动时，index 减小（更早的事件）
-      newIndex = Math.max(0, currentIndex - 1);
-      break;
-    case 'ArrowRight':
-    case 'ArrowDown':
-      // 向下/右移动时，index 增加（更新的事件）
-      newIndex = Math.min(points.length - 1, currentIndex + 1);
-      break;
-    default:
-      return;
-  }
+  const navigationKeys = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
+  if (!navigationKeys.includes(e.key)) return;
+  const newIndex = U.getNextSelectionIndex(currentIndex, points.length, e.key);
   e.preventDefault();
   if (newIndex === currentIndex) return;
 

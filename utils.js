@@ -155,7 +155,7 @@
 
       var yearOffset = year - start;
       var monthFraction = month / 12;
-      var dayFraction = day / (12 * 30);
+      var dayFraction = (day - 1) / (12 * 30);
       var position = (yearOffset + monthFraction + dayFraction) * zoom;
 
       return isFinite(position) ? position : 0;
@@ -163,4 +163,33 @@
       console.error('Position calculation error:', date, e);
       return 0;
     }
+  }
+
+  export function getRulerInterval(mainInterval, zoom, minSpace, configuredInterval) {
+    var configured = Number(configuredInterval);
+    if (isFinite(configured) && configured > 0) return configured;
+
+    var interval = Number(mainInterval);
+    var scale = Number(zoom);
+    var minimum = Number(minSpace);
+    if (!isFinite(interval) || interval <= 0) return 1;
+    if (!isFinite(scale) || scale <= 0) scale = 1;
+    if (!isFinite(minimum) || minimum <= 0) minimum = 25;
+
+    var divisions = Math.max(1, Math.floor(interval * scale / minimum));
+    return Math.max(1, Math.floor(interval / divisions));
+  }
+
+  export function getNextSelectionIndex(currentIndex, pointCount, key) {
+    if (!Number.isInteger(currentIndex) || !Number.isInteger(pointCount) || pointCount <= 0) {
+      return currentIndex;
+    }
+
+    if (key === "ArrowLeft" || key === "ArrowUp") {
+      return Math.max(0, Math.min(pointCount - 1, currentIndex - 1));
+    }
+    if (key === "ArrowRight" || key === "ArrowDown") {
+      return Math.max(0, Math.min(pointCount - 1, currentIndex + 1));
+    }
+    return currentIndex;
   }

@@ -7,10 +7,14 @@
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "validate:data": "node scripts/validate-data.js"
+    "validate:data": "node scripts/validate-data.js",
+    "test": "vitest run tests/unit",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "vite": "^6.2.6"
+    "@playwright/test": "^1.62.1",
+    "vite": "^6.2.6",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "json5": "^2.2.3",
