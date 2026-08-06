@@ -10,10 +10,12 @@ const state = {
   rv: null,
   svgBg: null,
   period: null,
+  events: null,
   board: null,
   area: {},
   offset: 0,
   size: null,
+  scale: 1,
   hideAllBound: false,
   popupCloseHandler: null,
   currentSelection: {
@@ -381,6 +383,7 @@ function drawEvents(evts, roles){
  
   // 创建普通事件和关联事件的SVG容器
   const eventsBoard = Snap("#events");
+  state.events = eventsBoard;
   
   // 只处理普通事件
   for (var i = 0; i < evts.length; i++) {
@@ -705,28 +708,25 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   g.click(function(e) {
     // 阻止事件冒泡
     e.stopPropagation();
+    const wasActive = g.hasClass('active');
     hideAll();
-    
-    // 检查是否已经处于高亮状态
-    if (g.hasClass('active')) {
-      g.removeClass('active');
-    } else {
-      g.addClass('active');
-      // 高亮相关联的两个元素
-      let fromElement = board.select(`#${fromPoint.roleName}`);
-      let toElement = board.select(`#${toPoint.roleName}`);
-      
-      if(fromElement) show(fromElement,-1);
-      if(toElement) show(toElement,-1);
+    if (wasActive) return;
 
-      // 创建并显示悬浮窗
-      var popupLines = [`时间: ${fromPoint.keypoint.t}-${toPoint.keypoint.t}`];
-      if (name) popupLines.push(U.toPlainText(name));
-      createPopup(e.clientX, e.clientY, U.buildPopupContent({
-        title: `${fromPoint.roleName} - ${toPoint.roleName}`,
-        lines: popupLines
-      }));
-    }
+    g.addClass('active');
+    // 高亮相关联的两个元素
+    let fromElement = board.select(`#${fromPoint.roleName}`);
+    let toElement = board.select(`#${toPoint.roleName}`);
+
+    if(fromElement) show(fromElement,-1);
+    if(toElement) show(toElement,-1);
+
+    // 创建并显示悬浮窗
+    var popupLines = [`时间: ${fromPoint.keypoint.t}-${toPoint.keypoint.t}`];
+    if (name) popupLines.push(U.toPlainText(name));
+    createPopup(e.clientX, e.clientY, U.buildPopupContent({
+      title: `${fromPoint.roleName} - ${toPoint.roleName}`,
+      lines: popupLines
+    }));
   });
 }
 
@@ -1281,47 +1281,84 @@ function drawItemGroup(color){
   }
 }
 
-function zoom(z){
+export function zoom(z){
+  const scale = Number(z);
+  if (!isFinite(scale) || scale <= 0) return state.scale;
+  state.scale = scale;
   if (state.rh) state.rh.attr({
-    style: " transform: scale("+ z + ")"
+    style: "transform: scale("+ scale + ")"
   });
-  
+  if (state.rv) state.rv.attr({
+    style: "transform: scale("+ scale + ")"
+  });
   if (state.board) state.board.attr({
-    style: " transform: scale("+ z + ")"
+    style: "transform: scale("+ scale + ")"
   });
   if (state.svgBg) state.svgBg.attr({
-    style: "transform: scale("+ z + ")"
+    style: "transform: scale("+ scale + ")"
   });
   if (state.period) state.period.attr({
-    style: "transform: scale("+ z + ")"
+    style: "transform: scale("+ scale + ")"
+  });
+  if (state.events) state.events.attr({
+    style: "transform: scale("+ scale + ")"
+  });
+
+  const wrapper = $id("wapper");
+  if (wrapper && state.board) {
+    const width = Number(state.board.attr("width"));
+    const height = Number(state.board.attr("height"));
+    if (isFinite(width)) wrapper.style.width = `${width * scale}px`;
+    if (isFinite(height)) wrapper.style.height = `${height * scale}px`;
+  }
+  return state.scale;
+}
+
+function loadSvgLayer(layer) {
+  return new Promise(function(resolve, reject) {
+    const image = new Image();
+    image.onload = function() { resolve(image); };
+    image.onerror = function() { reject(new Error("SVG 图层加载失败")); };
+    const clone = layer.node.cloneNode(true);
+    clone.style.transform = "";
+    image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(clone.outerHTML);
   });
 }
 
-function save(){
-	if (!state.period || !state.board || !state.svgBg || !state.rh) return;
-	var svgStr = state.period.outerSVG();
-	var image1 = new Image();
-	image1.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgStr)));
-	var image2 = new Image();
-	image2.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(state.board.outerSVG())));
-	var image4 = new Image();
-	image4.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(state.rh.outerSVG())));
-	var image5 = new Image();
-	image5.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(state.svgBg.outerSVG())));
-	var canvas = document.createElement("canvas");
-	canvas.width = state.board.node.clientWidth;
-	canvas.height = state.board.node.clientHeight;
-	setTimeout(function(){
-		var ctx = canvas.getContext("2d");
-		ctx.drawImage(image5, 0, 0);
-		ctx.drawImage(image4, 0, 0);
-		    ctx.drawImage(image1, 0, 0);
-			ctx.drawImage(image2, 0, 0);
-		    var a = document.createElement('a');
-		    a.href = canvas.toDataURL('image/png'); // 转换Canvas为PNG图片数据
-		    a.download = 'your-image-name.png'; // 定义下载文件名
-		    a.click(); // 触发下载
-	},1000)
+export async function save(){
+  if (!state.board || !state.svgBg) return false;
+
+  const layers = [
+    state.svgBg,
+    state.period,
+    state.events,
+    state.board,
+    state.rh,
+    state.rv
+  ].filter(Boolean);
+
+  try {
+    const images = await Promise.all(layers.map(loadSvgLayer));
+    const canvas = document.createElement("canvas");
+    canvas.width = state.board.node.clientWidth;
+    canvas.height = state.board.node.clientHeight;
+    const context = canvas.getContext("2d");
+    images.forEach(function(image) {
+      context.drawImage(image, 0, 0);
+    });
+
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    const datasetName = U.getParams().name || 'timeline';
+    link.download = datasetName.replace(/[\\/:*?"<>|]/g, '_') + '.png';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return true;
+  } catch (error) {
+    console.error("时间线导出失败:", error);
+    return false;
+  }
 }
 
 function resize(){
@@ -1336,6 +1373,12 @@ function resize(){
     width : w,
     height : h,
   });
+  if (state.events) {
+    state.events.attr({
+      width: w,
+      height: h,
+    });
+  }
   if(state.config.layout == "v" && state.period){
       state.period.attr({
         height : h,
