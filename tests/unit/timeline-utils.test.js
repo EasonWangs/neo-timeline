@@ -4,6 +4,8 @@ import {
   getNextSelectionIndex,
   getRulerInterval,
   getRulerIntervals,
+  getScrollOffsetForTime,
+  getViewportCenterTime,
   inferTimelineStart,
   isRulerMajor,
   normalizeConfig,
@@ -21,7 +23,7 @@ describe("automatic timeline start", function() {
     }, {
       layout: "h",
       axes: { time: { px: 5, major: 10 } }
-    })).toBe(1320);
+    })).toBe(1322);
   });
 
   it("does not add leading space before the earliest period", function() {
@@ -87,15 +89,19 @@ describe("configuration normalization", function() {
       axes: {
         time: { px: 5, major: 10 },
         cross: { show: true, type: "linear" }
-      }
+      },
+      items: { gap: 30 }
     });
 
     expect(config.axes.time).toEqual({ px: 5, major: 10 });
     expect(config.axes.cross).toEqual({ show: true, type: "linear" });
+    expect(config.items.gap).toBe(30);
   });
 
   it("uses one pixel per time unit by default", function() {
-    expect(normalizeConfig({}).axes.time.px).toBe(1);
+    const config = normalizeConfig({});
+    expect(config.axes.time.px).toBe(1);
+    expect(config.items.gap).toBe(20);
   });
 });
 
@@ -119,6 +125,19 @@ describe("date coordinates", function() {
   });
 });
 
+describe("time-density viewport position", function() {
+  it("keeps the same time value centered after density changes", function() {
+    const centeredTime = getViewportCenterTime(100, 5, 500, 1000);
+    expect(centeredTime).toBe(300);
+    expect(getScrollOffsetForTime(centeredTime, 90, 10, 1000)).toBe(1600);
+  });
+
+  it("falls back safely for invalid dimensions", function() {
+    expect(getViewportCenterTime(100, 0, -1, -1)).toBe(100);
+    expect(getScrollOffsetForTime(100, 100, 0, -1)).toBe(0);
+  });
+});
+
 describe("ruler intervals", function() {
   it("calculates readable major and minor intervals from unit pixel density", function() {
     expect(getRulerIntervals(0.1, 60, 20)).toEqual({ major: 1000, minor: 200 });
@@ -126,6 +145,8 @@ describe("ruler intervals", function() {
     expect(getRulerIntervals(10, 60, 20)).toEqual({ major: 10, minor: 2 });
     expect(getRulerIntervals(30, 60, 20)).toEqual({ major: 2, minor: 1 });
     expect(getRulerIntervals(3, 60, 20)).toEqual({ major: 20, minor: 10 });
+    expect(getRulerIntervals(5, 60, 10, 10)).toEqual({ major: 10, minor: 2 });
+    expect(getRulerIntervals(10, 60, 10, 10)).toEqual({ major: 10, minor: 1 });
   });
 
   it("keeps explicitly configured major and minor intervals", function() {
@@ -138,7 +159,15 @@ describe("ruler intervals", function() {
 
   it("calculates a readable minor interval", function() {
     expect(getRulerInterval(10, 20, 25)).toBe(2);
+    expect(getRulerInterval(10, 10, 25)).toBe(5);
     expect(getRulerInterval(100, 1, 25)).toBe(25);
+  });
+
+  it("ignores decimal interval overrides", function() {
+    expect(getRulerIntervals(10, 60, 20, 2.5, 0.5)).toEqual({
+      major: 10,
+      minor: 2
+    });
   });
 
   it("never returns Infinity when the main mark is narrow", function() {
@@ -147,6 +176,7 @@ describe("ruler intervals", function() {
 
   it("falls back safely for invalid configuration", function() {
     expect(getRulerInterval(0, 10, 25)).toBe(1);
+    expect(getRulerInterval(2.5, 10, 25)).toBe(1);
     expect(getRulerInterval(10, 0, 25)).toBe(10);
   });
 

@@ -103,31 +103,6 @@ function loadSvgLayer(layer, boardSize) {
   });
 }
 
-export function applyViewScale(timeline, value) {
-  if (!timeline) return 1;
-
-  const snapshot = timeline.getSnapshot();
-  const scale = Number(value);
-  if (!isFinite(scale) || scale <= 0) return snapshot.scale;
-
-  timeline.setScale(scale);
-  Object.values(snapshot.layers).filter(Boolean).forEach(function(layer) {
-    // 只更新 transform，保留 period 的 position 以及滚动同步写入的 left/top。
-    layer.node.style.transform = `scale(${scale})`;
-  });
-
-  if (snapshot.wrapper && snapshot.board) {
-    const boardSize = getBoardSize(snapshot.board);
-    if (isFinite(boardSize.width)) {
-      snapshot.wrapper.style.width = `${boardSize.width * scale}px`;
-    }
-    if (isFinite(boardSize.height)) {
-      snapshot.wrapper.style.height = `${boardSize.height * scale}px`;
-    }
-  }
-  return scale;
-}
-
 export async function exportTimelinePng(timeline, datasetName = "timeline") {
   if (!timeline) return false;
 
@@ -150,18 +125,17 @@ export async function exportTimelinePng(timeline, datasetName = "timeline") {
         return loadSvgLayer(layer, boardSize);
       })
     );
-    const exportScale = snapshot.scale || 1;
     const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(boardSize.width * exportScale);
-    canvas.height = Math.ceil(boardSize.height * exportScale);
+    canvas.width = Math.ceil(boardSize.width);
+    canvas.height = Math.ceil(boardSize.height);
     const context = canvas.getContext("2d");
     renderedLayers.forEach(function(layer) {
       context.drawImage(
         layer.image,
         0,
         0,
-        layer.width * exportScale,
-        layer.height * exportScale
+        layer.width,
+        layer.height
       );
     });
 

@@ -2,15 +2,15 @@
 
 ## Project Overview
 
-Neo Timeline is a Vite-built, multi-page frontend for rendering JSON5 timeline datasets as layered Snap.svg graphics. The application supports horizontal and vertical layouts, keyboard navigation, draggable timeline panning, a floating toolbar, viewport scaling, PNG export, and responsive reflow.
+Neo Timeline is a Vite-built, multi-page frontend for rendering JSON5 timeline datasets as layered Snap.svg graphics. The application supports horizontal and vertical layouts, keyboard navigation, draggable timeline panning, a floating toolbar, time-axis density zoom, PNG export, and responsive reflow.
 
 ## Project Structure & Module Boundaries
 
 - `index.html`: dataset directory and entry links.
 - `timeline.html`: viewer shell, SVG layer containers, and toolbar markup. It accepts `name` and `title` query parameters.
 - `timeline-page.js`: page entry point. It loads JSON5 with `import.meta.glob`, creates the timeline, connects toolbar callbacks, handles viewport reflow, and displays load errors.
-- `timeline-toolbar.js`: toolbar DOM state and interactions, including dragging, zoom buttons/shortcuts, layout switching, save state, and status messages. Keep it timeline-implementation agnostic by using callbacks.
-- `timeline-actions.js`: non-core actions that operate on the public timeline instance, currently view scaling and PNG export.
+- `timeline-toolbar.js`: toolbar DOM state and interactions, including dragging, unified time-density zoom buttons, layout switching, save state, and status messages. Browser zoom remains native and is not intercepted. Keep the toolbar timeline-implementation agnostic by using callbacks.
+- `timeline-actions.js`: non-core actions that operate on the public timeline instance, currently PNG export.
 - `timeline.js`: core Snap.svg rendering, timeline state, selection/navigation, panning, connections, layer sizing, and reflow. `initializeTimeline()` returns the public instance API used by other modules.
 - `timeline-utils.js`: DOM-free utility functions for config normalization, dates, coordinate orientation, ruler intervals, text shaping, and selection indices. Keep these functions pure and independently testable.
 - `timeline.css`: viewer, SVG layer, popup, and floating-toolbar styles.
@@ -64,7 +64,7 @@ Do not use direct `file://` loading or `python3 -m http.server` as the normal wo
 
 - Use ES modules for browser code. `scripts/validate-data.js` remains CommonJS because it runs directly under Node.
 - Use 2-space indentation in JavaScript, HTML, CSS, and JSON5.
-- Use lowerCamelCase for functions and variables; use descriptive verbs for actions such as `applyViewScale`, `exportTimelinePng`, and `scheduleTimelineReflow`.
+- Use lowerCamelCase for functions and variables; use descriptive verbs for actions such as `exportTimelinePng` and `scheduleTimelineReflow`.
 - Use lowercase, hyphenated CSS class names. Preserve existing DOM IDs when toolbar or layer code depends on them.
 - Do not introduce implicit globals. Renderer-wide mutable values belong in the explicit `state` object.
 - Keep layout-independent calculations in logical time/cross-axis coordinates, then convert with `orientPoint()` or `orientRect()` instead of duplicating horizontal and vertical branches.
@@ -80,6 +80,7 @@ Do not use direct `file://` loading or `python3 -m http.server` as the normal wo
 - `groups` must be arrays. Every referenced group must have a matching color in `config.g.colors`.
 - Configuration defaults are applied by `normalizeConfig()`. Prefer the smallest dataset-specific config and omit values that match defaults.
 - Time-axis density and optional ruler overrides live under `config.axes.time`: `px` is pixels per year, while `major` and `minor` override the automatically selected intervals. `config.axes.cross` is reserved for a second non-time axis. Do not reintroduce the legacy `zoom` or `o.hs/hm/vs/vm` fields.
+- Cross-axis spacing between role items lives at `config.items.gap` and defaults to `20`. Do not use the legacy `config.size` field.
 - `config.start` is optional. When omitted, the renderer infers it from periods, events, role ranges, and keypoints. An earliest period starts at its exact boundary; other content receives a small aligned leading margin, with extra room for a visible group. Keep an explicit value only when a dataset needs a deliberate crop or custom origin.
 - New datasets must be added to `data/`, pass `npm run validate:data`, and be linked from `index.html`.
 - Country markers are rendered as emoji from two-letter country codes; do not reintroduce external flag-image paths.

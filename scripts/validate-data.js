@@ -21,6 +21,12 @@ function validatePositiveNumber(file, value, pathLabel) {
   }
 }
 
+function validatePositiveInteger(file, value, pathLabel) {
+  if (value !== undefined && (!Number.isInteger(value) || value <= 0)) {
+    report(file, `${pathLabel} 必须为正整数`);
+  }
+}
+
 function parseRangeValue(value) {
   if (Number.isFinite(value)) return value;
   if (typeof value !== "string") return NaN;
@@ -68,6 +74,9 @@ for (const file of files) {
   if (Object.prototype.hasOwnProperty.call(config, "o")) {
     report(file, "请使用 config.axes.time.major/minor，不再使用 config.o");
   }
+  if (Object.prototype.hasOwnProperty.call(config, "size")) {
+    report(file, "请使用 config.items.gap，不再使用 config.size");
+  }
   if (config.axes !== undefined && !isPlainObject(config.axes)) {
     report(file, "config.axes 必须为对象");
   } else if (config.axes) {
@@ -75,12 +84,17 @@ for (const file of files) {
       report(file, "config.axes.time 必须为对象");
     } else if (config.axes.time) {
       validatePositiveNumber(file, config.axes.time.px, "config.axes.time.px");
-      validatePositiveNumber(file, config.axes.time.major, "config.axes.time.major");
-      validatePositiveNumber(file, config.axes.time.minor, "config.axes.time.minor");
+      validatePositiveInteger(file, config.axes.time.major, "config.axes.time.major");
+      validatePositiveInteger(file, config.axes.time.minor, "config.axes.time.minor");
     }
     if (config.axes.cross !== undefined && !isPlainObject(config.axes.cross)) {
       report(file, "config.axes.cross 必须为对象");
     }
+  }
+  if (config.items !== undefined && !isPlainObject(config.items)) {
+    report(file, "config.items 必须为对象");
+  } else if (config.items) {
+    validatePositiveNumber(file, config.items.gap, "config.items.gap");
   }
 
   if (data.periods != null && !Array.isArray(data.periods)) {

@@ -1,6 +1,7 @@
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 2;
-const ZOOM_STEP = 0.25;
+const DEFAULT_ZOOM_LEVEL = 1;
+const MIN_ZOOM_LEVEL = 0.5;
+const MAX_ZOOM_LEVEL = 2;
+const ZOOM_LEVEL_STEP = 0.25;
 const TOOL_MARGIN = 6;
 
 function requiredElement(root, selector) {
@@ -28,7 +29,7 @@ export function createTimelineToolbar(options = {}) {
   const fileName = options.fileName || "timeline";
 
   let ready = false;
-  let zoomLevel = 1;
+  let zoomLevel = DEFAULT_ZOOM_LEVEL;
   let layout = "h";
   let statusTimer = null;
   let activeDrag = null;
@@ -37,12 +38,12 @@ export function createTimelineToolbar(options = {}) {
     const percentage = `${Math.round(zoomLevel * 100)}%`;
     zoomValue.value = percentage;
     zoomValue.textContent = percentage;
-    zoomResetButton.title = zoomLevel === 1
-      ? "当前为 100%"
+    zoomResetButton.title = zoomLevel === DEFAULT_ZOOM_LEVEL
+      ? "当前为默认 100%"
       : `当前 ${percentage}，点击恢复 100%`;
-    zoomOutButton.disabled = !ready || zoomLevel <= MIN_ZOOM;
-    zoomResetButton.disabled = !ready || zoomLevel === 1;
-    zoomInButton.disabled = !ready || zoomLevel >= MAX_ZOOM;
+    zoomOutButton.disabled = !ready || zoomLevel <= MIN_ZOOM_LEVEL;
+    zoomResetButton.disabled = !ready || zoomLevel === DEFAULT_ZOOM_LEVEL;
+    zoomInButton.disabled = !ready || zoomLevel >= MAX_ZOOM_LEVEL;
   }
 
   function renderLayoutControl() {
@@ -67,12 +68,25 @@ export function createTimelineToolbar(options = {}) {
     }, 2800);
   }
 
-  function setZoom(nextZoom) {
-    if (!ready) return;
-    zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
-    zoomLevel = Math.round(zoomLevel * 100) / 100;
-    onZoom(zoomLevel);
+  function setZoomLevel(nextLevel, showStatus = true) {
+    if (!ready) return false;
+    let normalizedLevel = Math.min(MAX_ZOOM_LEVEL, Math.max(MIN_ZOOM_LEVEL, nextLevel));
+    normalizedLevel = Math.round(normalizedLevel * 100) / 100;
+    if (onZoom(normalizedLevel) === false) return false;
+    zoomLevel = normalizedLevel;
     renderZoomControls();
+    if (showStatus) setStatus(`缩放 ${Math.round(zoomLevel * 100)}%`);
+    return true;
+  }
+
+  function changeZoomLevel(nextLevel, showStatus = true) {
+    try {
+      return setZoomLevel(nextLevel, showStatus);
+    } catch (error) {
+      console.error("时间线缩放失败:", error);
+      setStatus("缩放失败，请重试", true);
+      return false;
+    }
   }
 
   function move(left, top) {
@@ -152,13 +166,13 @@ export function createTimelineToolbar(options = {}) {
   });
 
   zoomOutButton.addEventListener("click", function() {
-    setZoom(zoomLevel - ZOOM_STEP);
+    changeZoomLevel(zoomLevel - ZOOM_LEVEL_STEP);
   });
   zoomResetButton.addEventListener("click", function() {
-    setZoom(1);
+    changeZoomLevel(DEFAULT_ZOOM_LEVEL);
   });
   zoomInButton.addEventListener("click", function() {
-    setZoom(zoomLevel + ZOOM_STEP);
+    changeZoomLevel(zoomLevel + ZOOM_LEVEL_STEP);
   });
 
   layoutButton.addEventListener("click", function() {
@@ -192,27 +206,13 @@ export function createTimelineToolbar(options = {}) {
     setStatus(saved ? `已保存 ${fileName}.png` : "图片生成失败，请重试", !saved);
   });
 
-  window.addEventListener("keydown", function(event) {
-    if (!ready || (!event.ctrlKey && !event.metaKey)) return;
-    if (event.key === "+" || event.key === "=") {
-      event.preventDefault();
-      setZoom(zoomLevel + ZOOM_STEP);
-    } else if (event.key === "-") {
-      event.preventDefault();
-      setZoom(zoomLevel - ZOOM_STEP);
-    } else if (event.key === "0") {
-      event.preventDefault();
-      setZoom(1);
-    }
-  });
-
   function enable(initialLayout = "h") {
     ready = true;
     layout = initialLayout === "v" ? "v" : "h";
     root.hidden = false;
     saveButton.disabled = false;
     renderLayoutControl();
-    setZoom(1);
+    changeZoomLevel(DEFAULT_ZOOM_LEVEL, false);
   }
 
   renderZoomControls();

@@ -69,8 +69,8 @@ function drawOrientedLine(board, timePosition, crossStart, crossEnd, layout) {
  * 返回创建好的 Snap.svg 标尺对象，以及最终采用的次刻度间隔。
  */
 function drawAxisRuler(options) {
-  // 标尺固定为 25px 厚；layout 只决定这 25px 落在宽度还是高度上。
-  const thickness = 25;
+  // 标尺固定为 30px 厚；layout 只决定厚度落在宽度还是高度上。
+  const thickness = 30;
   const isVertical = options.layout === "v";
   const unitPx = state.config.axes.time.px;
 
@@ -83,7 +83,7 @@ function drawAxisRuler(options) {
     options.minor
   );
   // 次刻度只有在自身间距足以容纳年份文字时才显示数字，避免密集标签互相覆盖。
-  const showMinorLabels = minor * unitPx >= 40;
+  const showMinorLabels = minor * unitPx >= 50;
 
   // 主刻度之间大致能容纳多少个分区；主刻度为 1 年时，用它决定月份细分密度。
   const divisions = Math.floor(options.major * unitPx / options.minSpace);
@@ -108,11 +108,11 @@ function drawAxisRuler(options) {
     // 将时间偏移换算成时间轴上的像素位置。
     const timePosition = i * unitPx;
 
-    // 能被 major 整除的是主刻度：主刻度贯穿 25px，次刻度只画末端 10px。
+    // 能被 major 整除的是主刻度：主刻度贯穿标尺，次刻度只画末端 12px。
     const timeValue = state.config.start + i;
     // 按绝对年份而不是相对起点判断，确保 1300、1320 这类整值成为主刻度。
     const isMajor = U.isRulerMajor(timeValue, options.major);
-    const tickStart = isMajor ? 0 : 15;
+    const tickStart = isMajor ? 0 : 18;
     drawOrientedLine(ruler, timePosition, tickStart, thickness, options.layout).attr({
       stroke: "#8f9292",
       strokeWidth: 1
@@ -123,7 +123,7 @@ function drawAxisRuler(options) {
       // 横标尺文字向右偏 2px，纵标尺文字向上偏 2px，避免压住刻度线。
       const labelPosition = U.orientPoint(
         timePosition + (isVertical ? -2 : 2),
-        isVertical ? 0 : 12.5,
+        isVertical ? 0 : 15,
         options.layout
       );
       const labelAttrs = { fill: "#b1b4b4" };
@@ -148,7 +148,13 @@ function drawAxisRuler(options) {
       for (let monthIndex = 1; monthIndex < monthDivisions; monthIndex++) {
         // 按该月份在一年内的比例，换算成时间轴上的像素位置。
         const monthPosition = timePosition + monthIndex / monthDivisions * unitPx;
-        drawOrientedLine(ruler, monthPosition, 16, thickness, options.layout).attr({
+        drawOrientedLine(
+          ruler,
+          monthPosition,
+          19,
+          thickness,
+          options.layout
+        ).attr({
           stroke: "#8f9292",
           strokeWidth: 1
         });
@@ -156,7 +162,7 @@ function drawAxisRuler(options) {
         // 月份文字放在刻度线内侧，并使用更小字号，避免抢占年份标签空间。
         const labelPosition = U.orientPoint(
           monthPosition + (isVertical ? -2 : 2),
-          isVertical ? 16 : 20,
+          isVertical ? 19 : 24,
           options.layout
         );
         ruler.text(
@@ -188,7 +194,8 @@ function drawRuler(w, h) {
 
   const timeAxis = state.config.axes.time;
   const layout = state.config.layout;
-  const minMinorSpace = layout === "v" ? 20 : 25;
+  // 刻度间隔仍按时间轴密度计算；视觉放大不改变数据刻度的疏密。
+  const minMinorSpace = 10;
   // 数据未指定刻度时，按 time.px 自动选择易读的主、次刻度；显式配置仍会覆盖自动值。
   const intervals = U.getRulerIntervals(
     timeAxis.px,
@@ -1213,7 +1220,7 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
 function drawItem(board, item, i, color, points) {
   if (!item) return;
 
-  const itemSpacing = state.config.size || 20;
+  const itemSpacing = state.config.items.gap;
   var itemBox = board.g().attr({
     class:"item",
     id: item.id || item.name
@@ -1294,13 +1301,12 @@ function drawItemGroup(color){
   }
 }
 
-function resize(viewScale = 1){
+function resize(){
   if (!state.board) return;
   const size = state.board.getBBox();
   state.size = size;
-  const scale = Number(viewScale) > 0 ? Number(viewScale) : 1;
-  const viewportWidth = Math.max(0, window.innerWidth - 16) / scale;
-  const viewportHeight = Math.max(0, window.innerHeight - 16) / scale;
+  const viewportWidth = Math.max(0, window.innerWidth - 16);
+  const viewportHeight = Math.max(0, window.innerHeight - 16);
   var w = Math.max(size.w + size.x + 100, viewportWidth),
       h = Math.max(size.h + size.y + 100, viewportHeight);
   drawRuler(w,h);
@@ -1567,7 +1573,7 @@ function initDragPan() {
   document.addEventListener('touchcancel', stopTouchDrag, { passive: true });
 }
 
-function createTimelineConfig(data, layout) {
+function createTimelineConfig(data, options = {}) {
   const sourceConfig = data && data.config;
   const source = sourceConfig || {};
   const sourceAxes = source.axes || {};
@@ -1579,6 +1585,7 @@ function createTimelineConfig(data, layout) {
       time: { ...(sourceAxes.time || {}) },
       cross: { ...(sourceAxes.cross || {}) }
     },
+    items: { ...(source.items || {}) },
     p: { ...(source.p || {}) },
     e: { ...(source.e || {}) },
     g: {
@@ -1587,8 +1594,12 @@ function createTimelineConfig(data, layout) {
     }
   };
 
-  if (layout === "h" || layout === "v") {
-    config.layout = layout;
+  if (options.layout === "h" || options.layout === "v") {
+    config.layout = options.layout;
+  }
+  const timePx = Number(options.timePx);
+  if (isFinite(timePx) && timePx > 0) {
+    config.axes.time.px = timePx;
   }
 
   const normalized = U.normalizeConfig(config);
@@ -1651,10 +1662,9 @@ function resetTimeline() {
 
 export function initializeTimeline(data, options = {}) {
   resetTimeline();
-  let scale = 1;
-  const config = createTimelineConfig(data, options.layout);
+  const config = createTimelineConfig(data, options);
   drawList(data, config);
-  resize(scale);
+  resize();
   initDragPan();
 
   $id("wapper").className = config.layout == "v" ? "wapper vertical" : "wapper";
@@ -1664,7 +1674,11 @@ export function initializeTimeline(data, options = {}) {
       return {
         wrapper: $id("wapper"),
         board: state.board,
-        scale,
+        timeAxis: {
+          layout: state.config.layout,
+          start: state.config.start,
+          px: state.config.axes.time.px
+        },
         layers: {
           horizontalRuler: state.rh,
           verticalRuler: state.rv,
@@ -1676,10 +1690,7 @@ export function initializeTimeline(data, options = {}) {
       };
     },
     reflow: function() {
-      resize(scale);
-    },
-    setScale: function(nextScale) {
-      scale = nextScale;
+      resize();
     }
   });
 }

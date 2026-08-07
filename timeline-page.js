@@ -1,7 +1,8 @@
 import JSON5 from "json5";
-import { applyViewScale, exportTimelinePng } from "./timeline-actions.js";
+import { exportTimelinePng } from "./timeline-actions.js";
 import { createTimelineToolbar } from "./timeline-toolbar.js";
 import { initializeTimeline, syncTimelineScroll } from "./timeline.js";
+import { getScrollOffsetForTime, getViewportCenterTime } from "./timeline-utils.js";
 import "./timeline.css";
 
 const datasetLoaders = import.meta.glob("./data/*.json5", {
@@ -12,19 +13,80 @@ const params = Object.fromEntries(new URLSearchParams(window.location.search));
 let timeline = null;
 let timelineData = null;
 let reflowFrame = null;
+let activeTimeDensity = 1;
 
 document.title = params.title || "时间线";
 
+function getDatasetTimePx() {
+  const value = Number(timelineData && timelineData.config &&
+    timelineData.config.axes && timelineData.config.axes.time &&
+    timelineData.config.axes.time.px);
+  return isFinite(value) && value > 0 ? value : 1;
+}
+
+function captureTimelinePosition() {
+  if (!timeline) return null;
+  const snapshot = timeline.getSnapshot();
+  const axis = snapshot.timeAxis;
+  const isVertical = axis.layout === "v";
+  const scrollOffset = isVertical ? window.scrollY : window.scrollX;
+  const viewportSize = isVertical ? window.innerHeight : window.innerWidth;
+  return {
+    layout: axis.layout,
+    crossOffset: isVertical ? window.scrollX : window.scrollY,
+    time: getViewportCenterTime(
+      axis.start,
+      axis.px,
+      scrollOffset,
+      viewportSize
+    )
+  };
+}
+
+function restoreTimelinePosition(position) {
+  if (!timeline || !position) return;
+  const snapshot = timeline.getSnapshot();
+  const axis = snapshot.timeAxis;
+  const isVertical = axis.layout === "v";
+  const viewportSize = isVertical ? window.innerHeight : window.innerWidth;
+  const timeOffset = getScrollOffsetForTime(
+    position.time,
+    axis.start,
+    axis.px,
+    viewportSize
+  );
+  // 同方向重绘时保留交叉轴位置；横纵切换时交叉轴从起点开始，避免沿用旧时间滚动值。
+  const crossOffset = position.layout === axis.layout ? position.crossOffset : 0;
+  window.scrollTo(
+    isVertical ? crossOffset : timeOffset,
+    isVertical ? timeOffset : crossOffset
+  );
+}
+
+function rebuildTimeline(layout, density) {
+  if (!timelineData) return false;
+  const position = captureTimelinePosition();
+  const currentLayout = timeline && timeline.getSnapshot().timeAxis.layout;
+  const targetLayout = layout === "h" || layout === "v" ? layout : currentLayout;
+  const normalizedDensity = Number(density) > 0 ? Number(density) : 1;
+
+  timeline = initializeTimeline(timelineData, {
+    layout: targetLayout,
+    timePx: getDatasetTimePx() * normalizedDensity
+  });
+  activeTimeDensity = normalizedDensity;
+  restoreTimelinePosition(position);
+  syncTimelineScroll();
+  return true;
+}
+
 const toolbar = createTimelineToolbar({
   fileName: params.name || "timeline",
-  onZoom(scale) {
-    applyViewScale(timeline, scale);
+  onZoom(density) {
+    return density === activeTimeDensity || rebuildTimeline(null, density);
   },
-  onToggleLayout(layout, scale) {
-    window.scrollTo(0, 0);
-    timeline = initializeTimeline(timelineData, { layout });
-    applyViewScale(timeline, scale);
-    syncTimelineScroll();
+  onToggleLayout(layout, density) {
+    return rebuildTimeline(layout, density);
   },
   onSave() {
     return exportTimelinePng(timeline, params.name || "timeline");
@@ -69,7 +131,6 @@ function scheduleTimelineReflow() {
   reflowFrame = window.requestAnimationFrame(function() {
     reflowFrame = null;
     timeline.reflow();
-    applyViewScale(timeline, timeline.getSnapshot().scale);
     syncTimelineScroll();
   });
 }

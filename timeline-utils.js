@@ -15,6 +15,10 @@
     cfg.axes.time.px = Number(cfg.axes.time.px);
     if (!isFinite(cfg.axes.time.px) || cfg.axes.time.px <= 0) cfg.axes.time.px = 1;
 
+    cfg.items = cfg.items && typeof cfg.items === "object" ? cfg.items : {};
+    cfg.items.gap = Number(cfg.items.gap);
+    if (!isFinite(cfg.items.gap) || cfg.items.gap <= 0) cfg.items.gap = 20;
+
     cfg.p = cfg.p || {};
     cfg.e = cfg.e || {};
     cfg.g = cfg.g || {};
@@ -80,11 +84,12 @@
     const layout = config.layout === "v" ? "v" : "h";
     const timeAxis = config.axes && config.axes.time || {};
     const unitPx = Number(timeAxis.px) > 0 ? Number(timeAxis.px) : 1;
-    const minSpace = layout === "v" ? 20 : 25;
+    const leadingSpace = layout === "v" ? 20 : 25;
+    const minorSpace = 10;
     const intervals = getRulerIntervals(
       unitPx,
       60,
-      minSpace,
+      minorSpace,
       timeAxis.major,
       timeAxis.minor
     );
@@ -99,7 +104,7 @@
     });
     // group 的边框和标题会沿时间轴超出 item，显示分组时额外预留 20px。
     const groupPadding = earliestIsGrouped && config.g && config.g.show ? 20 : 0;
-    const padding = (minSpace + groupPadding) / unitPx;
+    const padding = (leadingSpace + groupPadding) / unitPx;
     const alignedContent = Math.floor((earliestContent - padding) / minor) * minor;
     const contentStart = Number(alignedContent.toFixed(10));
 
@@ -242,14 +247,40 @@
     }
   }
 
+  // 将当前滚动位置换算为视口中心对应的时间值，供重绘前保存阅读位置。
+  export function getViewportCenterTime(start, unitPx, scrollOffset, viewportSize) {
+    var origin = Number(start);
+    var pixels = Number(unitPx);
+    var scroll = Number(scrollOffset);
+    var viewport = Number(viewportSize);
+    if (!isFinite(origin)) origin = 0;
+    if (!isFinite(pixels) || pixels <= 0) pixels = 1;
+    if (!isFinite(scroll) || scroll < 0) scroll = 0;
+    if (!isFinite(viewport) || viewport < 0) viewport = 0;
+    return origin + (scroll + viewport / 2) / pixels;
+  }
+
+  // 根据目标时间值计算重绘后的滚动位置，使同一年份继续位于视口中心。
+  export function getScrollOffsetForTime(time, start, unitPx, viewportSize) {
+    var target = Number(time);
+    var origin = Number(start);
+    var pixels = Number(unitPx);
+    var viewport = Number(viewportSize);
+    if (!isFinite(target)) target = 0;
+    if (!isFinite(origin)) origin = 0;
+    if (!isFinite(pixels) || pixels <= 0) pixels = 1;
+    if (!isFinite(viewport) || viewport < 0) viewport = 0;
+    return Math.max(0, (target - origin) * pixels - viewport / 2);
+  }
+
   export function getRulerInterval(mainInterval, unitPx, minSpace, configuredInterval) {
     var configured = Number(configuredInterval);
-    if (isFinite(configured) && configured > 0) return configured;
+    if (Number.isInteger(configured) && configured > 0) return configured;
 
     var interval = Number(mainInterval);
     var scale = Number(unitPx);
     var minimum = Number(minSpace);
-    if (!isFinite(interval) || interval <= 0) return 1;
+    if (!Number.isInteger(interval) || interval <= 0) return 1;
     if (!isFinite(scale) || scale <= 0) scale = 1;
     if (!isFinite(minimum) || minimum <= 0) minimum = 25;
 
@@ -262,7 +293,7 @@
     for (; magnitude <= maxMagnitude; magnitude *= 10) {
       for (var i = 0; i < factors.length; i += 1) {
         var candidate = factors[i] * magnitude;
-        if (candidate < targetInterval || candidate > interval) continue;
+        if (!Number.isInteger(candidate) || candidate < targetInterval || candidate > interval) continue;
         var divisions = interval / candidate;
         if (Math.abs(divisions - Math.round(divisions)) < 1e-9) return candidate;
       }
@@ -289,7 +320,7 @@
 
     var configured = Number(configuredMajor);
     var major;
-    if (isFinite(configured) && configured > 0) {
+    if (Number.isInteger(configured) && configured > 0) {
       major = configured;
     } else {
       var minimum = Number(minMajorSpace);
