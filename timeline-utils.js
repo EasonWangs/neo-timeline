@@ -22,6 +22,79 @@
     return cfg;
   }
 
+  function getTimelineYear(value) {
+    if (Number.isFinite(value)) return value;
+    if (typeof value !== "string") return null;
+
+    const normalized = value.trim().replace(/^~/, "").trim();
+    if (!normalized) return null;
+    const match = normalized.match(/^-?\d+/);
+    if (!match) return null;
+    const year = Number(match[0]);
+    return Number.isFinite(year) ? year : null;
+  }
+
+  export function inferTimelineStart(data, config) {
+    data = data || {};
+    config = config || {};
+    const years = [];
+    const periodYears = [];
+    const addYear = function(value) {
+      const year = getTimelineYear(value);
+      if (year !== null) years.push(year);
+    };
+
+    for (const period of data.periods || []) {
+      const startYear = getTimelineYear(period.start);
+      const endYear = getTimelineYear(period.end);
+      const periodYear = startYear !== null ? startYear : endYear;
+      if (periodYear !== null) {
+        periodYears.push(periodYear);
+        years.push(periodYear);
+      }
+    }
+    for (const event of data.events || []) addYear(event.time);
+    for (const role of data.roles || []) {
+      const startYear = getTimelineYear(role.start);
+      const endYear = getTimelineYear(role.end);
+      if (startYear !== null) {
+        years.push(startYear);
+      } else if (endYear !== null) {
+        // 与渲染器保持一致：只有结束日期的人物默认展示此前 60 年。
+        years.push(endYear - 60);
+      }
+      for (const point of role.keypoints || []) addYear(point.t);
+    }
+
+    if (years.length === 0) return 0;
+
+    const earliest = Math.min(...years);
+    const earliestPeriod = periodYears.length > 0 ? Math.min(...periodYears) : null;
+    // 时期色块本身就是时间线边界，应从区域起点直接绘制，不额外留白。
+    if (earliestPeriod !== null && earliestPeriod <= earliest) return earliestPeriod;
+
+    const layout = config.layout === "v" ? "v" : "h";
+    const axis = config.o || {};
+    const primaryMajor = layout === "v" ? axis.vs : axis.hs;
+    const fallbackMajor = layout === "v" ? axis.hs : axis.vs;
+    const primaryMinor = layout === "v" ? axis.vm : axis.hm;
+    const fallbackMinor = layout === "v" ? axis.hm : axis.vm;
+    const major = Number(primaryMajor || fallbackMajor) || 1;
+    const zoom = Number(config.zoom) > 0 ? Number(config.zoom) : 1;
+    const minSpace = layout === "v" ? 20 : 25;
+    const minor = getRulerInterval(
+      major,
+      zoom,
+      minSpace,
+      primaryMinor || fallbackMinor
+    );
+
+    // 在首个数据点前保留约一个文字间距，再对齐到小刻度，避免内容紧贴标尺起点。
+    const padding = minSpace / zoom;
+    const aligned = Math.floor((earliest - padding) / minor) * minor;
+    return Number(aligned.toFixed(10));
+  }
+
   export function buildRangeDesc(startDate, endDate) {
     if (startDate && endDate) return `(${startDate.original}-${endDate.original})`;
     if (startDate) return `(${startDate.original}-)`;

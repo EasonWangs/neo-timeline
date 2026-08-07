@@ -1,6 +1,5 @@
 {
   "config": {
-    start : -2150, //横向起点
     zoom : 0.5, //缩放
     layout:"v",
     o : {

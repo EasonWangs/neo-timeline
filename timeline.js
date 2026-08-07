@@ -183,9 +183,10 @@ function drawRuler(w, h) {
   }
 
   const o = state.config.o;
+  const layout = state.config.layout;
   let rulerH = null;
   let rulerV = null;
-  if (o.hs) {
+  if (layout === "h" && o.hs) {
     const result = drawAxisRuler({
       layout: "h",
       length: w,
@@ -197,7 +198,7 @@ function drawRuler(w, h) {
     o.hm = result.minor;
     wrapper.appendChild(rulerH.node);
   }
-  if (o.vs) {
+  if (layout === "v" && o.vs) {
     const result = drawAxisRuler({
       layout: "v",
       length: h,
@@ -215,25 +216,21 @@ function drawRuler(w, h) {
     fill: state.config.svgBg || "#faf7ec"
   });
 
-  if (!o.hm) {
-    o.hm = o.vm;
-    o.hs = o.vs;
-  }
-  if (!o.vm) {
-    o.vm = o.hm;
-    o.vs = o.hs;
-  }
+  // 背景网格的横纵线共用当前时间轴间隔，但不能把间隔写入另一轴配置。
+  // 否则 resize 后下一次 drawRuler() 会误以为两个方向都需要标尺。
+  const gridMajor = layout === "v" ? o.vs : o.hs;
+  const gridMinor = layout === "v" ? o.vm : o.hm;
 
-  for (let i = 0; i < w / state.config.zoom; i += o.hm) {
+  for (let i = 0; i < w / state.config.zoom; i += gridMinor) {
     drawOrientedLine(bgGrid, i * state.config.zoom, 0, "100%", "h").attr({
-      stroke: i % o.hs === 0 ? "#f0ebdc" : "#f5f0e0",
-      class: i % o.hs === 0 ? "thickLine" : "thinLine"
+      stroke: i % gridMajor === 0 ? "#f0ebdc" : "#f5f0e0",
+      class: i % gridMajor === 0 ? "thickLine" : "thinLine"
     });
   }
-  for (let i = 0; i < h / state.config.zoom; i += o.vm) {
+  for (let i = 0; i < h / state.config.zoom; i += gridMinor) {
     drawOrientedLine(bgGrid, i * state.config.zoom, 0, "100%", "v").attr({
-      stroke: i % o.vs === 0 ? "#f0ebdc" : "#f5f0e0",
-      class: i % o.vs === 0 ? "thickLine" : "thinLine"
+      stroke: i % gridMajor === 0 ? "#f0ebdc" : "#f5f0e0",
+      class: i % gridMajor === 0 ? "thickLine" : "thinLine"
     });
   }
 
@@ -1540,8 +1537,10 @@ function initDragPan() {
   document.addEventListener('touchcancel', stopTouchDrag, { passive: true });
 }
 
-function createTimelineConfig(sourceConfig, layout) {
+function createTimelineConfig(data, layout) {
+  const sourceConfig = data && data.config;
   const source = sourceConfig || {};
+  const configuredStart = parseInt(source.start, 10);
   const config = {
     ...source,
     o: { ...(source.o || {}) },
@@ -1568,7 +1567,11 @@ function createTimelineConfig(sourceConfig, layout) {
     }
   }
 
-  return U.normalizeConfig(config);
+  const normalized = U.normalizeConfig(config);
+  if (!isFinite(configuredStart)) {
+    normalized.start = U.inferTimelineStart(data, normalized);
+  }
+  return normalized;
 }
 
 function resetTimeline() {
@@ -1625,7 +1628,7 @@ function resetTimeline() {
 export function initializeTimeline(data, options = {}) {
   resetTimeline();
   let scale = 1;
-  const config = createTimelineConfig(data.config, options.layout);
+  const config = createTimelineConfig(data, options.layout);
   drawList(data, config);
   resize(scale);
   initDragPan();

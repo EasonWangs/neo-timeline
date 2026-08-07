@@ -1,6 +1,5 @@
 {
   "config": {
-    start : 0, //横向起点
     layout: "v",
     zoom : 1, //缩放
     o : {

@@ -3,10 +3,60 @@ import {
   getDatePosition,
   getNextSelectionIndex,
   getRulerInterval,
+  inferTimelineStart,
   orientPoint,
   orientRect,
   parseDate
 } from "../../timeline-utils.js";
+
+describe("automatic timeline start", function() {
+  it("uses the earliest date from periods, events, roles, and keypoints", function() {
+    expect(inferTimelineStart({
+      periods: [{ start: 1368, end: 1398 }],
+      events: [{ time: 1351 }],
+      roles: [{ start: 1328, end: 1398, keypoints: [{ t: 1356 }] }]
+    }, {
+      layout: "h",
+      zoom: 5,
+      o: { hs: 10 }
+    })).toBe(1320);
+  });
+
+  it("does not add leading space before the earliest period", function() {
+    expect(inferTimelineStart({
+      periods: [{ start: -250000, end: -10000 }],
+      roles: []
+    }, {
+      layout: "v",
+      zoom: 0.1,
+      o: { vs: 1000, vm: 100 }
+    })).toBe(-250000);
+  });
+
+  it("supports approximate and slash-separated dates", function() {
+    expect(inferTimelineStart({
+      roles: [{ start: "~1905/03", end: "~", keypoints: [{ t: "1910/06" }] }]
+    }, {
+      layout: "h",
+      zoom: 10,
+      o: { hs: 10, hm: 2 }
+    })).toBe(1902);
+  });
+
+  it("reserves the default span for roles that only have an end date", function() {
+    expect(inferTimelineStart({
+      roles: [{ start: null, end: 200 }]
+    }, {
+      layout: "h",
+      zoom: 1,
+      o: { hs: 10, hm: 5 }
+    })).toBe(115);
+  });
+
+  it("falls back to zero when the dataset has no dates", function() {
+    expect(inferTimelineStart({ roles: [] }, { layout: "h", zoom: 10 })).toBe(0);
+  });
+});
 
 describe("date coordinates", function() {
   it("places the first day of the start year at zero", function() {

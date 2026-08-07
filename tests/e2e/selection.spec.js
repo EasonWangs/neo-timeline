@@ -47,3 +47,27 @@ test("mobile controls and keypoint details stay inside the viewport", async func
   expect(popupBox.x + popupBox.width).toBeLessThanOrEqual(390);
   expect(popupBox.y + popupBox.height).toBeLessThanOrEqual(844);
 });
+
+test("resize keeps only the ruler for the active layout", async function({ page }) {
+  await page.goto("/timeline.html?name=ming&title=明朝");
+  await expect(page.locator("#ruler-h text").first()).toHaveText("1295");
+  await expect(page.locator("#ruler-h")).toHaveCount(1);
+  await expect(page.locator("#ruler-v")).toHaveCount(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("#ruler-h")).toHaveCount(1);
+  await expect(page.locator("#ruler-v")).toHaveCount(0);
+
+  await page.locator("#timeline-layout").click();
+  await expect(page.locator("#ruler-h")).toHaveCount(0);
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect(page.locator("#ruler-h")).toHaveCount(0);
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
+});
+
+test("a period-only dataset starts at the exact period boundary", async function({ page }) {
+  await page.goto("/timeline.html?name=spectrum&title=光谱史");
+  await expect(page.locator("#ruler-v text").first()).toHaveText("400");
+});
