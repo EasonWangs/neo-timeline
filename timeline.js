@@ -1,5 +1,5 @@
 import Snap from "snapsvg-cjs";
-import * as U from "./utils.js";
+import * as U from "./timeline-utils.js";
 
 const $id = function(e){
   return document.getElementById(e)

@@ -6,7 +6,7 @@ import {
   orientPoint,
   orientRect,
   parseDate
-} from "../../utils.js";
+} from "../../timeline-utils.js";
 
 describe("date coordinates", function() {
   it("places the first day of the start year at zero", function() {

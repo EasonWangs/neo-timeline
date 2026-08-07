@@ -1,213 +1,32 @@
 import JSON5 from "json5";
-import { getParams } from "./utils.js";
+import { applyViewScale, exportTimelinePng } from "./timeline-actions.js";
+import { createTimelineToolbar } from "./timeline-toolbar.js";
 import { initializeTimeline, syncTimelineScroll } from "./timeline.js";
-import { saveTimeline, zoomTimeline } from "./timeline-actions.js";
 import "./timeline.css";
 
 const datasetLoaders = import.meta.glob("./data/*.json5", {
   query: "?raw",
   import: "default"
 });
-const params = getParams();
-document.title = params.title || "时间线";
-const timelineTools = document.querySelector(".timeline-tools");
-const dragHandle = document.getElementById("timeline-tool-drag");
-const zoomOutButton = document.getElementById("zoom-out");
-const zoomResetButton = document.getElementById("zoom-reset");
-const zoomInButton = document.getElementById("zoom-in");
-const zoomValue = document.getElementById("zoom-value");
-const layoutButton = document.getElementById("timeline-layout");
-const layoutValue = document.getElementById("layout-value");
-const saveButton = document.getElementById("timeline-save");
-const toolStatus = document.getElementById("timeline-tool-status");
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 2;
-const ZOOM_STEP = 0.25;
-const TOOL_MARGIN = 6;
-let zoomLevel = 1;
-let timelineReady = false;
+const params = Object.fromEntries(new URLSearchParams(window.location.search));
 let timeline = null;
 let timelineData = null;
-let timelineLayout = "h";
-let statusTimer = null;
-let activeDrag = null;
 
-function renderZoomControls() {
-  const percentage = `${Math.round(zoomLevel * 100)}%`;
-  zoomValue.value = percentage;
-  zoomValue.textContent = percentage;
-  zoomResetButton.title = zoomLevel === 1 ? "当前为 100%" : `当前 ${percentage}，点击恢复 100%`;
-  zoomOutButton.disabled = !timelineReady || zoomLevel <= MIN_ZOOM;
-  zoomResetButton.disabled = !timelineReady || zoomLevel === 1;
-  zoomInButton.disabled = !timelineReady || zoomLevel >= MAX_ZOOM;
-}
+document.title = params.title || "时间线";
 
-function setZoom(nextZoom) {
-  zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
-  zoomLevel = Math.round(zoomLevel * 100) / 100;
-  zoomTimeline(timeline, zoomLevel);
-  renderZoomControls();
-}
-
-function renderLayoutControl() {
-  const isVertical = timelineLayout === "v";
-  const targetLabel = isVertical ? "横向" : "纵向";
-  layoutValue.textContent = isVertical ? "纵" : "横";
-  layoutButton.disabled = !timelineReady;
-  layoutButton.setAttribute("aria-pressed", String(isVertical));
-  layoutButton.setAttribute("aria-label", `切换为${targetLabel}时间线`);
-  layoutButton.title = `切换为${targetLabel}`;
-}
-
-function setToolStatus(message, isError = false) {
-  clearTimeout(statusTimer);
-  toolStatus.textContent = message;
-  toolStatus.classList.toggle("is-error", isError);
-  if (message) {
-    statusTimer = setTimeout(function() {
-      toolStatus.textContent = "";
-      toolStatus.classList.remove("is-error");
-    }, 2800);
-  }
-}
-
-function enableTimelineTools() {
-  timelineReady = true;
-  timelineTools.hidden = false;
-  saveButton.disabled = false;
-  renderLayoutControl();
-  setZoom(1);
-}
-
-function moveTimelineTools(left, top) {
-  const rect = timelineTools.getBoundingClientRect();
-  const maxLeft = Math.max(TOOL_MARGIN, window.innerWidth - rect.width - TOOL_MARGIN);
-  const maxTop = Math.max(TOOL_MARGIN, window.innerHeight - rect.height - TOOL_MARGIN);
-  const constrainedTop = Math.min(maxTop, Math.max(TOOL_MARGIN, top));
-  timelineTools.style.right = "auto";
-  timelineTools.style.bottom = "auto";
-  timelineTools.style.left = `${Math.min(maxLeft, Math.max(TOOL_MARGIN, left))}px`;
-  timelineTools.style.top = `${constrainedTop}px`;
-  timelineTools.classList.toggle("is-near-top", constrainedTop < 56);
-}
-
-function startToolDrag(event) {
-  if (event.pointerType === "mouse" && event.button !== 0) return;
-  const rect = timelineTools.getBoundingClientRect();
-  activeDrag = {
-    pointerId: event.pointerId,
-    startX: event.clientX,
-    startY: event.clientY,
-    left: rect.left,
-    top: rect.top
-  };
-  moveTimelineTools(rect.left, rect.top);
-  timelineTools.classList.add("is-dragging");
-  dragHandle.focus({ preventScroll: true });
-  dragHandle.setPointerCapture(event.pointerId);
-  event.preventDefault();
-}
-
-function dragTimelineTools(event) {
-  if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
-  moveTimelineTools(
-    activeDrag.left + event.clientX - activeDrag.startX,
-    activeDrag.top + event.clientY - activeDrag.startY
-  );
-  event.preventDefault();
-}
-
-function stopToolDrag(event) {
-  if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
-  activeDrag = null;
-  timelineTools.classList.remove("is-dragging");
-  if (dragHandle.hasPointerCapture(event.pointerId)) {
-    dragHandle.releasePointerCapture(event.pointerId);
-  }
-}
-
-timelineTools.addEventListener("click", function(event) {
-  event.stopPropagation();
-});
-
-dragHandle.addEventListener("pointerdown", startToolDrag);
-dragHandle.addEventListener("pointermove", dragTimelineTools);
-dragHandle.addEventListener("pointerup", stopToolDrag);
-dragHandle.addEventListener("pointercancel", stopToolDrag);
-dragHandle.addEventListener("keydown", function(event) {
-  const directions = {
-    ArrowLeft: [-1, 0],
-    ArrowRight: [1, 0],
-    ArrowUp: [0, -1],
-    ArrowDown: [0, 1]
-  };
-  const direction = directions[event.key];
-  if (!direction) return;
-  const rect = timelineTools.getBoundingClientRect();
-  const distance = event.shiftKey ? 30 : 10;
-  moveTimelineTools(
-    rect.left + direction[0] * distance,
-    rect.top + direction[1] * distance
-  );
-  event.preventDefault();
-});
-
-window.addEventListener("resize", function() {
-  if (!timelineTools.style.left) return;
-  const rect = timelineTools.getBoundingClientRect();
-  moveTimelineTools(rect.left, rect.top);
-});
-
-zoomOutButton.addEventListener("click", function() {
-  setZoom(zoomLevel - ZOOM_STEP);
-});
-
-zoomResetButton.addEventListener("click", function() {
-  setZoom(1);
-});
-
-zoomInButton.addEventListener("click", function() {
-  setZoom(zoomLevel + ZOOM_STEP);
-});
-
-layoutButton.addEventListener("click", function() {
-  if (!timelineReady || !timelineData) return;
-  timelineLayout = timelineLayout === "h" ? "v" : "h";
-  window.scrollTo(0, 0);
-  timeline = initializeTimeline(timelineData, { layout: timelineLayout });
-  zoomTimeline(timeline, zoomLevel);
-  renderZoomControls();
-  renderLayoutControl();
-  syncTimelineScroll();
-  setToolStatus(`已切换为${timelineLayout === "v" ? "纵向" : "横向"}`);
-});
-
-saveButton.addEventListener("click", async function() {
-  if (!timelineReady || saveButton.getAttribute("aria-busy") === "true") return;
-  saveButton.disabled = true;
-  saveButton.setAttribute("aria-busy", "true");
-  setToolStatus("正在生成图片…");
-
-  const saved = await saveTimeline(timeline, params.name || "timeline");
-  saveButton.removeAttribute("aria-busy");
-  saveButton.disabled = false;
-  setToolStatus(
-    saved ? `已保存 ${params.name || "timeline"}.png` : "图片生成失败，请重试",
-    !saved
-  );
-});
-
-window.addEventListener("keydown", function(event) {
-  if (!timelineReady || (!event.ctrlKey && !event.metaKey)) return;
-  if (event.key === "+" || event.key === "=") {
-    event.preventDefault();
-    setZoom(zoomLevel + ZOOM_STEP);
-  } else if (event.key === "-") {
-    event.preventDefault();
-    setZoom(zoomLevel - ZOOM_STEP);
-  } else if (event.key === "0") {
-    event.preventDefault();
-    setZoom(1);
+const toolbar = createTimelineToolbar({
+  fileName: params.name || "timeline",
+  onZoom(scale) {
+    applyViewScale(timeline, scale);
+  },
+  onToggleLayout(layout, scale) {
+    window.scrollTo(0, 0);
+    timeline = initializeTimeline(timelineData, { layout });
+    applyViewScale(timeline, scale);
+    syncTimelineScroll();
+  },
+  onSave() {
+    return exportTimelinePng(timeline, params.name || "timeline");
   }
 });
 
@@ -235,11 +54,9 @@ async function loadTimeline() {
   }
 
   try {
-    const source = await loadDataset();
-    timelineData = JSON5.parse(source);
-    timelineLayout = timelineData.config && timelineData.config.layout === "v" ? "v" : "h";
+    timelineData = JSON5.parse(await loadDataset());
     timeline = initializeTimeline(timelineData);
-    enableTimelineTools();
+    toolbar.enable(timelineData.config && timelineData.config.layout);
   } catch (error) {
     console.error("Failed to load timeline data:", error);
     showLoadError(`数据加载失败：${datasetPath}\n错误信息：${error.message}`);

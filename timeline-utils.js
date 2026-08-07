@@ -1,12 +1,4 @@
-  export function getParams() {
-    var params = {};
-    var searchParams = new URLSearchParams(window.location.search || "");
-    searchParams.forEach(function(value, key) {
-      params[key] = value;
-    });
-    return params;
-  }
-
+  // 配置归一化、日期、布局坐标、标尺与选中索引等纯函数。
   export function normalizeConfig(cfg) {
     cfg = cfg || {};
     cfg.layout = cfg.layout === "v" ? "v" : "h";

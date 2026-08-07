@@ -103,7 +103,7 @@ function loadSvgLayer(layer, boardSize) {
   });
 }
 
-export function zoomTimeline(timeline, value) {
+export function applyViewScale(timeline, value) {
   if (!timeline) return 1;
 
   const snapshot = timeline.getSnapshot();
@@ -127,7 +127,7 @@ export function zoomTimeline(timeline, value) {
   return scale;
 }
 
-export async function saveTimeline(timeline, datasetName = "timeline") {
+export async function exportTimelinePng(timeline, datasetName = "timeline") {
   if (!timeline) return false;
 
   const snapshot = timeline.getSnapshot();
