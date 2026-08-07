@@ -11,6 +11,37 @@ function report(file, message) {
   console.error(`${file}: ${message}`);
 }
 
+function parseRangeValue(value) {
+  if (Number.isFinite(value)) return value;
+  if (typeof value !== "string") return NaN;
+
+  const normalized = value.trim();
+  if (!normalized || normalized === "~") return null;
+  const parts = normalized.replace(/^~/, "").split("/");
+  if (!parts.every((part) => /^-?\d+$/.test(part))) return NaN;
+
+  const year = Number(parts[0]);
+  const month = parts.length > 1 ? Number(parts[1]) : 1;
+  const day = parts.length > 2 ? Number(parts[2]) : 1;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return NaN;
+  return year + (month - 1) / 12 + (day - 1) / (12 * 31);
+}
+
+function validateRange(file, item, type, index) {
+  if (item.start == null || item.end == null) return;
+  const label = item.name || `${type} #${index + 1}`;
+  const start = parseRangeValue(item.start);
+  const end = parseRangeValue(item.end);
+  if (start == null || end == null) return;
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    report(file, `${type}“${label}”的 start/end 格式无效`);
+    return;
+  }
+  if (end < start) {
+    report(file, `${type}“${label}”的 end (${item.end}) 不能早于 start (${item.start})`);
+  }
+}
+
 for (const file of files) {
   let data;
   try {
@@ -18,6 +49,14 @@ for (const file of files) {
   } catch (error) {
     report(file, `JSON5 解析失败：${error.message}`);
     continue;
+  }
+
+  if (data.periods != null && !Array.isArray(data.periods)) {
+    report(file, "periods 必须为数组");
+  } else {
+    for (const [index, period] of (data.periods || []).entries()) {
+      validateRange(file, period, "时期", index);
+    }
   }
 
   if (!Array.isArray(data.roles)) {
@@ -28,7 +67,8 @@ for (const file of files) {
   const ids = new Set();
   const references = [];
   const groups = new Set();
-  for (const role of data.roles) {
+  for (const [index, role] of data.roles.entries()) {
+    validateRange(file, role, "角色", index);
     if (role.groups != null && !Array.isArray(role.groups)) report(file, `${role.name || "未命名角色"} 的 groups 必须为数组`);
     for (const group of role.groups || []) groups.add(group);
     if (role.keypoints != null && !Array.isArray(role.keypoints)) {

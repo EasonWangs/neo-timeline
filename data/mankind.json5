@@ -51,8 +51,8 @@
   {
     "name":"铁器时代",
     "desc":"The Iron Age",
-    "start": 250000,
-    "end": 10000,
+    "start": -1200,
+    "end": -550,
     "level": 3,
   },
 
