@@ -3,10 +3,6 @@
     start : -70200, //横向起点
     layout: "v",
     zoom : 0.1, //缩放
-    o : {
-      vs:1000, //横向大刻度
-      vm:100, //横向小刻度
-    },
     p:{
       textAnchor : "middle", //start,middle,end
       colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],

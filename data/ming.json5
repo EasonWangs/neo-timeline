@@ -1,8 +1,8 @@
 {
   config: {
     zoom : 5, //缩放
-    o : {
-      hs:10, 
+    o: {
+        hs: 10,
     },
     p:{
       textAnchor : "middle", //start,middle,end

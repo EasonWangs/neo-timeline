@@ -2,10 +2,6 @@
   "config": {
     layout: "v",
     zoom : 1, //缩放
-    o : {
-      vs:100, //横向大刻度
-      vm:10, //横向小刻度
-    },
     
     p:{ //区域
       textAnchor : "start", //start,middle,end

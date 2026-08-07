@@ -1,8 +1,9 @@
 {
 	config : {
         zoom: 1, //缩放
-        o : {
-          hs:50, 
+        o: {
+          hs: 100,
+          hm: 10,
         },
         p:{
 		      textAnchor : "start", //start,middle,end

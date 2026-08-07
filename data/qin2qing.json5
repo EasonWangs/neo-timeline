@@ -1,9 +1,6 @@
 {
   "config": {
     zoom : 1, //缩放
-    o : {
-      hs:100, 
-    },
     p:{
       textAnchor : "middle", //start,middle,end
       colors:  ['#c23531','#2f4554',  '#d48265', '#61a0a8','#ca8622', '#91c7ae', '#bda29a','#6e7074','#749f83','#546570', '#c4ccd3'],

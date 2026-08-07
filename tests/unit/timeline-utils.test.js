@@ -3,7 +3,9 @@ import {
   getDatePosition,
   getNextSelectionIndex,
   getRulerInterval,
+  getRulerIntervals,
   inferTimelineStart,
+  isRulerMajor,
   orientPoint,
   orientRect,
   parseDate
@@ -102,12 +104,24 @@ describe("date coordinates", function() {
 });
 
 describe("ruler intervals", function() {
+  it("calculates readable major and minor intervals from zoom", function() {
+    expect(getRulerIntervals(0.1, 60, 20)).toEqual({ major: 1000, minor: 200 });
+    expect(getRulerIntervals(1, 60, 20)).toEqual({ major: 100, minor: 20 });
+    expect(getRulerIntervals(10, 60, 20)).toEqual({ major: 10, minor: 2 });
+    expect(getRulerIntervals(30, 60, 20)).toEqual({ major: 2, minor: 1 });
+    expect(getRulerIntervals(3, 60, 20)).toEqual({ major: 20, minor: 10 });
+  });
+
+  it("keeps explicitly configured major and minor intervals", function() {
+    expect(getRulerIntervals(10, 60, 20, 50, 5)).toEqual({ major: 50, minor: 5 });
+  });
+
   it("keeps an explicitly configured interval", function() {
     expect(getRulerInterval(10, 20, 25, 5)).toBe(5);
   });
 
   it("calculates a readable minor interval", function() {
-    expect(getRulerInterval(10, 20, 25)).toBe(1);
+    expect(getRulerInterval(10, 20, 25)).toBe(2);
     expect(getRulerInterval(100, 1, 25)).toBe(25);
   });
 
@@ -118,6 +132,12 @@ describe("ruler intervals", function() {
   it("falls back safely for invalid configuration", function() {
     expect(getRulerInterval(0, 10, 25)).toBe(1);
     expect(getRulerInterval(10, 0, 25)).toBe(10);
+  });
+
+  it("aligns major marks to absolute round values", function() {
+    expect(isRulerMajor(1295, 20)).toBe(false);
+    expect(isRulerMajor(1300, 20)).toBe(true);
+    expect(isRulerMajor(-70000, 1000)).toBe(true);
   });
 });
 

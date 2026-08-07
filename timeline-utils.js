@@ -76,15 +76,16 @@
     const fallbackMajor = layout === "v" ? axis.hs : axis.vs;
     const primaryMinor = layout === "v" ? axis.vm : axis.hm;
     const fallbackMinor = layout === "v" ? axis.hm : axis.vm;
-    const major = Number(primaryMajor || fallbackMajor) || 1;
     const zoom = Number(config.zoom) > 0 ? Number(config.zoom) : 1;
     const minSpace = layout === "v" ? 20 : 25;
-    const minor = getRulerInterval(
-      major,
+    const intervals = getRulerIntervals(
       zoom,
+      60,
       minSpace,
+      primaryMajor || fallbackMajor,
       primaryMinor || fallbackMinor
     );
+    const minor = intervals.minor;
 
     // 在首个数据点前保留约一个文字间距，再对齐到小刻度，避免内容紧贴标尺起点。
     const earliestContent = Math.min(...contentCandidates.map(function(candidate) {
@@ -249,8 +250,71 @@
     if (!isFinite(scale) || scale <= 0) scale = 1;
     if (!isFinite(minimum) || minimum <= 0) minimum = 25;
 
-    var divisions = Math.max(1, Math.floor(interval * scale / minimum));
-    return Math.max(1, Math.floor(interval / divisions));
+    // 自动次刻度既要达到最小像素间距，也必须整除主刻度，否则逐次累加时会跳过主刻度线。
+    var targetInterval = Math.max(1, minimum / scale);
+    var magnitude = Math.pow(10, Math.floor(Math.log10(targetInterval)));
+    var factors = [1, 2, 2.5, 5, 10];
+    var maxMagnitude = Math.pow(10, Math.ceil(Math.log10(interval)) + 1);
+
+    for (; magnitude <= maxMagnitude; magnitude *= 10) {
+      for (var i = 0; i < factors.length; i += 1) {
+        var candidate = factors[i] * magnitude;
+        if (candidate < targetInterval || candidate > interval) continue;
+        var divisions = interval / candidate;
+        if (Math.abs(divisions - Math.round(divisions)) < 1e-9) return candidate;
+      }
+    }
+    return interval;
+  }
+
+  /**
+   * 根据时间轴的像素密度生成一组可读刻度。
+   *
+   * 主刻度会向上归整为 1、2、5 × 10ⁿ，避免出现 3、7、13 这类不自然的年份间隔；
+   * 次刻度继续复用 getRulerInterval()，保证主刻度之间的网格不会过密且能整除主刻度。
+   * 显式配置的 hs/vs、hm/vm 始终优先，因而特殊数据仍可手动覆盖。
+   */
+  export function getRulerIntervals(
+    zoom,
+    minMajorSpace = 60,
+    minMinorSpace = 25,
+    configuredMajor,
+    configuredMinor
+  ) {
+    var scale = Number(zoom);
+    if (!isFinite(scale) || scale <= 0) scale = 1;
+
+    var configured = Number(configuredMajor);
+    var major;
+    if (isFinite(configured) && configured > 0) {
+      major = configured;
+    } else {
+      var minimum = Number(minMajorSpace);
+      if (!isFinite(minimum) || minimum <= 0) minimum = 60;
+
+      // 先计算满足最小像素间距所需的年份跨度，再向上取整到易读刻度。
+      var rawInterval = Math.max(1, minimum / scale);
+      var magnitude = Math.pow(10, Math.floor(Math.log10(rawInterval)));
+      var normalized = rawInterval / magnitude;
+      var factor = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+      major = Math.max(1, factor * magnitude);
+    }
+
+    return {
+      major: major,
+      minor: getRulerInterval(major, scale, minMinorSpace, configuredMinor)
+    };
+  }
+
+  // 用绝对时间值判断主刻度，避免自动起点（如 1295）被误当成整十、整百刻度。
+  export function isRulerMajor(value, interval) {
+    var numericValue = Number(value);
+    var numericInterval = Number(interval);
+    if (!isFinite(numericValue) || !isFinite(numericInterval) || numericInterval <= 0) {
+      return false;
+    }
+    var quotient = numericValue / numericInterval;
+    return Math.abs(quotient - Math.round(quotient)) < 1e-9;
   }
 
   export function orientPoint(timePosition, crossPosition, layout) {

@@ -82,6 +82,8 @@ function drawAxisRuler(options) {
     options.minSpace,
     options.minor
   );
+  // 次刻度只有在自身间距足以容纳年份文字时才显示数字，避免密集标签互相覆盖。
+  const showMinorLabels = minor * zoom >= 40;
 
   // 主刻度之间大致能容纳多少个分区；主刻度为 1 年时，用它决定月份细分密度。
   const divisions = Math.floor(options.major * zoom / options.minSpace);
@@ -107,15 +109,17 @@ function drawAxisRuler(options) {
     const timePosition = i * zoom;
 
     // 能被 major 整除的是主刻度：主刻度贯穿 25px，次刻度只画末端 10px。
-    const isMajor = i % options.major === 0;
+    const timeValue = state.config.start + i;
+    // 按绝对年份而不是相对起点判断，确保 1300、1320 这类整值成为主刻度。
+    const isMajor = U.isRulerMajor(timeValue, options.major);
     const tickStart = isMajor ? 0 : 15;
     drawOrientedLine(ruler, timePosition, tickStart, thickness, options.layout).attr({
       stroke: "#8f9292",
       strokeWidth: 1
     });
 
-    // 主刻度始终显示文字；主刻度间距足够宽时，次刻度也显示文字。
-    if (isMajor || options.major * zoom >= 100) {
+    // 主刻度始终显示文字；次刻度是否显示取决于它自己的实际像素间距。
+    if (isMajor || showMinorLabels) {
       // 横标尺文字向右偏 2px，纵标尺文字向上偏 2px，避免压住刻度线。
       const labelPosition = U.orientPoint(
         timePosition + (isVertical ? -2 : 2),
@@ -129,7 +133,7 @@ function drawAxisRuler(options) {
       ruler.text(
         labelPosition.x,
         labelPosition.y,
-        String(state.config.start + i)
+        String(timeValue)
       ).attr(labelAttrs);
     }
 
@@ -184,9 +188,23 @@ function drawRuler(w, h) {
 
   const o = state.config.o;
   const layout = state.config.layout;
+  const majorKey = layout === "v" ? "vs" : "hs";
+  const minorKey = layout === "v" ? "vm" : "hm";
+  const minMinorSpace = layout === "v" ? 20 : 25;
+  // 数据未指定刻度时，按当前 zoom 自动选择易读的主、次刻度；显式配置仍会覆盖自动值。
+  const intervals = U.getRulerIntervals(
+    state.config.zoom,
+    60,
+    minMinorSpace,
+    o[majorKey],
+    o[minorKey]
+  );
+  o[majorKey] = intervals.major;
+  o[minorKey] = intervals.minor;
+
   let rulerH = null;
   let rulerV = null;
-  if (layout === "h" && o.hs) {
+  if (layout === "h") {
     const result = drawAxisRuler({
       layout: "h",
       length: w,
@@ -198,7 +216,7 @@ function drawRuler(w, h) {
     o.hm = result.minor;
     wrapper.appendChild(rulerH.node);
   }
-  if (layout === "v" && o.vs) {
+  if (layout === "v") {
     const result = drawAxisRuler({
       layout: "v",
       length: h,
@@ -221,16 +239,24 @@ function drawRuler(w, h) {
   const gridMajor = layout === "v" ? o.vs : o.hs;
   const gridMinor = layout === "v" ? o.vm : o.hm;
 
+  // 时间轴方向的粗网格按绝对年份对齐；交叉轴仍从画布原点按相对距离对齐。
+  const isMajorGridLine = function(offset, isTimeAxis) {
+    const value = isTimeAxis ? state.config.start + offset : offset;
+    return U.isRulerMajor(value, gridMajor);
+  };
+
   for (let i = 0; i < w / state.config.zoom; i += gridMinor) {
+    const isMajor = isMajorGridLine(i, layout === "h");
     drawOrientedLine(bgGrid, i * state.config.zoom, 0, "100%", "h").attr({
-      stroke: i % gridMajor === 0 ? "#f0ebdc" : "#f5f0e0",
-      class: i % gridMajor === 0 ? "thickLine" : "thinLine"
+      stroke: isMajor ? "#f0ebdc" : "#f5f0e0",
+      class: isMajor ? "thickLine" : "thinLine"
     });
   }
   for (let i = 0; i < h / state.config.zoom; i += gridMinor) {
+    const isMajor = isMajorGridLine(i, layout === "v");
     drawOrientedLine(bgGrid, i * state.config.zoom, 0, "100%", "v").attr({
-      stroke: i % gridMajor === 0 ? "#f0ebdc" : "#f5f0e0",
-      class: i % gridMajor === 0 ? "thickLine" : "thinLine"
+      stroke: isMajor ? "#f0ebdc" : "#f5f0e0",
+      class: isMajor ? "thickLine" : "thinLine"
     });
   }
 

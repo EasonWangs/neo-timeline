@@ -50,7 +50,7 @@ test("mobile controls and keypoint details stay inside the viewport", async func
 
 test("resize keeps only the ruler for the active layout", async function({ page }) {
   await page.goto("/timeline.html?name=ming&title=明朝");
-  await expect(page.locator("#ruler-h text").first()).toHaveText("1295");
+  await expect(page.locator("#ruler-h text").first()).toHaveText("1300");
   await expect(page.locator("#ruler-h")).toHaveCount(1);
   await expect(page.locator("#ruler-v")).toHaveCount(0);
 
@@ -65,6 +65,46 @@ test("resize keeps only the ruler for the active layout", async function({ page 
   await page.setViewportSize({ width: 844, height: 390 });
   await expect(page.locator("#ruler-h")).toHaveCount(0);
   await expect(page.locator("#ruler-v")).toHaveCount(1);
+});
+
+test("major ruler marks align to round absolute years", async function({ page }) {
+  await page.goto("/timeline.html?name=ming&title=明朝");
+
+  const tickStarts = await page.locator("#ruler-h").evaluate(function(ruler) {
+    const getTickStart = function(x) {
+      const line = Array.from(ruler.querySelectorAll("line")).find(function(node) {
+        return Number(node.getAttribute("x1")) === x;
+      });
+      return Number(line.getAttribute("y1"));
+    };
+
+    return {
+      1295: getTickStart(0),
+      1300: getTickStart(25)
+    };
+  });
+
+  expect(tickStarts[1295]).toBe(15);
+  expect(tickStarts[1300]).toBe(0);
+});
+
+test("science uses 100-year major marks and unlabeled 10-year minor marks", async function({ page }) {
+  await page.goto("/timeline.html?name=science&title=科学史");
+
+  const ruler = await page.locator("#ruler-h").evaluate(function(node) {
+    return {
+      labels: Array.from(node.querySelectorAll("text"), function(text) {
+        return Number(text.textContent);
+      }),
+      linePositions: Array.from(node.querySelectorAll("line"), function(line) {
+        return Number(line.getAttribute("x1"));
+      }).slice(0, 3)
+    };
+  });
+
+  expect(ruler.labels.length).toBeGreaterThan(1);
+  expect(ruler.labels.every(function(value) { return value % 100 === 0; })).toBe(true);
+  expect(ruler.linePositions[1] - ruler.linePositions[0]).toBe(10);
 });
 
 test("a period-only dataset starts at the exact period boundary", async function({ page }) {
