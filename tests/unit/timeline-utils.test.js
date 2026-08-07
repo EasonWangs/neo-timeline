@@ -6,6 +6,7 @@ import {
   getRulerIntervals,
   inferTimelineStart,
   isRulerMajor,
+  normalizeConfig,
   orientPoint,
   orientRect,
   parseDate
@@ -19,8 +20,7 @@ describe("automatic timeline start", function() {
       roles: [{ start: 1328, end: 1398, keypoints: [{ t: 1356 }] }]
     }, {
       layout: "h",
-      zoom: 5,
-      o: { hs: 10 }
+      axes: { time: { px: 5, major: 10 } }
     })).toBe(1320);
   });
 
@@ -30,8 +30,7 @@ describe("automatic timeline start", function() {
       roles: []
     }, {
       layout: "v",
-      zoom: 0.1,
-      o: { vs: 1000, vm: 100 }
+      axes: { time: { px: 0.1, major: 1000, minor: 100 } }
     })).toBe(-250000);
   });
 
@@ -41,8 +40,7 @@ describe("automatic timeline start", function() {
       roles: [{ start: 110, end: 180 }]
     }, {
       layout: "h",
-      zoom: 1,
-      o: { hs: 10, hm: 5 }
+      axes: { time: { px: 1, major: 10, minor: 5 } }
     })).toBe(85);
   });
 
@@ -52,8 +50,7 @@ describe("automatic timeline start", function() {
       roles: [{ start: 110, end: 180, groups: ["group-a"] }]
     }, {
       layout: "h",
-      zoom: 1,
-      o: { hs: 10, hm: 5 },
+      axes: { time: { px: 1, major: 10, minor: 5 } },
       g: { show: true }
     })).toBe(65);
   });
@@ -63,8 +60,7 @@ describe("automatic timeline start", function() {
       roles: [{ start: "~1905/03", end: "~", keypoints: [{ t: "1910/06" }] }]
     }, {
       layout: "h",
-      zoom: 10,
-      o: { hs: 10, hm: 2 }
+      axes: { time: { px: 10, major: 10, minor: 2 } }
     })).toBe(1902);
   });
 
@@ -73,13 +69,33 @@ describe("automatic timeline start", function() {
       roles: [{ start: null, end: 200 }]
     }, {
       layout: "h",
-      zoom: 1,
-      o: { hs: 10, hm: 5 }
+      axes: { time: { px: 1, major: 10, minor: 5 } }
     })).toBe(115);
   });
 
   it("falls back to zero when the dataset has no dates", function() {
-    expect(inferTimelineStart({ roles: [] }, { layout: "h", zoom: 10 })).toBe(0);
+    expect(inferTimelineStart({ roles: [] }, {
+      layout: "h",
+      axes: { time: { px: 10 } }
+    })).toBe(0);
+  });
+});
+
+describe("configuration normalization", function() {
+  it("normalizes semantic time and cross axes", function() {
+    const config = normalizeConfig({
+      axes: {
+        time: { px: 5, major: 10 },
+        cross: { show: true, type: "linear" }
+      }
+    });
+
+    expect(config.axes.time).toEqual({ px: 5, major: 10 });
+    expect(config.axes.cross).toEqual({ show: true, type: "linear" });
+  });
+
+  it("uses one pixel per time unit by default", function() {
+    expect(normalizeConfig({}).axes.time.px).toBe(1);
   });
 });
 
@@ -104,7 +120,7 @@ describe("date coordinates", function() {
 });
 
 describe("ruler intervals", function() {
-  it("calculates readable major and minor intervals from zoom", function() {
+  it("calculates readable major and minor intervals from unit pixel density", function() {
     expect(getRulerIntervals(0.1, 60, 20)).toEqual({ major: 1000, minor: 200 });
     expect(getRulerIntervals(1, 60, 20)).toEqual({ major: 100, minor: 20 });
     expect(getRulerIntervals(10, 60, 20)).toEqual({ major: 10, minor: 2 });

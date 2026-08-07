@@ -1,8 +1,8 @@
 {
   config: {
-    zoom : 5, //缩放
-    o: {
-        hs: 10,
+    layout:"h",
+    axes: {
+      time: { px: 5, major: 10 },
     },
     p:{
       textAnchor : "middle", //start,middle,end

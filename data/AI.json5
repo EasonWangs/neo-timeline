@@ -1,6 +1,8 @@
 {
     config: {
-        zoom: 10, //缩放
+        axes: {
+            time: { px: 10 },
+        },
         "size": 30,
         p: {
             textAnchor: "middle", //start,middle,end

@@ -62,8 +62,8 @@ function drawOrientedLine(board, timePosition, crossStart, crossEnd, layout) {
  *
  * options.layout   标尺方向："h" 为横向，"v" 为纵向。
  * options.length   标尺沿时间轴方向的像素长度。
- * options.major    主刻度间隔，对应配置中的 hs/vs。
- * options.minor    可选的次刻度间隔，对应配置中的 hm/vm。
+ * options.major    主刻度间隔，对应 axes.time.major。
+ * options.minor    可选的次刻度间隔，对应 axes.time.minor。
  * options.minSpace 自动计算次刻度时允许的最小文字间距。
  *
  * 返回创建好的 Snap.svg 标尺对象，以及最终采用的次刻度间隔。
@@ -72,21 +72,21 @@ function drawAxisRuler(options) {
   // 标尺固定为 25px 厚；layout 只决定这 25px 落在宽度还是高度上。
   const thickness = 25;
   const isVertical = options.layout === "v";
-  const zoom = state.config.zoom;
+  const unitPx = state.config.axes.time.px;
 
   // 根据主刻度的像素宽度和最小文字间距，计算最终采用的次刻度间隔。
-  // 如果数据中显式配置了 hm/vm，getRulerInterval 会优先使用配置值。
+  // 如果数据中显式配置了 axes.time.minor，getRulerInterval 会优先使用配置值。
   const minor = U.getRulerInterval(
     options.major,
-    zoom,
+    unitPx,
     options.minSpace,
     options.minor
   );
   // 次刻度只有在自身间距足以容纳年份文字时才显示数字，避免密集标签互相覆盖。
-  const showMinorLabels = minor * zoom >= 40;
+  const showMinorLabels = minor * unitPx >= 40;
 
   // 主刻度之间大致能容纳多少个分区；主刻度为 1 年时，用它决定月份细分密度。
-  const divisions = Math.floor(options.major * zoom / options.minSpace);
+  const divisions = Math.floor(options.major * unitPx / options.minSpace);
 
   // 将“时间轴长度 × 标尺厚度”转换成横向或纵向布局对应的实际 SVG 宽高。
   const size = U.orientRect(0, 0, options.length, thickness, options.layout);
@@ -104,9 +104,9 @@ function drawAxisRuler(options) {
   });
 
   // i 是相对于 config.start 的时间偏移，每次按最终次刻度间隔向前推进。
-  for (let i = 0; i < options.length / zoom; i += minor) {
+  for (let i = 0; i < options.length / unitPx; i += minor) {
     // 将时间偏移换算成时间轴上的像素位置。
-    const timePosition = i * zoom;
+    const timePosition = i * unitPx;
 
     // 能被 major 整除的是主刻度：主刻度贯穿 25px，次刻度只画末端 10px。
     const timeValue = state.config.start + i;
@@ -147,7 +147,7 @@ function drawAxisRuler(options) {
       // monthIndex 从 1 开始，跳过与年份主刻度重合的年初位置。
       for (let monthIndex = 1; monthIndex < monthDivisions; monthIndex++) {
         // 按该月份在一年内的比例，换算成时间轴上的像素位置。
-        const monthPosition = timePosition + monthIndex / monthDivisions * zoom;
+        const monthPosition = timePosition + monthIndex / monthDivisions * unitPx;
         drawOrientedLine(ruler, monthPosition, 16, thickness, options.layout).attr({
           stroke: "#8f9292",
           strokeWidth: 1
@@ -171,7 +171,7 @@ function drawAxisRuler(options) {
     }
   }
 
-  // 将 minor 一并返回，调用方会回写到 o.hm/o.vm，保证背景网格使用相同间隔。
+  // 将 minor 一并返回，调用方会回写到 axes.time，保证背景网格使用相同间隔。
   return { ruler, minor };
 }
 
@@ -186,21 +186,19 @@ function drawRuler(w, h) {
     state.svgBg.node.parentNode.removeChild(state.svgBg.node);
   }
 
-  const o = state.config.o;
+  const timeAxis = state.config.axes.time;
   const layout = state.config.layout;
-  const majorKey = layout === "v" ? "vs" : "hs";
-  const minorKey = layout === "v" ? "vm" : "hm";
   const minMinorSpace = layout === "v" ? 20 : 25;
-  // 数据未指定刻度时，按当前 zoom 自动选择易读的主、次刻度；显式配置仍会覆盖自动值。
+  // 数据未指定刻度时，按 time.px 自动选择易读的主、次刻度；显式配置仍会覆盖自动值。
   const intervals = U.getRulerIntervals(
-    state.config.zoom,
+    timeAxis.px,
     60,
     minMinorSpace,
-    o[majorKey],
-    o[minorKey]
+    timeAxis.major,
+    timeAxis.minor
   );
-  o[majorKey] = intervals.major;
-  o[minorKey] = intervals.minor;
+  timeAxis.major = intervals.major;
+  timeAxis.minor = intervals.minor;
 
   let rulerH = null;
   let rulerV = null;
@@ -208,24 +206,24 @@ function drawRuler(w, h) {
     const result = drawAxisRuler({
       layout: "h",
       length: w,
-      major: o.hs,
-      minor: o.hm,
+      major: timeAxis.major,
+      minor: timeAxis.minor,
       minSpace: 25
     });
     rulerH = result.ruler;
-    o.hm = result.minor;
+    timeAxis.minor = result.minor;
     wrapper.appendChild(rulerH.node);
   }
   if (layout === "v") {
     const result = drawAxisRuler({
       layout: "v",
       length: h,
-      major: o.vs,
-      minor: o.vm,
+      major: timeAxis.major,
+      minor: timeAxis.minor,
       minSpace: 20
     });
     rulerV = result.ruler;
-    o.vm = result.minor;
+    timeAxis.minor = result.minor;
     wrapper.appendChild(rulerV.node);
   }
 
@@ -236,8 +234,9 @@ function drawRuler(w, h) {
 
   // 背景网格的横纵线共用当前时间轴间隔，但不能把间隔写入另一轴配置。
   // 否则 resize 后下一次 drawRuler() 会误以为两个方向都需要标尺。
-  const gridMajor = layout === "v" ? o.vs : o.hs;
-  const gridMinor = layout === "v" ? o.vm : o.hm;
+  const gridMajor = timeAxis.major;
+  const gridMinor = timeAxis.minor;
+  const unitPx = timeAxis.px;
 
   // 时间轴方向的粗网格按绝对年份对齐；交叉轴仍从画布原点按相对距离对齐。
   const isMajorGridLine = function(offset, isTimeAxis) {
@@ -245,16 +244,16 @@ function drawRuler(w, h) {
     return U.isRulerMajor(value, gridMajor);
   };
 
-  for (let i = 0; i < w / state.config.zoom; i += gridMinor) {
+  for (let i = 0; i < w / unitPx; i += gridMinor) {
     const isMajor = isMajorGridLine(i, layout === "h");
-    drawOrientedLine(bgGrid, i * state.config.zoom, 0, "100%", "h").attr({
+    drawOrientedLine(bgGrid, i * unitPx, 0, "100%", "h").attr({
       stroke: isMajor ? "#f0ebdc" : "#f5f0e0",
       class: isMajor ? "thickLine" : "thinLine"
     });
   }
-  for (let i = 0; i < h / state.config.zoom; i += gridMinor) {
+  for (let i = 0; i < h / unitPx; i += gridMinor) {
     const isMajor = isMajorGridLine(i, layout === "v");
-    drawOrientedLine(bgGrid, i * state.config.zoom, 0, "100%", "v").attr({
+    drawOrientedLine(bgGrid, i * unitPx, 0, "100%", "v").attr({
       stroke: isMajor ? "#f0ebdc" : "#f5f0e0",
       class: isMajor ? "thickLine" : "thinLine"
     });
@@ -271,13 +270,14 @@ function drawPeriod(pers){
 	const periodBoard = Snap("#period");
   state.period = periodBoard;
 	if(state.config.p.position) periodBoard.node.style.position = state.config.p.position;
-  let p = (state.config.p.padding || 50) * state.config.zoom;
+  const unitPx = state.config.axes.time.px;
+  let p = (state.config.p.padding || 50) * unitPx;
   
   for (var i = 0; i < pers.length; i++) {
     const level = pers[i].level || 1;
-    const timePosition = (pers[i].start - state.config.start) * state.config.zoom;
+    const timePosition = (pers[i].start - state.config.start) * unitPx;
     const crossPosition = 25 + (level - 1) * p;
-    const timeLength = (pers[i].end - pers[i].start) * state.config.zoom;
+    const timeLength = (pers[i].end - pers[i].start) * unitPx;
     const crossLength = state.config.p.type == "part"
       ? p
       : "calc(100% - "+ crossPosition +"px)";
@@ -389,7 +389,7 @@ function drawPeriod(pers){
         });
         
         const pointPosition = U.orientPoint(
-          (points[n].t - state.config.start) * state.config.zoom,
+          (points[n].t - state.config.start) * unitPx,
           crossPosition + 35,
           state.config.layout
         );
@@ -425,6 +425,7 @@ function drawEvents(evts, roles){
   // 创建普通事件和关联事件的SVG容器
   const eventsBoard = Snap("#events");
   state.events = eventsBoard;
+  const unitPx = state.config.axes.time.px;
   
   // 只处理普通事件
   for (var i = 0; i < evts.length; i++) {
@@ -435,7 +436,7 @@ function drawEvents(evts, roles){
         class: 'events common'
       });
       
-      const timePosition = (evts[i].time - state.config.start) * state.config.zoom;
+      const timePosition = (evts[i].time - state.config.start) * unitPx;
       let textCross = 40;
 
       switch(state.config.e.textAnchor){
@@ -901,31 +902,32 @@ function handleKeyNavigation(e) {
 }
 
 function computeItemGeometry(item, index, itemSpacing) {
+  const unitPx = state.config.axes.time.px;
   let w;
   let h = 2;
-  let x = (item.start - state.config.start) * state.config.zoom;
+  let x = (item.start - state.config.start) * unitPx;
   let y = (index - state.offset) * itemSpacing + 45;
   const startDate = U.parseDate(item.start);
   const endDate = U.parseDate(item.end);
 
   if (startDate) {
-    x = U.getDatePosition(startDate, state.config.zoom, state.config.start);
+    x = U.getDatePosition(startDate, unitPx, state.config.start);
   } else if (endDate) {
-    x = U.getDatePosition(endDate, state.config.zoom, state.config.start) - (60 * state.config.zoom);
+    x = U.getDatePosition(endDate, unitPx, state.config.start) - (60 * unitPx);
   } else {
     x = 0;
   }
 
   if (endDate) {
-    w = U.getDatePosition(endDate, state.config.zoom, state.config.start) - x;
+    w = U.getDatePosition(endDate, unitPx, state.config.start) - x;
   } else if (startDate) {
-    w = 90 * state.config.zoom;
+    w = 90 * unitPx;
   } else {
-    w = state.config.zoom;
+    w = unitPx;
   }
 
   x = isFinite(x) ? x : 0;
-  w = isFinite(w) ? Math.max(w, 1) : state.config.zoom;
+  w = isFinite(w) ? Math.max(w, 1) : unitPx;
 
   const geometry = U.orientRect(x, y, w, h, state.config.layout);
   x = geometry.x;
@@ -1095,6 +1097,7 @@ function renderItemDesc(board, item, itemBox, geometry, name) {
 
 function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
   if(!points) return;
+  const unitPx = state.config.axes.time.px;
 
   let dotBox = board.g().attr({
     class:'dotBox'
@@ -1106,7 +1109,7 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
   let [x4,y4,x5,y5] = [geometry.x,geometry.y,geometry.x,geometry.y];
   for(let i = points.length - 1; i >= 0; i--){
     let point = points[i];
-    const timePosition = (point.t - state.config.start) * state.config.zoom;
+    const timePosition = (point.t - state.config.start) * unitPx;
     const dotCross = state.config.layout == "v" ? geometry.x : geometry.y;
     const textCross = state.config.layout == "v" ? x5 : y5;
     const dotPosition = U.orientPoint(timePosition, dotCross, state.config.layout);
@@ -1567,10 +1570,15 @@ function initDragPan() {
 function createTimelineConfig(data, layout) {
   const sourceConfig = data && data.config;
   const source = sourceConfig || {};
+  const sourceAxes = source.axes || {};
   const configuredStart = parseInt(source.start, 10);
   const config = {
     ...source,
-    o: { ...(source.o || {}) },
+    axes: {
+      ...sourceAxes,
+      time: { ...(sourceAxes.time || {}) },
+      cross: { ...(sourceAxes.cross || {}) }
+    },
     p: { ...(source.p || {}) },
     e: { ...(source.e || {}) },
     g: {
@@ -1581,17 +1589,6 @@ function createTimelineConfig(data, layout) {
 
   if (layout === "h" || layout === "v") {
     config.layout = layout;
-    if (layout === "v") {
-      config.o.vs = config.o.vs || config.o.hs;
-      config.o.vm = config.o.vm || config.o.hm;
-      delete config.o.hs;
-      delete config.o.hm;
-    } else {
-      config.o.hs = config.o.hs || config.o.vs;
-      config.o.hm = config.o.hm || config.o.vm;
-      delete config.o.vs;
-      delete config.o.vm;
-    }
   }
 
   const normalized = U.normalizeConfig(config);

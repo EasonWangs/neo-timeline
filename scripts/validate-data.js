@@ -11,6 +11,16 @@ function report(file, message) {
   console.error(`${file}: ${message}`);
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function validatePositiveNumber(file, value, pathLabel) {
+  if (value !== undefined && (!Number.isFinite(value) || value <= 0)) {
+    report(file, `${pathLabel} 必须为正数`);
+  }
+}
+
 function parseRangeValue(value) {
   if (Number.isFinite(value)) return value;
   if (typeof value !== "string") return NaN;
@@ -49,6 +59,28 @@ for (const file of files) {
   } catch (error) {
     report(file, `JSON5 解析失败：${error.message}`);
     continue;
+  }
+
+  const config = data.config || {};
+  if (Object.prototype.hasOwnProperty.call(config, "zoom")) {
+    report(file, "请使用 config.axes.time.px，不再使用 config.zoom");
+  }
+  if (Object.prototype.hasOwnProperty.call(config, "o")) {
+    report(file, "请使用 config.axes.time.major/minor，不再使用 config.o");
+  }
+  if (config.axes !== undefined && !isPlainObject(config.axes)) {
+    report(file, "config.axes 必须为对象");
+  } else if (config.axes) {
+    if (config.axes.time !== undefined && !isPlainObject(config.axes.time)) {
+      report(file, "config.axes.time 必须为对象");
+    } else if (config.axes.time) {
+      validatePositiveNumber(file, config.axes.time.px, "config.axes.time.px");
+      validatePositiveNumber(file, config.axes.time.major, "config.axes.time.major");
+      validatePositiveNumber(file, config.axes.time.minor, "config.axes.time.minor");
+    }
+    if (config.axes.cross !== undefined && !isPlainObject(config.axes.cross)) {
+      report(file, "config.axes.cross 必须为对象");
+    }
   }
 
   if (data.periods != null && !Array.isArray(data.periods)) {

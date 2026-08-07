@@ -1,7 +1,9 @@
 {
   "config": {
     layout: "v",
-    zoom : 1, //缩放
+    axes: {
+      time: { px: 1 },
+    },
     
     p:{ //区域
       textAnchor : "start", //start,middle,end

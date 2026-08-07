@@ -4,10 +4,17 @@
     cfg.layout = cfg.layout === "v" ? "v" : "h";
     cfg.start = parseInt(cfg.start, 10);
     if (!isFinite(cfg.start)) cfg.start = 0;
-    cfg.zoom = Number(cfg.zoom);
-    if (!isFinite(cfg.zoom) || cfg.zoom <= 0) cfg.zoom = 1;
 
-    cfg.o = cfg.o || {};
+    cfg.axes = cfg.axes && typeof cfg.axes === "object" ? cfg.axes : {};
+    cfg.axes.time = cfg.axes.time && typeof cfg.axes.time === "object"
+      ? cfg.axes.time
+      : {};
+    cfg.axes.cross = cfg.axes.cross && typeof cfg.axes.cross === "object"
+      ? cfg.axes.cross
+      : {};
+    cfg.axes.time.px = Number(cfg.axes.time.px);
+    if (!isFinite(cfg.axes.time.px) || cfg.axes.time.px <= 0) cfg.axes.time.px = 1;
+
     cfg.p = cfg.p || {};
     cfg.e = cfg.e || {};
     cfg.g = cfg.g || {};
@@ -71,19 +78,15 @@
     if (contentCandidates.length === 0) return earliestPeriod;
 
     const layout = config.layout === "v" ? "v" : "h";
-    const axis = config.o || {};
-    const primaryMajor = layout === "v" ? axis.vs : axis.hs;
-    const fallbackMajor = layout === "v" ? axis.hs : axis.vs;
-    const primaryMinor = layout === "v" ? axis.vm : axis.hm;
-    const fallbackMinor = layout === "v" ? axis.hm : axis.vm;
-    const zoom = Number(config.zoom) > 0 ? Number(config.zoom) : 1;
+    const timeAxis = config.axes && config.axes.time || {};
+    const unitPx = Number(timeAxis.px) > 0 ? Number(timeAxis.px) : 1;
     const minSpace = layout === "v" ? 20 : 25;
     const intervals = getRulerIntervals(
-      zoom,
+      unitPx,
       60,
       minSpace,
-      primaryMajor || fallbackMajor,
-      primaryMinor || fallbackMinor
+      timeAxis.major,
+      timeAxis.minor
     );
     const minor = intervals.minor;
 
@@ -96,7 +99,7 @@
     });
     // group 的边框和标题会沿时间轴超出 item，显示分组时额外预留 20px。
     const groupPadding = earliestIsGrouped && config.g && config.g.show ? 20 : 0;
-    const padding = (minSpace + groupPadding) / zoom;
+    const padding = (minSpace + groupPadding) / unitPx;
     const alignedContent = Math.floor((earliestContent - padding) / minor) * minor;
     const contentStart = Number(alignedContent.toFixed(10));
 
@@ -218,7 +221,7 @@
     }
   }
 
-  export function getDatePosition(date, zoom, start) {
+  export function getDatePosition(date, unitPx, start) {
     if (!date) return 0;
 
     try {
@@ -230,7 +233,7 @@
       var yearOffset = year - start;
       var monthFraction = month / 12;
       var dayFraction = (day - 1) / (12 * 30);
-      var position = (yearOffset + monthFraction + dayFraction) * zoom;
+      var position = (yearOffset + monthFraction + dayFraction) * unitPx;
 
       return isFinite(position) ? position : 0;
     } catch (e) {
@@ -239,12 +242,12 @@
     }
   }
 
-  export function getRulerInterval(mainInterval, zoom, minSpace, configuredInterval) {
+  export function getRulerInterval(mainInterval, unitPx, minSpace, configuredInterval) {
     var configured = Number(configuredInterval);
     if (isFinite(configured) && configured > 0) return configured;
 
     var interval = Number(mainInterval);
-    var scale = Number(zoom);
+    var scale = Number(unitPx);
     var minimum = Number(minSpace);
     if (!isFinite(interval) || interval <= 0) return 1;
     if (!isFinite(scale) || scale <= 0) scale = 1;
@@ -272,16 +275,16 @@
    *
    * 主刻度会向上归整为 1、2、5 × 10ⁿ，避免出现 3、7、13 这类不自然的年份间隔；
    * 次刻度继续复用 getRulerInterval()，保证主刻度之间的网格不会过密且能整除主刻度。
-   * 显式配置的 hs/vs、hm/vm 始终优先，因而特殊数据仍可手动覆盖。
+   * axes.time.major/minor 始终优先，因而特殊数据仍可手动覆盖。
    */
   export function getRulerIntervals(
-    zoom,
+    unitPx,
     minMajorSpace = 60,
     minMinorSpace = 25,
     configuredMajor,
     configuredMinor
   ) {
-    var scale = Number(zoom);
+    var scale = Number(unitPx);
     if (!isFinite(scale) || scale <= 0) scale = 1;
 
     var configured = Number(configuredMajor);

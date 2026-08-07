@@ -1,9 +1,7 @@
 {
 	config : {
-        zoom: 1, //缩放
-        o: {
-          hs: 100,
-          hm: 10,
+        axes: {
+          time: { px: 1, major: 100, minor: 10 },
         },
         p:{
 		      textAnchor : "start", //start,middle,end
