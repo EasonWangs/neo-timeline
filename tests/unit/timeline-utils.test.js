@@ -178,9 +178,9 @@ describe("selection navigation", function() {
     expect(getNextSelectionIndex(1, 3, "ArrowDown")).toBe(2);
   });
 
-  it("stops at the first and last point", function() {
-    expect(getNextSelectionIndex(0, 3, "ArrowUp")).toBe(0);
-    expect(getNextSelectionIndex(2, 3, "ArrowRight")).toBe(2);
+  it("wraps between the first and last point", function() {
+    expect(getNextSelectionIndex(0, 3, "ArrowUp")).toBe(2);
+    expect(getNextSelectionIndex(2, 3, "ArrowRight")).toBe(0);
   });
 
   it("enters the first point from an item-only selection", function() {

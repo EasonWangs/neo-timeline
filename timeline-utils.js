@@ -339,10 +339,12 @@
     }
 
     if (key === "ArrowLeft" || key === "ArrowUp") {
-      return Math.max(0, Math.min(pointCount - 1, currentIndex - 1));
+      if (currentIndex < 0) return pointCount - 1;
+      return (currentIndex - 1 + pointCount) % pointCount;
     }
     if (key === "ArrowRight" || key === "ArrowDown") {
-      return Math.max(0, Math.min(pointCount - 1, currentIndex + 1));
+      if (currentIndex < 0) return 0;
+      return (currentIndex + 1) % pointCount;
     }
     return currentIndex;
   }

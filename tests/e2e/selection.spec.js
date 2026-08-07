@@ -14,6 +14,26 @@ test("arrow navigation keeps only the current keypoint visible", async function(
   await expect(page.locator("#content .currPoint")).toHaveCount(1);
 });
 
+test("arrow navigation wraps back to the first keypoint", async function({ page }) {
+  await page.goto("/timeline.html?name=ming&title=明朝");
+
+  const item = page.locator("#content .item").filter({
+    has: page.locator('.dotBox circle[data-index="2"]')
+  }).first();
+  const dots = item.locator('.dotBox circle[data-index]');
+  const pointCount = await dots.count();
+
+  await item.locator('.dotBox circle[data-index="0"]').click({ force: true });
+  const firstPopupText = await page.locator(".connection-popup").textContent();
+
+  for (let index = 0; index < pointCount; index += 1) {
+    await page.keyboard.press("ArrowRight");
+  }
+
+  await expect(page.locator(".connection-popup")).toHaveText(firstPopupText);
+  await expect(page.locator("#content .currPoint")).toHaveCount(1);
+});
+
 test("mobile controls and keypoint details stay inside the viewport", async function({ page }) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/timeline.html?name=ming&title=明朝");

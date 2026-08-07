@@ -1426,7 +1426,8 @@ function show(that, i) {
   that.addClass("show");
 
   // 记录当前选中的 item 和它的关键点
-  const dots = that.selectAll(".dotBox circle").items;
+  // 透明的 keypoint-hit 只负责扩大点击区域，不应计入键盘导航的关键点数量。
+  const dots = that.selectAll(".dotBox circle[data-index]").items;
   if (dots && dots.length > 0) {
     state.currentSelection.item = that;
     state.currentSelection.points = dots;
