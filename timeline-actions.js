@@ -112,7 +112,8 @@ export function applyViewScale(timeline, value) {
 
   timeline.setScale(scale);
   Object.values(snapshot.layers).filter(Boolean).forEach(function(layer) {
-    layer.attr({ style: `transform: scale(${scale})` });
+    // 只更新 transform，保留 period 的 position 以及滚动同步写入的 left/top。
+    layer.node.style.transform = `scale(${scale})`;
   });
 
   if (snapshot.wrapper && snapshot.board) {

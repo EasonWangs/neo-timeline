@@ -80,3 +80,28 @@ test("automatic start leaves room for the earliest visible group", async functio
   expect(groupStarts.length).toBeGreaterThan(0);
   expect(Math.min(...groupStarts)).toBeGreaterThanOrEqual(0);
 });
+
+test("an absolute period layer stays aligned with the ruler while scrolling", async function({ page }) {
+  await page.goto("/timeline.html?name=civilization&title=文明史");
+  const period = page.locator("#period");
+  await expect(period).toHaveCSS("position", "absolute");
+
+  const getPositions = function() {
+    return page.evaluate(function() {
+      return {
+        scrollX: window.scrollX,
+        period: document.querySelector("#period rect").getBoundingClientRect().left,
+        ruler: document.querySelector("#ruler-h text").getBoundingClientRect().left
+      };
+    });
+  };
+
+  const before = await getPositions();
+  await page.evaluate(function() { window.scrollTo(500, 0); });
+  await expect.poll(function() { return page.evaluate(function() { return window.scrollX; }); }).toBe(500);
+  const after = await getPositions();
+
+  expect(after.period - before.period).toBe(-500);
+  expect(after.ruler - before.ruler).toBe(-500);
+  expect(after.period - after.ruler).toBe(before.period - before.ruler);
+});
