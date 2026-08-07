@@ -3,6 +3,8 @@ import {
   getDatePosition,
   getNextSelectionIndex,
   getRulerInterval,
+  orientPoint,
+  orientRect,
   parseDate
 } from "../../utils.js";
 
@@ -43,6 +45,37 @@ describe("ruler intervals", function() {
   it("falls back safely for invalid configuration", function() {
     expect(getRulerInterval(0, 10, 25)).toBe(1);
     expect(getRulerInterval(10, 0, 25)).toBe(10);
+  });
+});
+
+describe("layout coordinates", function() {
+  it("keeps time on x in a horizontal layout", function() {
+    expect(orientPoint(120, 45, "h")).toEqual({ x: 120, y: 45 });
+    expect(orientRect(120, 45, 80, 2, "h")).toEqual({
+      x: 120,
+      y: 45,
+      w: 80,
+      h: 2
+    });
+  });
+
+  it("moves time to y in a vertical layout", function() {
+    expect(orientPoint(120, 45, "v")).toEqual({ x: 45, y: 120 });
+    expect(orientRect(120, 45, 80, 2, "v")).toEqual({
+      x: 45,
+      y: 120,
+      w: 2,
+      h: 80
+    });
+  });
+
+  it("preserves SVG percentage dimensions when transposing", function() {
+    expect(orientRect(120, 25, 80, "100%", "v")).toEqual({
+      x: 25,
+      y: 120,
+      w: "100%",
+      h: 80
+    });
   });
 });
 

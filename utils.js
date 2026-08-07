@@ -180,6 +180,22 @@
     return Math.max(1, Math.floor(interval / divisions));
   }
 
+  export function orientPoint(timePosition, crossPosition, layout) {
+    return layout === "v"
+      ? { x: crossPosition, y: timePosition }
+      : { x: timePosition, y: crossPosition };
+  }
+
+  export function orientRect(timePosition, crossPosition, timeLength, crossLength, layout) {
+    var point = orientPoint(timePosition, crossPosition, layout);
+    return {
+      x: point.x,
+      y: point.y,
+      w: layout === "v" ? crossLength : timeLength,
+      h: layout === "v" ? timeLength : crossLength
+    };
+  }
+
   export function getNextSelectionIndex(currentIndex, pointCount, key) {
     if (!Number.isInteger(currentIndex) || !Number.isInteger(pointCount) || pointCount <= 0) {
       return currentIndex;

@@ -47,10 +47,131 @@ function bindHideAllListener() {
   state.hideAllBound = true;
 }
 
+function drawOrientedLine(board, timePosition, crossStart, crossEnd, layout) {
+  const start = U.orientPoint(timePosition, crossStart, layout);
+  const end = U.orientPoint(timePosition, crossEnd, layout);
+  return board.line(start.x, start.y, end.x, end.y);
+}
+
+/**
+ * 绘制单个方向的时间标尺。
+ *
+ * 内部统一使用“时间轴 + 交叉轴”坐标：横向布局的时间轴是 x，纵向布局的
+ * 时间轴是 y，再通过 orientPoint/orientRect 转成实际 SVG 坐标。这样主刻度、
+ * 次刻度、月份刻度和文字定位只需维护一套逻辑。
+ *
+ * options.layout   标尺方向："h" 为横向，"v" 为纵向。
+ * options.length   标尺沿时间轴方向的像素长度。
+ * options.major    主刻度间隔，对应配置中的 hs/vs。
+ * options.minor    可选的次刻度间隔，对应配置中的 hm/vm。
+ * options.minSpace 自动计算次刻度时允许的最小文字间距。
+ *
+ * 返回创建好的 Snap.svg 标尺对象，以及最终采用的次刻度间隔。
+ */
+function drawAxisRuler(options) {
+  // 标尺固定为 25px 厚；layout 只决定这 25px 落在宽度还是高度上。
+  const thickness = 25;
+  const isVertical = options.layout === "v";
+  const zoom = state.config.zoom;
+
+  // 根据主刻度的像素宽度和最小文字间距，计算最终采用的次刻度间隔。
+  // 如果数据中显式配置了 hm/vm，getRulerInterval 会优先使用配置值。
+  const minor = U.getRulerInterval(
+    options.major,
+    zoom,
+    options.minSpace,
+    options.minor
+  );
+
+  // 主刻度之间大致能容纳多少个分区；主刻度为 1 年时，用它决定月份细分密度。
+  const divisions = Math.floor(options.major * zoom / options.minSpace);
+
+  // 将“时间轴长度 × 标尺厚度”转换成横向或纵向布局对应的实际 SVG 宽高。
+  const size = U.orientRect(0, 0, options.length, thickness, options.layout);
+
+  // 创建当前方向的标尺画布，并保留既有 id 供样式和导出逻辑定位。
+  const ruler = Snap(size.w, size.h).attr({
+    id: isVertical ? "ruler-v" : "ruler-h",
+    class: "ruler"
+  });
+
+  // 添加覆盖整个标尺的半透明背景。
+  ruler.rect(0, 0, size.w, size.h).attr({
+    fill: state.config.rulerBg || "#383838",
+    fillOpacity: 0.8
+  });
+
+  // i 是相对于 config.start 的时间偏移，每次按最终次刻度间隔向前推进。
+  for (let i = 0; i < options.length / zoom; i += minor) {
+    // 将时间偏移换算成时间轴上的像素位置。
+    const timePosition = i * zoom;
+
+    // 能被 major 整除的是主刻度：主刻度贯穿 25px，次刻度只画末端 10px。
+    const isMajor = i % options.major === 0;
+    const tickStart = isMajor ? 0 : 15;
+    drawOrientedLine(ruler, timePosition, tickStart, thickness, options.layout).attr({
+      stroke: "#8f9292",
+      strokeWidth: 1
+    });
+
+    // 主刻度始终显示文字；主刻度间距足够宽时，次刻度也显示文字。
+    if (isMajor || options.major * zoom >= 100) {
+      // 横标尺文字向右偏 2px，纵标尺文字向上偏 2px，避免压住刻度线。
+      const labelPosition = U.orientPoint(
+        timePosition + (isVertical ? -2 : 2),
+        isVertical ? 0 : 12.5,
+        options.layout
+      );
+      const labelAttrs = { fill: "#b1b4b4" };
+
+      // 次刻度文字比主刻度略小，用字号进一步区分层级。
+      if (!isMajor) labelAttrs.fontSize = "0.8em";
+      ruler.text(
+        labelPosition.x,
+        labelPosition.y,
+        String(state.config.start + i)
+      ).attr(labelAttrs);
+    }
+
+    // 主刻度单位为 1 年时，在当前空间允许的情况下补充年内月份刻度。
+    if (options.major === 1) {
+      // 从 12/6/4/3/2/1 中选择当前像素密度能容纳的最大分区数。
+      const monthDivisions = [12, 6, 4, 3, 2, 1].find(function(value) {
+        return value <= Math.max(divisions, 1);
+      });
+
+      // monthIndex 从 1 开始，跳过与年份主刻度重合的年初位置。
+      for (let monthIndex = 1; monthIndex < monthDivisions; monthIndex++) {
+        // 按该月份在一年内的比例，换算成时间轴上的像素位置。
+        const monthPosition = timePosition + monthIndex / monthDivisions * zoom;
+        drawOrientedLine(ruler, monthPosition, 16, thickness, options.layout).attr({
+          stroke: "#8f9292",
+          strokeWidth: 1
+        });
+
+        // 月份文字放在刻度线内侧，并使用更小字号，避免抢占年份标签空间。
+        const labelPosition = U.orientPoint(
+          monthPosition + (isVertical ? -2 : 2),
+          isVertical ? 16 : 20,
+          options.layout
+        );
+        ruler.text(
+          labelPosition.x,
+          labelPosition.y,
+          monthIndex * (12 / monthDivisions) + 1
+        ).attr({
+          fill: "#b1b4b4",
+          fontSize: "0.7em"
+        });
+      }
+    }
+  }
+
+  // 将 minor 一并返回，调用方会回写到 o.hm/o.vm，保证背景网格使用相同间隔。
+  return { ruler, minor };
+}
+
 function drawRuler(w, h) {
-  // 输入: 当前画布宽高
-  // 处理: 清理旧标尺/网格并重新绘制
-  // 输出: 更新 state.rh/state.rv/state.svgBg
   const wrapper = $id("wapper");
   if (!wrapper) return;
   const oldRh = $id("ruler-h");
@@ -61,180 +182,61 @@ function drawRuler(w, h) {
     state.svgBg.node.parentNode.removeChild(state.svgBg.node);
   }
 
-  //绘制标尺[横]
   const o = state.config.o;
   let rulerH = null;
   let rulerV = null;
-  let bgGrid = null;
-  if(o.hs){
-    // 动态计算合适的小标间隔
-    const mainMarkWidth = o.hs * state.config.zoom; // 主刻度之间的像素宽度
-    const MIN_SPACE = 25; // 最小文字间隔
-    const suggestedDivisions = Math.floor(mainMarkWidth / MIN_SPACE); // 建议划分次数
-    o.hm = U.getRulerInterval(o.hs, state.config.zoom, MIN_SPACE, o.hm);
-    rulerH = Snap(w, 25).attr({
-      id:"ruler-h",
-      class:"ruler",
+  if (o.hs) {
+    const result = drawAxisRuler({
+      layout: "h",
+      length: w,
+      major: o.hs,
+      minor: o.hm,
+      minSpace: 25
     });
-    // 添加背景矩形
-    rulerH.rect(0, 0, w, 25).attr({
-      fill: state.config.rulerBg || "#383838",
-      fillOpacity: 0.8
-    });
-    for(var i = 0; i < w / state.config.zoom; i += o.hm){
-      let x =  i * state.config.zoom;
-      if(i % o.hs == 0){
-        //此时是大标
-        rulerH.line(x, 0, x, 25).attr({
-          stroke: "#8f9292",
-          strokeWidth: 1,
-        });
-        let text = (state.config.start + i) + '';
-        rulerH.text(x + 2, 12.5, text).attr({
-          fill: "#b1b4b4"
-        });
-      }else{ 
-        //其他情况是小标
-        rulerH.line(x,15, x, 25).attr({
-          stroke: "#8f9292",
-          strokeWidth: 1,
-        });
-        // 检查相邻大标之间的空间
-        let spaceToNextMark = o.hs * state.config.zoom;
-        if(spaceToNextMark >= 100) { // 如果空间大于100px，显示小标值
-          let text = (state.config.start + i) + '';
-          rulerH.text(x + 2, 12.5, text).attr({
-            fill: "#b1b4b4",
-            fontSize: "0.8em" // 小标文字稍小
-          });
-        }
-      }
-      if(o.hs == 1){
-        // 当 hs：1 时。额外绘制月标
-        let len =[12, 6, 4, 3, 2, 1].find(m => m <= Math.max(suggestedDivisions, 1))
-        for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
-          let posx = x + j/len * state.config.zoom;
-          // 月份标记
-          rulerH.line(posx, 16, posx, 25).attr({
-            stroke: "#8f9292",
-            strokeWidth: 1,
-          });
-    
-          // 计算月份
-          let monthNum = j*(12/len) + 1; // 计算月份
-          rulerH.text(posx + 2, 20, monthNum).attr({
-            fill: "#b1b4b4",
-            fontSize: "0.7em" // 月份标记文字稍小
-          });
-        }
-      }
-    }
+    rulerH = result.ruler;
+    o.hm = result.minor;
     wrapper.appendChild(rulerH.node);
-   }
-
-  //绘制标尺[竖]
-  if(o.vs){
-    // 同样应用动态计算逻辑到垂直标尺
-    const mainMarkWidth = o.vs * state.config.zoom; // 主刻度之间的像素宽度
-    let MIN_SPACE = 20;// 最小文字间v
-    let suggestedDivisions = Math.floor((mainMarkWidth) / MIN_SPACE);
-    o.vm = U.getRulerInterval(o.vs, state.config.zoom, MIN_SPACE, o.vm);
-    
-    rulerV = Snap(25, h).attr({
-      id:"ruler-v",
-      class:"ruler"
+  }
+  if (o.vs) {
+    const result = drawAxisRuler({
+      layout: "v",
+      length: h,
+      major: o.vs,
+      minor: o.vm,
+      minSpace: 20
     });
-    // 添加背景矩形
-    rulerV.rect(0, 0, 25, h).attr({
-      fill: state.config.rulerBg || "#383838",
-      fillOpacity: 0.8
-    });
-    for (var i = 0; i < h / state.config.zoom; i += o.vm) {
-      let y = i * state.config.zoom;
-      if(i % o.vs == 0){ 
-        //大标
-        rulerV.line(0, y, 25, y).attr({
-          stroke: "#8f9292",
-          strokeWidth: 1,
-        });
-        let text = (state.config.start + i) + '';
-        let ruletext = rulerV.text(0,  y - 2,  text).attr({
-          fill: "#b1b4b4"
-        });
-        // let matrix = new Snap.Matrix();
-        // matrix.rotate(270, 0, y); // 旋转文字
-        // ruletext.transform(matrix);
-      }else{ //小标
-        rulerV.line(15, y, 25, y).attr({
-          stroke: "#8f9292",
-          strokeWidth: 1,
-        });
-        // 检查相邻大标之间的空间
-        let spaceToNextMark = o.vs * state.config.zoom;
-        if(spaceToNextMark >= 100) { // 如果空间大于100px，显示小标值
-          let text = (state.config.start + i) + '';
-          rulerV.text(0, y - 2, text).attr({
-            fill: "#b1b4b4",
-            fontSize: "0.8em" // 小标文字稍小
-          });
-        }
-      }
-      if(o.vs == 1){
-        // 当 vs：1 时。额外绘制月标
-        let len =[12, 6, 4, 3, 2, 1].find(m => m <= Math.max(suggestedDivisions, 1))
-        for(var j = 1; j < len; j ++) { // 每个小标之间最多绘制12个下标,作为月标
-          let posy = y + j/len * state.config.zoom;
-          // 月份标记
-          rulerV.line(16, posy, 25, posy).attr({
-            stroke: "#8f9292",
-            strokeWidth: 1,
-          });
-          // 计算月份
-          let monthNum = j*(12/len) + 1; // 计算月份
-          rulerV.text(16, posy-2, monthNum).attr({
-            fill: "#b1b4b4",
-            fontSize: "0.7em" // 月份标记文字稍小
-          });
-        }
-      }
-    }
+    rulerV = result.ruler;
+    o.vm = result.minor;
     wrapper.appendChild(rulerV.node);
   }
 
-   // svg绘制背景网格
-  bgGrid = Snap(w,h).attr({
-    class:"svgBg"
-  });
-  
-  // 添加背景矩形
+  const bgGrid = Snap(w, h).attr({ class: "svgBg" });
   bgGrid.rect(0, 0, w, h).attr({
     fill: state.config.svgBg || "#faf7ec"
   });
 
-  if(!o.hm){
+  if (!o.hm) {
     o.hm = o.vm;
     o.hs = o.vs;
   }
-  if(!o.vm){
+  if (!o.vm) {
     o.vm = o.hm;
     o.vs = o.hs;
   }
-  
-  // 纵向栅格线
-  for (var i = 0; i < w/state.config.zoom; i += o.hm) {
-    let line = bgGrid.line(i * state.config.zoom, 0, i * state.config.zoom, "100%").attr({
-        stroke:  (i % o.hs == 0) ? "#f0ebdc" : "#f5f0e0",
-        class : (i % o.hs == 0) ? "thickLine" : "thinLine"
-     })
+
+  for (let i = 0; i < w / state.config.zoom; i += o.hm) {
+    drawOrientedLine(bgGrid, i * state.config.zoom, 0, "100%", "h").attr({
+      stroke: i % o.hs === 0 ? "#f0ebdc" : "#f5f0e0",
+      class: i % o.hs === 0 ? "thickLine" : "thinLine"
+    });
+  }
+  for (let i = 0; i < h / state.config.zoom; i += o.vm) {
+    drawOrientedLine(bgGrid, i * state.config.zoom, 0, "100%", "v").attr({
+      stroke: i % o.vs === 0 ? "#f0ebdc" : "#f5f0e0",
+      class: i % o.vs === 0 ? "thickLine" : "thinLine"
+    });
   }
 
-  // 横向栅格线
-  for (var i = 0; i < h/state.config.zoom; i+= o.vm) {
-    let line = bgGrid.line(0,  i * state.config.zoom, "100%",  i * state.config.zoom).attr({
-        stroke:  (i % o.vs == 0) ? "#f0ebdc" : "#f5f0e0",
-        class : (i % o.vs == 0) ? "thickLine" : "thinLine"
-     });
-  }
   wrapper.appendChild(bgGrid.node);
   state.rh = rulerH;
   state.rv = rulerV;
@@ -249,41 +251,54 @@ function drawPeriod(pers){
   let p = (state.config.p.padding || 50) * state.config.zoom;
   
   for (var i = 0; i < pers.length; i++) {
-      var l = pers[i].level || 1,
-        x = (pers[i].start - state.config.start) * state.config.zoom,
-        y = 25 + (l - 1) * p,
-        w = (pers[i].end - pers[i].start) * state.config.zoom,
-        h = state.config.p.type == "part" ? p : "calc(100% - "+ y +"px)",
-        tX = x,
-        tY = 38 + (l - 1) * p,
-        wm = "lr";
+    const level = pers[i].level || 1;
+    const timePosition = (pers[i].start - state.config.start) * state.config.zoom;
+    const crossPosition = 25 + (level - 1) * p;
+    const timeLength = (pers[i].end - pers[i].start) * state.config.zoom;
+    const crossLength = state.config.p.type == "part"
+      ? p
+      : "calc(100% - "+ crossPosition +"px)";
+    const geometry = U.orientRect(
+      timePosition,
+      crossPosition,
+      timeLength,
+      crossLength,
+      state.config.layout
+    );
+    let textTime = timePosition;
+    const textCross = 38 + (level - 1) * p;
+    let writingMode = "lr";
 
     switch(state.config.p.textAnchor){
       case 'middle': 
-        tX = x + w/2;
+        textTime = timePosition + timeLength / 2;
         break;
       case 'end':
-        tX = x + w;
+        textTime = timePosition + timeLength;
         break;
       case 'start':
       default:
-        tX = x;
+        textTime = timePosition;
         break;
     }
-   
+
+    const textPosition = U.orientPoint(textTime, textCross, state.config.layout);
     if(state.config.layout == "v"){
-      wm = "tb";
-      [x, y, w, h] = [y, x, h, w];
-      [tX, tY] =  [tY, tX];
-      tX -= 2;
-      tY += 2;
+      writingMode = "tb";
+      textPosition.x -= 2;
+      textPosition.y += 2;
     }
      
     // 创建时期组
     var periodGroup = periodBoard.g();
     
     //时期矩形
-    var rect = periodBoard.rect(x, y, w, h).attr({
+    var rect = periodBoard.rect(
+      geometry.x,
+      geometry.y,
+      geometry.w,
+      geometry.h
+    ).attr({
       fill: state.config.p.colors[i % state.config.p.colors.length],
       fillOpacity: 0.2,
     }).hover(function() {
@@ -300,22 +315,22 @@ function drawPeriod(pers){
     periodGroup.add(rect);
  
     //时期文字
-    var text = periodBoard.text(tX, tY, pers[i].name).attr({
+    var text = periodBoard.text(textPosition.x, textPosition.y, pers[i].name).attr({
           class: 'text',
-          writingMode: wm,
+          writingMode: writingMode,
           textAnchor: state.config.p.textAnchor,
         });
 
     let textBox = text.getBBox(),
         angle = 0;
-        if(textBox.h > h-2){
+        if(textBox.h > geometry.h-2){
           angle = -45;
         }
-        if(textBox.w > w-2){
+        if(textBox.w > geometry.w-2){
           angle = 45;
         }
     let matrix = new Snap.Matrix();
-        matrix.rotate(angle, tX, tY); // 旋转文字
+        matrix.rotate(angle, textPosition.x, textPosition.y); // 旋转文字
         text.transform(matrix);
 
     let desc = "";
@@ -350,8 +365,12 @@ function drawPeriod(pers){
           class: 'point'
         });
         
-        let x = (points[n].t - state.config.start) * state.config.zoom;
-        let pointSVG = periodBoard.circle(x, y + 35, 3).attr({
+        const pointPosition = U.orientPoint(
+          (points[n].t - state.config.start) * state.config.zoom,
+          crossPosition + 35,
+          state.config.layout
+        );
+        let pointSVG = periodBoard.circle(pointPosition.x, pointPosition.y, 3).attr({
           stroke: "#f00",
           strokeWidth: 1,
         });
@@ -393,32 +412,32 @@ function drawEvents(evts, roles){
         class: 'events common'
       });
       
-      var x1 = (evts[i].time - state.config.start) * state.config.zoom,
-          y1 = 0,
-          x2 = x1,
-          y2 = "100%",
-          tX = x1,
-          tY = 40;
+      const timePosition = (evts[i].time - state.config.start) * state.config.zoom;
+      let textCross = 40;
 
       switch(state.config.e.textAnchor){
         case 'middle': 
-          tY = "50%";
+          textCross = "50%";
           break;
         case 'end':
-          tY = "100%";
+          textCross = "100%";
           break;
         case 'start':
         default:
-          tY = 40;
+          textCross = 40;
           break;
       }
-
-      if(state.config.layout == "v"){
-        [x1, y1, x2, y2, tX, tY] = [y1, x1, y2, x2, tY, tX];
-      }
+      const lineStart = U.orientPoint(timePosition, 0, state.config.layout);
+      const lineEnd = U.orientPoint(timePosition, "100%", state.config.layout);
+      const textPosition = U.orientPoint(timePosition, textCross, state.config.layout);
     
       // 创建事件线
-      var line = eventsBoard.line(x1, y1, x2, y2).attr({
+      var line = eventsBoard.line(
+        lineStart.x,
+        lineStart.y,
+        lineEnd.x,
+        lineEnd.y
+      ).attr({
         strokeWidth: 1,
         stroke: "#aaa",
         strokeDasharray: "5,5",
@@ -428,7 +447,7 @@ function drawEvents(evts, roles){
       eventGroup.add(line);
 
       // 创建事件文本
-      var text = eventsBoard.text(tX, tY, evts[i].name).attr({
+      var text = eventsBoard.text(textPosition.x, textPosition.y, evts[i].name).attr({
         class: 'text',
         textAnchor: state.config.e.textAnchor,
       });
@@ -729,23 +748,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   });
 }
 
-// 计算关键点的坐标
-function calculatePointCoordinates(roleIndex, time) {
-  const offset = state.offset || 0;
-  
-  if (state.config.layout == "v") {
-    return {
-      x: (roleIndex - offset) * 20 + 45,
-      y: (time - state.config.start) * state.config.zoom
-    };
-  } else {
-    return {
-      x: (time - state.config.start) * state.config.zoom,
-      y: (roleIndex - offset) * 20 + 45
-    };
-  }
-}
-
 // 创建箭头路径
 function createArrow(x, y, size, angle) {
   // 调整箭头形状参数
@@ -910,14 +912,11 @@ function computeItemGeometry(item, index, itemSpacing) {
   x = isFinite(x) ? x : 0;
   w = isFinite(w) ? Math.max(w, 1) : state.config.zoom;
 
-  if (state.config.layout == "v") {
-    const temp = h;
-    h = w;
-    w = temp;
-    const tempX = x;
-    x = y;
-    y = tempX;
-  }
+  const geometry = U.orientRect(x, y, w, h, state.config.layout);
+  x = geometry.x;
+  y = geometry.y;
+  w = geometry.w;
+  h = geometry.h;
 
   if (!isFinite(x) || !isFinite(y) || !isFinite(w) || !isFinite(h)) {
     console.error('Invalid dimensions:', {x, y, w, h}, 'for item:', item);
@@ -1092,13 +1091,15 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
   let [x4,y4,x5,y5] = [geometry.x,geometry.y,geometry.x,geometry.y];
   for(let i = points.length - 1; i >= 0; i--){
     let point = points[i];
-    if(state.config.layout == "v"){
-      y4 = (point.t - state.config.start) * state.config.zoom;
-      y5 = y4;
-    }else if(state.config.layout == "h"){
-      x4 = (point.t - state.config.start) * state.config.zoom;
-      x5 = x4;
-    }
+    const timePosition = (point.t - state.config.start) * state.config.zoom;
+    const dotCross = state.config.layout == "v" ? geometry.x : geometry.y;
+    const textCross = state.config.layout == "v" ? x5 : y5;
+    const dotPosition = U.orientPoint(timePosition, dotCross, state.config.layout);
+    const textPosition = U.orientPoint(timePosition, textCross, state.config.layout);
+    x4 = dotPosition.x;
+    y4 = dotPosition.y;
+    x5 = textPosition.x;
+    y5 = textPosition.y;
 
     let desc = String(point.t);
     if (item.start !== undefined && item.start !== null) {
@@ -1556,15 +1557,96 @@ function initDragPan() {
   document.addEventListener('touchcancel', stopTouchDrag, { passive: true });
 }
 
-export function initializeTimeline(data) {
-  const config = U.normalizeConfig(data.config);
+function createTimelineConfig(sourceConfig, layout) {
+  const source = sourceConfig || {};
+  const config = {
+    ...source,
+    o: { ...(source.o || {}) },
+    p: { ...(source.p || {}) },
+    e: { ...(source.e || {}) },
+    g: {
+      ...(source.g || {}),
+      colors: { ...((source.g && source.g.colors) || {}) }
+    }
+  };
+
+  if (layout === "h" || layout === "v") {
+    config.layout = layout;
+    if (layout === "v") {
+      config.o.vs = config.o.vs || config.o.hs;
+      config.o.vm = config.o.vm || config.o.hm;
+      delete config.o.hs;
+      delete config.o.hm;
+    } else {
+      config.o.hs = config.o.hs || config.o.vs;
+      config.o.hm = config.o.hm || config.o.vm;
+      delete config.o.vs;
+      delete config.o.vm;
+    }
+  }
+
+  return U.normalizeConfig(config);
+}
+
+function resetTimeline() {
+  removePopup();
+  document.removeEventListener('keydown', handleKeyNavigation);
+
+  const wrapper = $id("wapper");
+  ["ruler-h", "ruler-v"].forEach(function(id) {
+    const ruler = $id(id);
+    if (ruler) ruler.remove();
+  });
+  if (state.svgBg && state.svgBg.node && state.svgBg.node.parentNode) {
+    state.svgBg.node.parentNode.removeChild(state.svgBg.node);
+  }
+
+  ["period", "events", "content"].forEach(function(id) {
+    const svg = $id(id);
+    if (!svg) return;
+    Array.from(svg.children).forEach(function(child) {
+      if (id === "content" && child.tagName.toLowerCase() === "defs") return;
+      child.remove();
+    });
+    svg.removeAttribute("style");
+    svg.setAttribute("class", id);
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "100%");
+  });
+
+  if (wrapper) {
+    wrapper.className = "wapper";
+    wrapper.style.width = "";
+    wrapper.style.height = "";
+  }
+
+  state.config = null;
+  state.rh = null;
+  state.rv = null;
+  state.svgBg = null;
+  state.period = null;
+  state.events = null;
+  state.board = null;
+  state.area = {};
+  state.offset = 0;
+  state.size = null;
+  state.currentSelection = {
+    item: null,
+    points: [],
+    currentIndex: -1
+  };
+  state.drag.active = false;
+  state.drag.touchActive = false;
+}
+
+export function initializeTimeline(data, options = {}) {
+  resetTimeline();
+  const config = createTimelineConfig(data.config, options.layout);
   drawList(data, config);
   resize();
   initDragPan();
 
-  if (config.layout == "v") {
-    $id("wapper").className = "wapper vertical";
-  }
+  $id("wapper").className = config.layout == "v" ? "wapper vertical" : "wapper";
 
   let scale = 1;
   return Object.freeze({

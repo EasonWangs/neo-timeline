@@ -49,14 +49,16 @@
           <circle cx="3" cy="15" r="1"/><circle cx="9" cy="15" r="1"/>
         </svg>
       </button>
-      <div class="timeline-tools__readout" aria-live="polite">
-        <output id="zoom-value" for="zoom-out zoom-reset zoom-in">100%</output>
-      </div>
       <div class="timeline-tools__group" aria-label="缩放控制">
         <button id="zoom-out" type="button" aria-label="缩小时间线" title="缩小" disabled>−</button>
-        <button id="zoom-reset" type="button" aria-label="恢复为百分之百" title="恢复 100%" disabled>1:1</button>
+        <button id="zoom-reset" type="button" aria-label="恢复为百分之百" title="恢复 100%" disabled>
+          <output id="zoom-value" aria-live="polite">100%</output>
+        </button>
         <button id="zoom-in" type="button" aria-label="放大时间线" title="放大" disabled>+</button>
       </div>
+      <button id="timeline-layout" class="timeline-tools__layout" type="button" aria-label="切换为纵向时间线" title="切换为纵向" aria-pressed="false" disabled>
+        <span id="layout-value" aria-hidden="true">横</span>
+      </button>
       <button id="timeline-save" class="timeline-tools__save" type="button" aria-label="导出图片" title="导出图片" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/>

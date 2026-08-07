@@ -16,6 +16,8 @@ const zoomOutButton = document.getElementById("zoom-out");
 const zoomResetButton = document.getElementById("zoom-reset");
 const zoomInButton = document.getElementById("zoom-in");
 const zoomValue = document.getElementById("zoom-value");
+const layoutButton = document.getElementById("timeline-layout");
+const layoutValue = document.getElementById("layout-value");
 const saveButton = document.getElementById("timeline-save");
 const toolStatus = document.getElementById("timeline-tool-status");
 const MIN_ZOOM = 0.5;
@@ -25,6 +27,8 @@ const TOOL_MARGIN = 6;
 let zoomLevel = 1;
 let timelineReady = false;
 let timeline = null;
+let timelineData = null;
+let timelineLayout = "h";
 let statusTimer = null;
 let activeDrag = null;
 
@@ -32,6 +36,7 @@ function renderZoomControls() {
   const percentage = `${Math.round(zoomLevel * 100)}%`;
   zoomValue.value = percentage;
   zoomValue.textContent = percentage;
+  zoomResetButton.title = zoomLevel === 1 ? "当前为 100%" : `当前 ${percentage}，点击恢复 100%`;
   zoomOutButton.disabled = !timelineReady || zoomLevel <= MIN_ZOOM;
   zoomResetButton.disabled = !timelineReady || zoomLevel === 1;
   zoomInButton.disabled = !timelineReady || zoomLevel >= MAX_ZOOM;
@@ -42,6 +47,16 @@ function setZoom(nextZoom) {
   zoomLevel = Math.round(zoomLevel * 100) / 100;
   zoomTimeline(timeline, zoomLevel);
   renderZoomControls();
+}
+
+function renderLayoutControl() {
+  const isVertical = timelineLayout === "v";
+  const targetLabel = isVertical ? "横向" : "纵向";
+  layoutValue.textContent = isVertical ? "纵" : "横";
+  layoutButton.disabled = !timelineReady;
+  layoutButton.setAttribute("aria-pressed", String(isVertical));
+  layoutButton.setAttribute("aria-label", `切换为${targetLabel}时间线`);
+  layoutButton.title = `切换为${targetLabel}`;
 }
 
 function setToolStatus(message, isError = false) {
@@ -60,6 +75,7 @@ function enableTimelineTools() {
   timelineReady = true;
   timelineTools.hidden = false;
   saveButton.disabled = false;
+  renderLayoutControl();
   setZoom(1);
 }
 
@@ -154,6 +170,18 @@ zoomInButton.addEventListener("click", function() {
   setZoom(zoomLevel + ZOOM_STEP);
 });
 
+layoutButton.addEventListener("click", function() {
+  if (!timelineReady || !timelineData) return;
+  timelineLayout = timelineLayout === "h" ? "v" : "h";
+  window.scrollTo(0, 0);
+  timeline = initializeTimeline(timelineData, { layout: timelineLayout });
+  zoomTimeline(timeline, zoomLevel);
+  renderZoomControls();
+  renderLayoutControl();
+  syncTimelineScroll();
+  setToolStatus(`已切换为${timelineLayout === "v" ? "纵向" : "横向"}`);
+});
+
 saveButton.addEventListener("click", async function() {
   if (!timelineReady || saveButton.getAttribute("aria-busy") === "true") return;
   saveButton.disabled = true;
@@ -208,7 +236,9 @@ async function loadTimeline() {
 
   try {
     const source = await loadDataset();
-    timeline = initializeTimeline(JSON5.parse(source));
+    timelineData = JSON5.parse(source);
+    timelineLayout = timelineData.config && timelineData.config.layout === "v" ? "v" : "h";
+    timeline = initializeTimeline(timelineData);
     enableTimelineTools();
   } catch (error) {
     console.error("Failed to load timeline data:", error);
