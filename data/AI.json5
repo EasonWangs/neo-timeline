@@ -2,7 +2,6 @@
     config: {
         zoom: 10, //缩放
         "size": 30,
-        layout: "h",
         o: {
             hs: 10,
             hm: 2,

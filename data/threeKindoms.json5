@@ -1,6 +1,5 @@
 {
   config: {
-    layout:"h",
     zoom : 15, //缩放
     o : {
       hs:10, 

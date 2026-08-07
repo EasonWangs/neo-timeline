@@ -1,7 +1,6 @@
 {
 	config : {
 	    zoom : 2.5, //缩放
-	    layout: "h",
 	    o : {
 	      hs:20, //纵向大刻度
 	    },
