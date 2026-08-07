@@ -708,7 +708,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   // 使用封装的函数创建文本路径
   const titleText = name || `${fromPoint.roleName} → ${toPoint.roleName}`;
   const connText = createTextPath(board, textPathId, titleText, {
-    opacity: 0,
     startOffset: "50%",
     title: titleText
   });
@@ -731,20 +730,6 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     if (wasActive) return;
 
     g.addClass('active');
-    // 高亮相关联的两个元素
-    let fromElement = board.select(`#${fromPoint.roleName}`);
-    let toElement = board.select(`#${toPoint.roleName}`);
-
-    if(fromElement) show(fromElement,-1);
-    if(toElement) show(toElement,-1);
-
-    // 创建并显示悬浮窗
-    var popupLines = [`时间: ${fromPoint.keypoint.t}-${toPoint.keypoint.t}`];
-    if (name) popupLines.push(U.toPlainText(name));
-    createPopup(e.clientX, e.clientY, U.buildPopupContent({
-      title: `${fromPoint.roleName} - ${toPoint.roleName}`,
-      lines: popupLines
-    }));
   });
 }
 
@@ -789,8 +774,7 @@ function createTextPath(board, pathId, text, options = {}) {
   // 创建文本元素
   const textElement = board.text(0, 0, text).attr({
     class: 'text',
-    fill: options.fill || "#f55",
-    opacity: options.opacity || 0
+    fill: options.fill || "#f55"
   });
 
   // 创建 textPath 元素
