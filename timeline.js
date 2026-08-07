@@ -1269,12 +1269,15 @@ function drawItemGroup(color){
   }
 }
 
-function resize(){
+function resize(viewScale = 1){
   if (!state.board) return;
   const size = state.board.getBBox();
   state.size = size;
-  var w = Math.max(size.w + size.x + 100, document.documentElement.offsetWidth - 16),
-      h = Math.max(size.h + size.y + 100, document.documentElement.offsetHeight - 16);
+  const scale = Number(viewScale) > 0 ? Number(viewScale) : 1;
+  const viewportWidth = Math.max(0, window.innerWidth - 16) / scale;
+  const viewportHeight = Math.max(0, window.innerHeight - 16) / scale;
+  var w = Math.max(size.w + size.x + 100, viewportWidth),
+      h = Math.max(size.h + size.y + 100, viewportHeight);
   drawRuler(w,h);
 
   state.board.attr({
@@ -1641,14 +1644,14 @@ function resetTimeline() {
 
 export function initializeTimeline(data, options = {}) {
   resetTimeline();
+  let scale = 1;
   const config = createTimelineConfig(data.config, options.layout);
   drawList(data, config);
-  resize();
+  resize(scale);
   initDragPan();
 
   $id("wapper").className = config.layout == "v" ? "wapper vertical" : "wapper";
 
-  let scale = 1;
   return Object.freeze({
     getSnapshot: function() {
       return {
@@ -1664,6 +1667,9 @@ export function initializeTimeline(data, options = {}) {
           content: state.board
         }
       };
+    },
+    reflow: function() {
+      resize(scale);
     },
     setScale: function(nextScale) {
       scale = nextScale;

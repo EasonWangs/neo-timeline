@@ -11,6 +11,7 @@ const datasetLoaders = import.meta.glob("./data/*.json5", {
 const params = Object.fromEntries(new URLSearchParams(window.location.search));
 let timeline = null;
 let timelineData = null;
+let reflowFrame = null;
 
 document.title = params.title || "时间线";
 
@@ -63,5 +64,16 @@ async function loadTimeline() {
   }
 }
 
+function scheduleTimelineReflow() {
+  if (!timeline || reflowFrame != null) return;
+  reflowFrame = window.requestAnimationFrame(function() {
+    reflowFrame = null;
+    timeline.reflow();
+    applyViewScale(timeline, timeline.getSnapshot().scale);
+    syncTimelineScroll();
+  });
+}
+
 window.addEventListener("scroll", syncTimelineScroll);
+window.addEventListener("resize", scheduleTimelineReflow);
 loadTimeline();
