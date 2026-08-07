@@ -37,41 +37,38 @@
   export function inferTimelineStart(data, config) {
     data = data || {};
     config = config || {};
-    const years = [];
+    const contentCandidates = [];
     const periodYears = [];
-    const addYear = function(value) {
+    const addContent = function(value, grouped = false) {
       const year = getTimelineYear(value);
-      if (year !== null) years.push(year);
+      if (year !== null) contentCandidates.push({ year, grouped });
     };
 
     for (const period of data.periods || []) {
       const startYear = getTimelineYear(period.start);
       const endYear = getTimelineYear(period.end);
       const periodYear = startYear !== null ? startYear : endYear;
-      if (periodYear !== null) {
-        periodYears.push(periodYear);
-        years.push(periodYear);
-      }
+      if (periodYear !== null) periodYears.push(periodYear);
     }
-    for (const event of data.events || []) addYear(event.time);
+    for (const event of data.events || []) addContent(event.time);
     for (const role of data.roles || []) {
       const startYear = getTimelineYear(role.start);
       const endYear = getTimelineYear(role.end);
+      const grouped = Array.isArray(role.groups) && role.groups.length > 0;
       if (startYear !== null) {
-        years.push(startYear);
+        contentCandidates.push({ year: startYear, grouped });
       } else if (endYear !== null) {
         // 与渲染器保持一致：只有结束日期的人物默认展示此前 60 年。
-        years.push(endYear - 60);
+        contentCandidates.push({ year: endYear - 60, grouped });
       }
-      for (const point of role.keypoints || []) addYear(point.t);
+      for (const point of role.keypoints || []) addContent(point.t, grouped);
     }
 
-    if (years.length === 0) return 0;
+    if (periodYears.length === 0 && contentCandidates.length === 0) return 0;
 
-    const earliest = Math.min(...years);
     const earliestPeriod = periodYears.length > 0 ? Math.min(...periodYears) : null;
-    // 时期色块本身就是时间线边界，应从区域起点直接绘制，不额外留白。
-    if (earliestPeriod !== null && earliestPeriod <= earliest) return earliestPeriod;
+    // 没有其他内容时，时期色块直接从区域起点绘制，不额外留白。
+    if (contentCandidates.length === 0) return earliestPeriod;
 
     const layout = config.layout === "v" ? "v" : "h";
     const axis = config.o || {};
@@ -90,9 +87,20 @@
     );
 
     // 在首个数据点前保留约一个文字间距，再对齐到小刻度，避免内容紧贴标尺起点。
-    const padding = minSpace / zoom;
-    const aligned = Math.floor((earliest - padding) / minor) * minor;
-    return Number(aligned.toFixed(10));
+    const earliestContent = Math.min(...contentCandidates.map(function(candidate) {
+      return candidate.year;
+    }));
+    const earliestIsGrouped = contentCandidates.some(function(candidate) {
+      return candidate.year === earliestContent && candidate.grouped;
+    });
+    // group 的边框和标题会沿时间轴超出 item，显示分组时额外预留 20px。
+    const groupPadding = earliestIsGrouped && config.g && config.g.show ? 20 : 0;
+    const padding = (minSpace + groupPadding) / zoom;
+    const alignedContent = Math.floor((earliestContent - padding) / minor) * minor;
+    const contentStart = Number(alignedContent.toFixed(10));
+
+    // 比较时期边界与包含预留空间的内容起点，采用真正更早的候选值。
+    return earliestPeriod === null ? contentStart : Math.min(earliestPeriod, contentStart);
   }
 
   export function buildRangeDesc(startDate, endDate) {

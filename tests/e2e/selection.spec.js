@@ -71,3 +71,12 @@ test("a period-only dataset starts at the exact period boundary", async function
   await page.goto("/timeline.html?name=spectrum&title=光谱史");
   await expect(page.locator("#ruler-v text").first()).toHaveText("400");
 });
+
+test("automatic start leaves room for the earliest visible group", async function({ page }) {
+  await page.goto("/timeline.html?name=AI&title=人工智能史");
+  const groupStarts = await page.locator("#content .group").evaluateAll(function(groups) {
+    return groups.map(function(group) { return group.getBBox().x; });
+  });
+  expect(groupStarts.length).toBeGreaterThan(0);
+  expect(Math.min(...groupStarts)).toBeGreaterThanOrEqual(0);
+});

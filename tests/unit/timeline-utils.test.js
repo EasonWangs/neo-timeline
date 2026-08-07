@@ -33,6 +33,29 @@ describe("automatic timeline start", function() {
     })).toBe(-250000);
   });
 
+  it("uses an item margin when it extends before the earliest period", function() {
+    expect(inferTimelineStart({
+      periods: [{ start: 100, end: 200 }],
+      roles: [{ start: 110, end: 180 }]
+    }, {
+      layout: "h",
+      zoom: 1,
+      o: { hs: 10, hm: 5 }
+    })).toBe(85);
+  });
+
+  it("adds extra space when the earliest item belongs to a visible group", function() {
+    expect(inferTimelineStart({
+      periods: [{ start: 100, end: 200 }],
+      roles: [{ start: 110, end: 180, groups: ["group-a"] }]
+    }, {
+      layout: "h",
+      zoom: 1,
+      o: { hs: 10, hm: 5 },
+      g: { show: true }
+    })).toBe(65);
+  });
+
   it("supports approximate and slash-separated dates", function() {
     expect(inferTimelineStart({
       roles: [{ start: "~1905/03", end: "~", keypoints: [{ t: "1910/06" }] }]

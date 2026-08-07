@@ -79,7 +79,7 @@ Do not use direct `file://` loading or `python3 -m http.server` as the normal wo
 - Keypoint IDs must be unique within a dataset. Every `to` reference must resolve to an existing keypoint ID, and a keypoint with `to` must have its own ID.
 - `groups` must be arrays. Every referenced group must have a matching color in `config.g.colors`.
 - Configuration defaults are applied by `normalizeConfig()`. Prefer the smallest dataset-specific config and omit values that match defaults.
-- `config.start` is optional. When omitted, the renderer infers it from periods, events, role ranges, and keypoints. An earliest period starts at its exact boundary; other content receives a small aligned leading margin. Keep an explicit value only when a dataset needs a deliberate crop or custom origin.
+- `config.start` is optional. When omitted, the renderer infers it from periods, events, role ranges, and keypoints. An earliest period starts at its exact boundary; other content receives a small aligned leading margin, with extra room for a visible group. Keep an explicit value only when a dataset needs a deliberate crop or custom origin.
 - New datasets must be added to `data/`, pass `npm run validate:data`, and be linked from `index.html`.
 - Country markers are rendered as emoji from two-letter country codes; do not reintroduce external flag-image paths.
 

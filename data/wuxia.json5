@@ -1,6 +1,5 @@
 {
 	config : {
-        start : 1800, //起点
         zoom: 5, //缩放
         layout: "h",
         o : {
