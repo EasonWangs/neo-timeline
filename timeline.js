@@ -688,7 +688,15 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   }
   
   // 使用Snap.svg创建路径
+  // 透明宽路径只负责命中，视觉路径仍保持纤细，方便手指点击关系线。
+  var connHitPath = board.path(pathStr).attr({
+    class: "connection-hit",
+    fill: "none",
+    stroke: "transparent",
+    strokeWidth: 14
+  });
   var connPath = board.path(pathStr).attr({
+    class: "connection-line",
     fill: "none",
     stroke: "#aaa",
     strokeWidth: 1,
@@ -713,7 +721,7 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
   });
   
   // 使用Snap.svg创建组
-  var g = board.g(connPath, endArrow, connText).attr({
+  var g = board.g(connHitPath, connPath, endArrow, connText).attr({
     class: 'connection',
     'data-from-role': fromPoint.roleName,
     'data-to-role': toPoint.roleName,
@@ -1093,6 +1101,10 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
     let displayLines = point.w ? U.toLines(point.w) : [];
 
     let title = Snap.parse('<title>'+U.toPlainText(keypointText)+'</title>');
+    // 关键点本身保持 4px 大小，用透明圆将触控命中区扩展到 20px。
+    let hitDot = board.circle(x4, y4, 10).attr({
+      class: "keypoint-hit"
+    });
     let dot = board.circle(x4, y4, 2).attr({
       stroke:"#f00",
       fill:"#fff",
@@ -1103,13 +1115,13 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
     });
     dot.append(title);
 
-    dot.click(function(e){
-      show(this.parent().parent(), this.attr('data-index'));
+    function selectKeypoint(e) {
+      show(dot.parent().parent(), i);
 
-      const pt = this.node.ownerSVGElement.createSVGPoint();
-      pt.x = this.attr('cx');
-      pt.y = this.attr('cy');
-      const ctm = this.node.getScreenCTM();
+      const pt = dot.node.ownerSVGElement.createSVGPoint();
+      pt.x = dot.attr('cx');
+      pt.y = dot.attr('cy');
+      const ctm = dot.node.getScreenCTM();
       const globalPt = pt.matrixTransform(ctm);
 
       const pointTitle = item.start !== undefined && item.start !== null
@@ -1122,8 +1134,11 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
       }));
 
       e.stopPropagation();
-    });
+    }
 
+    hitDot.click(selectKeypoint);
+    dot.click(selectKeypoint);
+    dotBox.add(hitDot);
     dotBox.add(dot);
     if(state.config.layout == "v"){
       x5 -= itemSpacing - 2;
@@ -1296,25 +1311,13 @@ function createPopup(x, y, content) {
   const popup = document.createElement('div');
   popup.className = 'connection-popup';
   
-  // 设置样式 - 在 x 和 y 坐标上分别减去 2 像素
-  popup.style.cssText = `
-    position: fixed;
-    left: ${x + 5}px;
-    top: ${y + 5}px;
-    background: white;
-    border: 1px solid #ccc;
-    padding: 8px 12px;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 1000;
-    font-size: 14px;
-    max-width: 240px;
-  `;
+  popup.style.left = `${x + 5}px`;
+  popup.style.top = `${y + 5}px`;
 
   if (content && typeof content === 'object') {
     if (content.title) {
       const titleNode = document.createElement('div');
-      titleNode.style.marginBottom = '5px';
+      titleNode.className = 'connection-popup__title';
       const strong = document.createElement('strong');
       strong.textContent = content.title;
       titleNode.appendChild(strong);
@@ -1324,14 +1327,14 @@ function createPopup(x, y, content) {
       content.lines.forEach(function(line) {
         if (!line) return;
         const lineNode = document.createElement('div');
-        lineNode.style.marginTop = '5px';
+        lineNode.className = 'connection-popup__line';
         lineNode.textContent = line;
         popup.appendChild(lineNode);
       });
     }
     if (content.meta) {
       const metaNode = document.createElement('div');
-      metaNode.style.cssText = 'color:#666;font-size:12px;margin-top:5px;';
+      metaNode.className = 'connection-popup__meta';
       metaNode.textContent = content.meta;
       popup.appendChild(metaNode);
     }
@@ -1342,16 +1345,11 @@ function createPopup(x, y, content) {
   }
 
   // 添加关闭按钮
-  const closeBtn = document.createElement('span');
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'connection-popup__close';
+  closeBtn.setAttribute('aria-label', '关闭说明');
   closeBtn.textContent = '×';
-  closeBtn.style.cssText = `
-    position: absolute;
-    right: 5px;
-    top: 2px;
-    cursor: pointer;
-    color: #999;
-    font-size: 16px;
-  `;
   closeBtn.onclick = () => removePopup();
   popup.appendChild(closeBtn);
 
@@ -1370,17 +1368,15 @@ function createPopup(x, y, content) {
   };
   document.addEventListener('click', state.popupCloseHandler);
 
-  // 调整位置以确保在视窗内
+  // 同时限制四个方向，避免手机窄屏或长说明把弹窗推出可视区域。
   const rect = popup.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-
-  if (rect.right > viewportWidth) {
-    popup.style.left = `${viewportWidth - rect.width - 10}px`;
-  }
-  if (rect.bottom > viewportHeight) {
-    popup.style.top = `${viewportHeight - rect.height - 10}px`;
-  }
+  const inset = 10;
+  const maxLeft = Math.max(inset, viewportWidth - rect.width - inset);
+  const maxTop = Math.max(inset, viewportHeight - rect.height - inset);
+  popup.style.left = `${Math.min(maxLeft, Math.max(inset, x + 5))}px`;
+  popup.style.top = `${Math.min(maxTop, Math.max(inset, y + 5))}px`;
 }
 
 
