@@ -1225,11 +1225,16 @@ function redrawCurrentTimeline() {
   if (!state.sourceData || !state.config) return;
   const data = state.sourceData;
   const config = state.config;
+  // 重绘会替换 SVG 内容和标尺，浏览器可能随布局变化调整视窗位置。
+  // 提前保存两个方向，最终尺寸写入后再原样恢复。
+  const scrollLeft = getScrollLeft();
+  const scrollTop = getScrollTop();
   resetTimeline();
   drawList(data, config);
   resize();
   initDragPan();
   $id("wapper").className = config.layout === "v" ? "wapper vertical" : "wapper";
+  setScroll(scrollLeft, scrollTop);
   syncTimelineScroll();
 }
 
@@ -1738,15 +1743,11 @@ function resize(){
       height: h,
     });
   }
-  if(state.config.layout == "v" && state.period){
-      state.period.attr({
-        height : h,
-      });
-   }else if (state.period){
-     state.period.attr({
-        width : w,
-      });
-   }
+  if (state.period) {
+    state.period.attr(state.config.layout === "v"
+      ? { width: "100%", height: h }
+      : { width: w, height: "100%" });
+  }
 }
 
 // 悬浮窗渲染
@@ -2076,8 +2077,8 @@ function resetTimeline() {
     });
     svg.removeAttribute("style");
     svg.setAttribute("class", id);
-    svg.setAttribute("width", "100%");
-    svg.setAttribute("height", "100%");
+    // 保留上一帧的 SVG viewport，避免清空到 resize() 之间画布临时缩回一屏，
+    // 进而让浏览器把当前滚动位置不可逆地钳制为 0。最终尺寸由 resize() 覆盖。
   });
 
   if (wrapper) {

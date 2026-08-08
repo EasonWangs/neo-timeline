@@ -150,6 +150,28 @@ test("item drag follows the cross axis in horizontal and vertical layouts", asyn
   expect(Math.abs(verticalAfter.y - verticalBefore.y)).toBeLessThan(2);
 });
 
+test("item drag keeps the current viewport after redraw", async function({ page }) {
+  await page.setViewportSize({ width: 700, height: 500 });
+  await page.goto("/timeline.html?name=newton&title=牛顿时代");
+
+  const itemName = page.locator('#content .item[id="牛顿"] .name');
+  await itemName.scrollIntoViewIfNeeded();
+  await page.evaluate(function() { window.scrollTo(250, 0); });
+  await expect.poll(function() {
+    return page.evaluate(function() { return window.scrollX; });
+  }).toBe(250);
+
+  const viewportBefore = await page.evaluate(function() {
+    return { x: window.scrollX, y: window.scrollY };
+  });
+  await dragBy(page, itemName, 0, 35);
+  const viewportAfter = await page.evaluate(function() {
+    return { x: window.scrollX, y: window.scrollY };
+  });
+
+  expect(viewportAfter).toEqual(viewportBefore);
+});
+
 test("grouped items can move alone or together from the group title", async function({ page }) {
   await page.goto("/timeline.html?name=newton&title=牛顿时代");
 
