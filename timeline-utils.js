@@ -269,6 +269,32 @@
     return Math.max(0, (target - origin) * pixels);
   }
 
+  /**
+   * 根据一年对应的像素宽度，分别计算月份短刻度和月份文字的间隔。
+   *
+   * 返回值以“月”为单位，并且只使用 12 的整数因数，确保刻度始终落在自然月份上。
+   * labelStep 同时保证是 tickStep 的整数倍，因此每个月份文字都有对应的短刻度。
+   */
+  export function getMonthRulerSteps(unitPx, minTickSpace = 8, minLabelSpace = 10) {
+    var scale = Number(unitPx);
+    if (!isFinite(scale) || scale <= 0) scale = 1;
+    var tickSpace = Number(minTickSpace);
+    if (!isFinite(tickSpace) || tickSpace <= 0) tickSpace = 8;
+    var labelSpace = Number(minLabelSpace);
+    if (!isFinite(labelSpace) || labelSpace <= 0) labelSpace = 10;
+
+    var monthPx = scale / 12;
+    var steps = [1, 2, 3, 4, 6, 12];
+    var tickStep = steps.find(function(step) {
+      return step * monthPx >= tickSpace;
+    }) || 12;
+    var labelStep = steps.find(function(step) {
+      return step % tickStep === 0 && step * monthPx >= labelSpace;
+    }) || 12;
+
+    return { tickStep: tickStep, labelStep: labelStep };
+  }
+
   export function getRulerInterval(mainInterval, unitPx, minSpace, configuredInterval) {
     var configured = Number(configuredInterval);
     if (Number.isInteger(configured) && configured > 0) return configured;

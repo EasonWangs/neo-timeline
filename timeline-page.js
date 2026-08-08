@@ -13,6 +13,7 @@ const params = Object.fromEntries(new URLSearchParams(window.location.search));
 let timeline = null;
 let timelineData = null;
 let reflowFrame = null;
+let restoreScrollFrame = null;
 let activeTimeDensity = 1;
 
 document.title = params.title || "时间线";
@@ -53,10 +54,21 @@ function restoreTimelinePosition(position) {
   );
   // 同方向重绘时保留交叉轴位置；横纵切换时交叉轴从起点开始，避免沿用旧时间滚动值。
   const crossOffset = position.layout === axis.layout ? position.crossOffset : 0;
-  window.scrollTo(
-    isVertical ? crossOffset : timeOffset,
-    isVertical ? timeOffset : crossOffset
-  );
+  const left = isVertical ? crossOffset : timeOffset;
+  const top = isVertical ? timeOffset : crossOffset;
+  const applyPosition = function() {
+    window.scrollTo(left, top);
+    syncTimelineScroll();
+  };
+
+  // 首次设置覆盖正常浏览器；下一帧再按新 SVG 的最终尺寸校正一次，
+  // 避免大画布重建时 scrollTo 在布局扩展前执行而被钳制到 0。
+  if (restoreScrollFrame != null) window.cancelAnimationFrame(restoreScrollFrame);
+  applyPosition();
+  restoreScrollFrame = window.requestAnimationFrame(function() {
+    restoreScrollFrame = null;
+    applyPosition();
+  });
 }
 
 function rebuildTimeline(layout, density) {
@@ -72,7 +84,6 @@ function rebuildTimeline(layout, density) {
   });
   activeTimeDensity = normalizedDensity;
   restoreTimelinePosition(position);
-  syncTimelineScroll();
   return true;
 }
 

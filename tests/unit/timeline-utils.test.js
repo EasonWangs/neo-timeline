@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getDatePosition,
+  getMonthRulerSteps,
   getNextSelectionIndex,
   getRulerInterval,
   getRulerIntervals,
@@ -139,6 +140,18 @@ describe("time-density viewport position", function() {
 });
 
 describe("ruler intervals", function() {
+  it("calculates separate month tick and label densities", function() {
+    expect(getMonthRulerSteps(59)).toEqual({ tickStep: 2, labelStep: 4 });
+    expect(getMonthRulerSteps(60)).toEqual({ tickStep: 2, labelStep: 2 });
+    expect(getMonthRulerSteps(75)).toEqual({ tickStep: 2, labelStep: 2 });
+    expect(getMonthRulerSteps(120)).toEqual({ tickStep: 1, labelStep: 1 });
+    expect(getMonthRulerSteps(300)).toEqual({ tickStep: 1, labelStep: 1 });
+  });
+
+  it("falls back to year-only ticks for invalid month density", function() {
+    expect(getMonthRulerSteps(0)).toEqual({ tickStep: 12, labelStep: 12 });
+  });
+
   it("calculates readable major and minor intervals from unit pixel density", function() {
     expect(getRulerIntervals(0.1, 60, 20)).toEqual({ major: 1000, minor: 200 });
     expect(getRulerIntervals(1, 60, 20)).toEqual({ major: 100, minor: 20 });

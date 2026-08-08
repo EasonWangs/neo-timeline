@@ -275,12 +275,13 @@ test("zoom rerenders time density from the left edge", async function({ page }) 
   await page.locator("#zoom-in").click();
   await expect(page.locator("#zoom-value")).toHaveText("125%");
   const boardWidthAfter = Number(await page.locator("#content").getAttribute("width"));
-  const leftEdgeYearAfter = await getLeftEdgeYear();
   const majorSpacingAt125 = await getMajorSpacing();
 
   expect(boardWidthAfter).toBeGreaterThan(boardWidthAt100 * 1.1);
   expect(majorSpacingAt125).toBeCloseTo(majorSpacingAt100 * 1.25, 5);
-  expect(Math.abs(leftEdgeYearAfter - leftEdgeYearBefore)).toBeLessThan(1);
+  await expect.poll(async function() {
+    return Math.abs(await getLeftEdgeYear() - leftEdgeYearBefore);
+  }).toBeLessThan(1);
 
   await page.locator("#zoom-in").click();
   await expect(page.locator("#zoom-value")).toHaveText("150%");
@@ -350,6 +351,151 @@ test("science uses 100-year major marks and unlabeled 10-year minor marks", asyn
   expect(ruler.labels.length).toBeGreaterThan(1);
   expect(ruler.labels.every(function(value) { return value % 100 === 0; })).toBe(true);
   expect(ruler.linePositions[1] - ruler.linePositions[0]).toBe(10);
+});
+
+test("month ruler keeps one density across layouts without clipping", async function({ page }) {
+  await page.goto("/timeline.html?name=spectrum&title=光谱史");
+  await page.evaluate(async function() {
+    const timelineModule = await import("/timeline.js");
+    const data = {
+      config: {
+        start: 2000,
+        axes: { time: { px: 120 } }
+      },
+      periods: [],
+      events: [],
+      roles: [{ name: "测试项", start: 2000, end: 2004 }]
+    };
+    window.renderMonthRulerTest = function(layout) {
+      timelineModule.initializeTimeline(data, { layout });
+    };
+    window.renderMonthRulerTest("h");
+  });
+
+  const inspectMonthRuler = function(selector, positionAttr, lengthAttr) {
+    return page.locator(selector).evaluate(function(ruler, attrs) {
+      const labels = Array.from(ruler.querySelectorAll(".month-label"));
+      const firstYear = labels[0] && labels[0].getAttribute("data-year");
+      const rulerRect = ruler.getBoundingClientRect();
+      const labelMonths = labels
+        .filter(function(label) { return label.getAttribute("data-year") === firstYear; })
+        .map(function(label) { return Number(label.getAttribute("data-month")); });
+      const overflowingLabels = labels.flatMap(function(label) {
+        const rect = label.getBoundingClientRect();
+        const fits = rect.left >= rulerRect.left - 0.5 &&
+          rect.right <= rulerRect.right + 0.5 &&
+          rect.top >= rulerRect.top - 0.5 &&
+          rect.bottom <= rulerRect.bottom + 0.5;
+        return fits ? [] : [{
+          year: label.getAttribute("data-year"),
+          month: label.getAttribute("data-month"),
+          rect: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom },
+          ruler: {
+            left: rulerRect.left,
+            right: rulerRect.right,
+            top: rulerRect.top,
+            bottom: rulerRect.bottom
+          }
+        }];
+      });
+      const tickPositions = Array.from(ruler.querySelectorAll(".month-tick"), function(tick) {
+        return Number(tick.getAttribute(attrs.positionAttr));
+      });
+      return {
+        firstYear,
+        labelMonths,
+        overflowingLabels,
+        maxTickPosition: Math.max(...tickPositions),
+        length: Number(ruler.getAttribute(attrs.lengthAttr))
+      };
+    }, { positionAttr, lengthAttr });
+  };
+
+  const horizontal = await inspectMonthRuler("#ruler-h", "x1", "width");
+  expect(horizontal.labelMonths).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  expect(horizontal.overflowingLabels).toEqual([]);
+  expect(horizontal.maxTickPosition).toBeLessThan(horizontal.length);
+
+  await page.evaluate(function() { window.renderMonthRulerTest("v"); });
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
+  const vertical = await inspectMonthRuler("#ruler-v", "y1", "height");
+  expect(vertical.firstYear).toBe(horizontal.firstYear);
+  expect(vertical.labelMonths).toEqual(horizontal.labelMonths);
+  expect(vertical.overflowingLabels).toEqual([]);
+  expect(vertical.maxTickPosition).toBeLessThan(vertical.length);
+});
+
+test("events-only timelines expand the scrollable time axis", async function({ page }) {
+  await page.goto("/timeline.html?name=spectrum&title=光谱史");
+  await page.evaluate(async function() {
+    const timelineModule = await import("/timeline.js");
+    const data = {
+      config: {
+        start: 2000,
+        axes: { time: { px: 240 } }
+      },
+      periods: [],
+      events: [
+        { name: "起点事件", time: 2000 },
+        { name: "最远事件", time: 2010 }
+      ],
+      roles: []
+    };
+    window.renderEventsOnlyTest = function(layout) {
+      window.eventsOnlyTimeline = timelineModule.initializeTimeline(data, { layout });
+      timelineModule.syncTimelineScroll();
+    };
+    window.renderEventsOnlyTest("h");
+  });
+
+  const farEvent = page.locator('#events .text[data-event-index="1"]');
+  expect(Number(await page.locator("#content").getAttribute("width"))).toBeGreaterThan(2400);
+  await page.evaluate(function() { window.eventsOnlyTimeline.reflow(); });
+  const horizontalSize = await page.locator("#content").evaluate(function(content) {
+    return { width: content.getAttribute("width"), height: content.getAttribute("height") };
+  });
+  await page.evaluate(function() {
+    window.eventsOnlyTimeline.reflow();
+    window.eventsOnlyTimeline.reflow();
+  });
+  await expect(page.locator("#content")).toHaveAttribute("width", horizontalSize.width);
+  await expect(page.locator("#content")).toHaveAttribute("height", horizontalSize.height);
+  await expect.poll(function() {
+    return page.evaluate(function() { return document.documentElement.scrollWidth; });
+  }).toBeGreaterThan(await page.evaluate(function() { return window.innerWidth; }));
+  await page.evaluate(function() { window.scrollTo(document.documentElement.scrollWidth, 0); });
+  await expect.poll(function() { return page.evaluate(function() { return window.scrollX; }); }).toBeGreaterThan(0);
+  await expect.poll(async function() {
+    const box = await farEvent.boundingBox();
+    return box && box.x;
+  }).toBeGreaterThanOrEqual(0);
+  expect((await farEvent.boundingBox()).x).toBeLessThan(await page.evaluate(function() { return window.innerWidth; }));
+
+  await page.evaluate(function() {
+    window.scrollTo(0, 0);
+    window.renderEventsOnlyTest("v");
+  });
+  expect(Number(await page.locator("#content").getAttribute("height"))).toBeGreaterThan(2400);
+  await page.evaluate(function() { window.eventsOnlyTimeline.reflow(); });
+  const verticalSize = await page.locator("#content").evaluate(function(content) {
+    return { width: content.getAttribute("width"), height: content.getAttribute("height") };
+  });
+  await page.evaluate(function() {
+    window.eventsOnlyTimeline.reflow();
+    window.eventsOnlyTimeline.reflow();
+  });
+  await expect(page.locator("#content")).toHaveAttribute("width", verticalSize.width);
+  await expect(page.locator("#content")).toHaveAttribute("height", verticalSize.height);
+  await expect.poll(function() {
+    return page.evaluate(function() { return document.documentElement.scrollHeight; });
+  }).toBeGreaterThan(await page.evaluate(function() { return window.innerHeight; }));
+  await page.evaluate(function() { window.scrollTo(0, document.documentElement.scrollHeight); });
+  await expect.poll(function() { return page.evaluate(function() { return window.scrollY; }); }).toBeGreaterThan(0);
+  await expect.poll(async function() {
+    const box = await farEvent.boundingBox();
+    return box && box.y;
+  }).toBeGreaterThanOrEqual(0);
+  expect((await farEvent.boundingBox()).y).toBeLessThan(await page.evaluate(function() { return window.innerHeight; }));
 });
 
 test("a period-only dataset starts at the exact period boundary", async function({ page }) {

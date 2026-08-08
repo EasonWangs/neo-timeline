@@ -103,8 +103,11 @@ function drawAxisRuler(options) {
   // 次刻度只有在自身间距足以容纳年份文字时才显示数字，避免密集标签互相覆盖。
   const showMinorLabels = minor * unitPx >= 50;
 
-  // 主刻度之间大致能容纳多少个分区；主刻度为 1 年时，用它决定月份细分密度。
-  const divisions = Math.floor(options.major * unitPx / options.minSpace);
+  // 月份短刻度和月份数字采用不同密度，并且横纵布局共用相同的间隔。
+  // 主刻度不是 1 年时不绘制月份，避免年份跨度较大时产生无意义的细分。
+  const monthSteps = options.major === 1
+    ? U.getMonthRulerSteps(unitPx)
+    : null;
 
   // 将“时间轴长度 × 标尺厚度”转换成横向或纵向布局对应的实际 SVG 宽高。
   const size = U.orientRect(0, 0, options.length, thickness, options.layout);
@@ -120,6 +123,27 @@ function drawAxisRuler(options) {
     fill: state.config.rulerBg || "#383838",
     fillOpacity: 0.8
   });
+
+  function drawMonthLabel(monthPosition, monthNumber, year) {
+    // 横轴靠近末端时向左绘制；纵轴通常放在刻度下方，末端空间不足时改放上方。
+    const alignLabelToEnd = isVertical || monthPosition + 14 >= options.length;
+    const timeOffset = isVertical
+      ? (monthPosition + 8 < options.length ? 8 : -2)
+      : (alignLabelToEnd ? -2 : 2);
+    const labelPosition = U.orientPoint(
+      monthPosition + timeOffset,
+      thickness - 2,
+      options.layout
+    );
+    ruler.text(labelPosition.x, labelPosition.y, monthNumber).attr({
+      class: "month-label",
+      "data-year": year,
+      "data-month": monthNumber,
+      fill: "#b1b4b4",
+      fontSize: "0.7em",
+      textAnchor: alignLabelToEnd ? "end" : "start"
+    });
+  }
 
   // i 是相对于 config.start 的时间偏移，每次按最终次刻度间隔向前推进。
   for (let i = 0; i < options.length / unitPx; i += minor) {
@@ -155,42 +179,38 @@ function drawAxisRuler(options) {
       ).attr(labelAttrs);
     }
 
-    // 主刻度单位为 1 年时，在当前空间允许的情况下补充年内月份刻度。
-    if (options.major === 1) {
-      // 从 12/6/4/3/2/1 中选择当前像素密度能容纳的最大分区数。
-      const monthDivisions = [12, 6, 4, 3, 2, 1].find(function(value) {
-        return value <= Math.max(divisions, 1);
-      });
+    // 1 月与年份主刻度共用刻度线，但在月份文字行仍明确显示“1”。
+    if (monthSteps) {
+      drawMonthLabel(timePosition, 1, timeValue);
 
-      // monthIndex 从 1 开始，跳过与年份主刻度重合的年初位置。
-      for (let monthIndex = 1; monthIndex < monthDivisions; monthIndex++) {
-        // 按该月份在一年内的比例，换算成时间轴上的像素位置。
-        const monthPosition = timePosition + monthIndex / monthDivisions * unitPx;
+      // monthIndex 是零基月份索引；内部月份从 tickStep 开始绘制额外短刻度。
+      for (
+        let monthIndex = monthSteps.tickStep;
+        monthIndex < 12;
+        monthIndex += monthSteps.tickStep
+      ) {
+        const monthPosition = timePosition + monthIndex / 12 * unitPx;
+        // 最后一个不完整年份可能贴近 SVG 末端，不再创建超出标尺范围的节点。
+        if (monthPosition >= options.length) break;
+
+        const showMonthLabel = monthIndex % monthSteps.labelStep === 0;
         drawOrientedLine(
           ruler,
           monthPosition,
-          19,
+          showMonthLabel ? 18 : 21,
           thickness,
           options.layout
         ).attr({
+          class: "month-tick",
+          "data-year": timeValue,
+          "data-month": monthIndex + 1,
           stroke: "#8f9292",
           strokeWidth: 1
         });
 
-        // 月份文字放在刻度线内侧，并使用更小字号，避免抢占年份标签空间。
-        const labelPosition = U.orientPoint(
-          monthPosition + (isVertical ? -2 : 2),
-          isVertical ? 19 : 24,
-          options.layout
-        );
-        ruler.text(
-          labelPosition.x,
-          labelPosition.y,
-          monthIndex * (12 / monthDivisions) + 1
-        ).attr({
-          fill: "#b1b4b4",
-          fontSize: "0.7em"
-        });
+        if (!showMonthLabel) continue;
+
+        drawMonthLabel(monthPosition, monthIndex + 1, timeValue);
       }
     }
   }
@@ -1643,14 +1663,46 @@ function drawItemGroup(color){
   }
 }
 
+function getLayerBounds(layer) {
+  if (!layer || typeof layer.getBBox !== "function") return null;
+  try {
+    const box = layer.getBBox();
+    const x = Number(box.x);
+    const y = Number(box.y);
+    const width = Number(box.width ?? box.w);
+    const height = Number(box.height ?? box.h);
+    if (![x, y, width, height].every(Number.isFinite)) return null;
+    return { x, y, width, height };
+  } catch (error) {
+    console.warn("无法读取时间线图层尺寸:", error);
+    return null;
+  }
+}
+
 function resize(){
   if (!state.board) return;
-  const size = state.board.getBBox();
-  state.size = size;
+  // 页面尺寸必须覆盖所有独立 SVG 图层。只使用 content 会让 roles 为空的
+  // events-only 数据集保持一屏大小，远处事件虽然已绘制却无法滚动到达。
+  const contentBounds = [state.board, state.period]
+    .map(getLayerBounds)
+    .filter(Boolean);
+  let contentWidth = contentBounds.reduce(function(max, box) {
+    return Math.max(max, box.x + box.width);
+  }, 0);
+  let contentHeight = contentBounds.reduce(function(max, box) {
+    return Math.max(max, box.y + box.height);
+  }, 0);
+  const eventBounds = getLayerBounds(state.events);
+  if (eventBounds && state.config.layout === "h") {
+    contentWidth = Math.max(contentWidth, eventBounds.x + eventBounds.width);
+  } else if (eventBounds) {
+    contentHeight = Math.max(contentHeight, eventBounds.y + eventBounds.height);
+  }
+  state.size = { x: 0, y: 0, w: contentWidth, h: contentHeight };
   const viewportWidth = Math.max(0, window.innerWidth - 16);
   const viewportHeight = Math.max(0, window.innerHeight - 16);
-  var w = Math.max(size.w + size.x + 100, viewportWidth),
-      h = Math.max(size.h + size.y + 100, viewportHeight);
+  var w = Math.max(contentWidth + 100, viewportWidth),
+      h = Math.max(contentHeight + 100, viewportHeight);
   drawRuler(w,h);
 
   state.board.attr({
