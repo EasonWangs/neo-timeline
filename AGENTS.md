@@ -75,12 +75,13 @@ Do not use direct `file://` loading or `python3 -m http.server` as the normal wo
 
 - Every `data/*.json5` file must parse as JSON5 and contain a `roles` array; use `roles: []` when no roles exist.
 - `periods` and `events` are optional, but when present they must use the expected array structures.
+- A period may set `group` to an existing role group. Group-bound periods use that group's cross-axis bounds, render inside the group, and move with group dragging; unbound periods continue to use the legacy level/full-or-part layout.
 - Comparable `start`/`end` ranges must satisfy `end >= start`. Time values may be numeric (including decimal scientific timeline units), `YYYY`, `YYYY/MM[/DD]`, or `YYYY-MM[-DD]`; slash and dash formats are auto-detected and displayed as written. Do not put prose or Chinese date notation in coordinate fields—keep explanations in `desc`. Approximate dates prefixed with `~` and the open-ended `"~"` value remain supported where the renderer accepts them.
 - Keypoint IDs must be unique within a dataset. Every `to` reference must resolve to an existing keypoint ID, and a keypoint with `to` must have its own ID.
 - `groups` must be arrays. Every referenced group must have a matching color in `config.g.colors`.
 - Configuration defaults are applied by `normalizeConfig()`. Prefer the smallest dataset-specific config and omit values that match defaults.
 - Time-axis density and optional ruler overrides live under `config.axes.time`: `px` is pixels per year, while `major` and `minor` override the automatically selected intervals. `config.axes.cross` is reserved for a second non-time axis. Do not reintroduce the legacy `zoom` or `o.hs/hm/vs/vm` fields.
-- Cross-axis spacing between role items lives at `config.items.gap` and defaults to `20`. Do not use the legacy `config.size` field.
+- Cross-axis spacing between role items lives at `config.items.gap` and defaults to `28`. Do not use the legacy `config.size` field.
 - `config.start` is optional. When omitted, the renderer infers it from periods, events, role ranges, and keypoints. An earliest period starts at its exact boundary; other content receives a small aligned leading margin, with extra room for a visible group. Keep an explicit value only when a dataset needs a deliberate crop or custom origin.
 - New datasets must be added to `data/`, pass `npm run validate:data`, and be linked from `index.html`.
 - Country markers are rendered as emoji from two-letter country codes; do not reintroduce external flag-image paths.

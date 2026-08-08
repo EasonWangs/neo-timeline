@@ -45,11 +45,15 @@ height:100%;
   z-index: 2;
   overflow:visible;
 }
-.period .text{
+.period .text,
+.period-item .text{
   fill: #36c;
   text-shadow: 1px 1px #fff, -1px -1px #fff, -1px 1px #fff, 1px -1px #fff;
   font-family: "cursive";
   font-weight: bold;
+}
+.group-period{
+  pointer-events: auto;
 }
 .events{
   position: fixed;
@@ -168,8 +172,31 @@ height:100%;
 .item .descBox{
   text-shadow: 3px 3px 3px #ddd;
 }
+.item .desc-border{
+  display: none;
+  fill: none;
+  stroke: #a14f3f;
+  stroke-width: 1.5;
+  opacity: 0.82;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
 .item .dotText{
   text-shadow: 3px 3px 3px #eee;
+}
+.item .keypoint-guide{
+  stroke: #5f5851;
+  stroke-width: 0.8;
+  stroke-linecap: square;
+  opacity: 0.68;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.item .currPoint .keypoint-guide,
+.item .connection-point .keypoint-guide{
+  stroke: #c55743;
+  stroke-width: 1;
+  opacity: 0.86;
 }
 .keypoint-hit{
   fill: transparent;
@@ -189,15 +216,17 @@ height:100%;
 .content.focus .show{
   opacity: 1;
 }
-.item .contGroup,.item .descBox
+.item .contGroup,.item .descBox,.item .desc-border
 {
   display: none;
 }
-.show .contGroup,.show .descBox
+.show .contGroup,.show .descBox,.show .desc-border
 {
   display: block;
 }
-.content.focus-item .item .contGroup,.content.focus-item .item .descBox{
+.content.focus-item .item .contGroup,
+.content.focus-item .item .descBox,
+.content.focus-item .item .desc-border{
   display: none;
 }
 

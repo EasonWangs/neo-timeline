@@ -107,11 +107,22 @@ for (const file of files) {
     validatePositiveNumber(file, config.items.gap, "config.items.gap");
   }
 
+  const periodGroupReferences = [];
   if (data.periods != null && !Array.isArray(data.periods)) {
     report(file, "periods 必须为数组");
   } else {
     for (const [index, period] of (data.periods || []).entries()) {
       validateRange(file, period, "时期", index);
+      if (period.group !== undefined) {
+        if (typeof period.group !== "string" || !period.group.trim()) {
+          report(file, `时期“${period.name || index + 1}”的 group 必须为非空字符串`);
+        } else {
+          periodGroupReferences.push({
+            period: period.name || index + 1,
+            group: period.group.trim()
+          });
+        }
+      }
       for (const [pointIndex, point] of (period.keypoints || []).entries()) {
         validateTimeValue(file, point.t, `时期“${period.name || index + 1}”的 keypoints[${pointIndex}].t`);
       }
@@ -156,6 +167,11 @@ for (const file of files) {
   }
 
   for (const target of references) if (!ids.has(target)) report(file, `to 引用了不存在的关键点：${target}`);
+  for (const reference of periodGroupReferences) {
+    if (!groups.has(reference.group)) {
+      report(file, `时期“${reference.period}”引用了不存在的分组：${reference.group}`);
+    }
+  }
   const colors = data.config && data.config.g && data.config.g.colors || {};
   for (const group of groups) {
     if (!Object.prototype.hasOwnProperty.call(colors, group)) report(file, `分组缺少颜色配置：${group}`);

@@ -104,7 +104,7 @@ describe("configuration normalization", function() {
   it("uses one pixel per time unit by default", function() {
     const config = normalizeConfig({});
     expect(config.axes.time.px).toBe(1);
-    expect(config.items.gap).toBe(20);
+    expect(config.items.gap).toBe(28);
   });
 });
 

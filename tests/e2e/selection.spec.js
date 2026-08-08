@@ -100,7 +100,7 @@ test("connection reveals both endpoint items and their point details", async fun
   await expect(page.locator("#content .connection-point")).toHaveCount(0);
 });
 
-test("item exposes its configured title immediately on hover", async function({ page }) {
+test("item exposes its description immediately on hover", async function({ page }) {
   await page.goto("/timeline.html?name=zhou&title=周朝");
 
   const item = page.locator('#content .item[id="秦国"]');
@@ -108,19 +108,102 @@ test("item exposes its configured title immediately on hover", async function({ 
   const tooltip = page.locator(".item-title-popup");
   await expect(tooltip).toBeVisible();
   await expect(tooltip).toContainText("秦国");
+  await expect(tooltip).toContainText("嬴姓赵氏");
   await expect(tooltip).toContainText("王（前325年起自称）");
 
   await item.locator(".name").click({ force: true });
   await expect(tooltip).toHaveCount(0);
-  await expect(item.locator(".descBox")).toHaveCSS("display", "block");
-  await expect(item.locator(".descBox")).not.toContainText("王（前325年起自称）");
+  const descBox = item.locator(".descBox");
+  const descBorder = item.locator(".desc-border");
+  await expect(descBox).toHaveCSS("display", "block");
+  await expect(descBox).toContainText("王（前325年起自称）");
+  await expect(descBorder).toHaveCSS("display", "block");
+  const borderGeometry = await item.evaluate(function(node) {
+    const desc = node.querySelector(".descBox").getBBox();
+    const border = node.querySelector(".desc-border").getBBox();
+    return {
+      descX: desc.x,
+      descRight: desc.x + desc.width,
+      descY: desc.y,
+      descBottom: desc.y + desc.height,
+      descHeight: desc.height,
+      borderX: border.x,
+      borderRight: border.x + border.width,
+      borderY: border.y,
+      borderBottom: border.y + border.height,
+      borderHeight: border.height
+    };
+  });
+  expect(borderGeometry.borderX).toBeLessThan(borderGeometry.descX);
+  expect(borderGeometry.borderRight).toBeGreaterThan(borderGeometry.descRight);
+  expect(borderGeometry.borderY).toBeLessThan(borderGeometry.descY);
+  expect(borderGeometry.borderBottom).toBeGreaterThan(borderGeometry.descBottom);
+  expect(borderGeometry.borderHeight).toBeGreaterThan(borderGeometry.descHeight);
+  const horizontalLineOrder = await descBox.locator("tspan").evaluateAll(function(lines) {
+    return lines.slice().sort(function(a, b) {
+      return Number(a.getAttribute("y")) - Number(b.getAttribute("y"));
+    }).map(function(line) { return line.textContent; });
+  });
+  expect(horizontalLineOrder[0]).toContain("嬴姓赵氏");
+  expect(horizontalLineOrder.at(-1)).toContain("皇帝（前221年统一全国后改称）");
 
   const itemRect = item.locator(":scope > rect");
   await itemRect.click({ force: true });
   await expect(item).not.toHaveClass(/show/);
+  await expect(descBorder).toHaveCSS("display", "none");
   await itemRect.click({ force: true });
   await expect(item).toHaveClass(/show/);
   await expect(item.locator(".descBox")).toHaveCSS("display", "block");
+
+  await page.locator("#timeline-layout").click();
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
+  await item.locator(".name").click({ force: true });
+  const verticalBorderGeometry = await item.evaluate(function(node) {
+    const desc = node.querySelector(".descBox").getBBox();
+    const border = node.querySelector(".desc-border").getBBox();
+    return {
+      descX: desc.x,
+      descRight: desc.x + desc.width,
+      descY: desc.y,
+      descBottom: desc.y + desc.height,
+      descHeight: desc.height,
+      borderX: border.x,
+      borderRight: border.x + border.width,
+      borderY: border.y,
+      borderBottom: border.y + border.height,
+      borderHeight: border.height
+    };
+  });
+  expect(verticalBorderGeometry.borderX).toBeLessThan(verticalBorderGeometry.descX);
+  expect(verticalBorderGeometry.borderRight).toBeGreaterThan(verticalBorderGeometry.descRight);
+  expect(verticalBorderGeometry.borderY).toBeLessThan(verticalBorderGeometry.descY);
+  expect(verticalBorderGeometry.borderBottom).toBeGreaterThan(verticalBorderGeometry.descBottom);
+  expect(verticalBorderGeometry.borderHeight).toBeGreaterThan(verticalBorderGeometry.descHeight);
+  const verticalLineOrder = await item.locator(".descBox tspan").evaluateAll(function(lines) {
+    return lines.slice().sort(function(a, b) {
+      return Number(b.getAttribute("x")) - Number(a.getAttribute("x"));
+    }).map(function(line) { return line.textContent; });
+  });
+  expect(verticalLineOrder[0]).toContain("嬴姓赵氏");
+  expect(verticalLineOrder.at(-1)).toContain("皇帝（前221年统一全国后改称）");
+});
+
+test("default item spacing separates the first row from the ruler", async function({ page }) {
+  await page.goto("/timeline.html?name=ming&title=明朝");
+
+  const spacing = await page.locator("#content").evaluate(function(content) {
+    const names = Array.from(content.querySelectorAll(".item .name")).slice(0, 2);
+    const ruler = document.querySelector("#ruler-h").getBoundingClientRect();
+    const first = names[0].getBoundingClientRect();
+    const second = names[1].getBoundingClientRect();
+    return {
+      firstRowGap: first.top - ruler.bottom,
+      itemGap: second.top - first.top
+    };
+  });
+
+  expect(spacing.firstRowGap).toBeGreaterThanOrEqual(18);
+  expect(spacing.itemGap).toBe(28);
 });
 
 test("item drag follows the cross axis in horizontal and vertical layouts", async function({ page }) {
@@ -210,6 +293,86 @@ test("grouped items can move alone or together from the group title", async func
   });
   expect(Math.abs(outsiderAfter.y - outsiderBefore.y)).toBeLessThan(2);
   expect(frameAfterGroupDrag.y - frameBeforeGroupDrag.y).toBeGreaterThan(25);
+});
+
+test("a group-bound period follows group dragging in both layouts", async function({ page }) {
+  await page.goto("/timeline.html?name=spectrum&title=光谱史");
+  await page.evaluate(async function() {
+    const timelineModule = await import("/timeline.js");
+    const data = {
+      config: {
+        start: 1900,
+        axes: { time: { px: 4 } },
+        g: {
+          show: true,
+          colors: {
+            "测试组": "#d9e3e5",
+            "相邻组": "#f4e3b1"
+          }
+        }
+      },
+      periods: [
+        { name: "分组时期", start: 1905, end: 1935, group: "测试组" },
+        { name: "相邻时期", start: 1905, end: 1935, group: "相邻组" }
+      ],
+      roles: [
+        { name: "成员甲", start: 1900, end: 1930, groups: ["测试组"] },
+        { name: "成员乙", start: 1910, end: 1940, groups: ["测试组"] },
+        { name: "成员丙", start: 1900, end: 1930, groups: ["相邻组"], offset: -2 },
+        { name: "成员丁", start: 1910, end: 1940, groups: ["相邻组"] }
+      ]
+    };
+    window.renderGroupPeriodTest = function(layout) {
+      timelineModule.initializeTimeline(data, { layout });
+    };
+    window.renderGroupPeriodTest("h");
+  });
+
+  const group = page.locator("#content .group").filter({
+    has: page.locator('.item[id="成员甲"]')
+  });
+  const groupFrame = group.locator(":scope > .block");
+  const periodRect = group.locator(':scope > .group-period[data-group="测试组"] > rect');
+  const adjacentPeriodRect = page.locator('.group-period[data-group="相邻组"] > rect');
+  await expect(periodRect).toHaveCount(1);
+
+  const horizontalPeriodBefore = await periodRect.boundingBox();
+  const horizontalAdjacentPeriod = await adjacentPeriodRect.boundingBox();
+  const horizontalFrameBefore = await groupFrame.boundingBox();
+  const horizontalRuler = await page.locator("#ruler-h").boundingBox();
+  expect(horizontalPeriodBefore.y).toBeCloseTo(horizontalRuler.y + horizontalRuler.height, 1);
+  expect(horizontalPeriodBefore.y).toBeLessThanOrEqual(horizontalFrameBefore.y + 1);
+  expect(horizontalPeriodBefore.y + horizontalPeriodBefore.height)
+    .toBeGreaterThanOrEqual(horizontalFrameBefore.y + horizontalFrameBefore.height - 1);
+  expect(horizontalPeriodBefore.y + horizontalPeriodBefore.height)
+    .toBeCloseTo(horizontalAdjacentPeriod.y, 1);
+  await group.evaluate(function(node) {
+    node.setAttribute("transform", "translate(0 35)");
+  });
+  const horizontalPeriodAfter = await periodRect.boundingBox();
+  const horizontalFrameAfter = await groupFrame.boundingBox();
+  expect(horizontalPeriodAfter.y - horizontalPeriodBefore.y).toBeCloseTo(35, 1);
+  expect(horizontalFrameAfter.y - horizontalFrameBefore.y).toBeCloseTo(35, 1);
+
+  await page.evaluate(function() { window.renderGroupPeriodTest("v"); });
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
+  const verticalPeriodBefore = await periodRect.boundingBox();
+  const verticalAdjacentPeriod = await adjacentPeriodRect.boundingBox();
+  const verticalFrameBefore = await groupFrame.boundingBox();
+  const verticalRuler = await page.locator("#ruler-v").boundingBox();
+  expect(verticalPeriodBefore.x).toBeCloseTo(verticalRuler.x + verticalRuler.width, 1);
+  expect(verticalPeriodBefore.x).toBeLessThanOrEqual(verticalFrameBefore.x + 1);
+  expect(verticalPeriodBefore.x + verticalPeriodBefore.width)
+    .toBeGreaterThanOrEqual(verticalFrameBefore.x + verticalFrameBefore.width - 1);
+  expect(verticalPeriodBefore.x + verticalPeriodBefore.width)
+    .toBeCloseTo(verticalAdjacentPeriod.x, 1);
+  await group.evaluate(function(node) {
+    node.setAttribute("transform", "translate(35 0)");
+  });
+  const verticalPeriodAfter = await periodRect.boundingBox();
+  const verticalFrameAfter = await groupFrame.boundingBox();
+  expect(verticalPeriodAfter.x - verticalPeriodBefore.x).toBeCloseTo(35, 1);
+  expect(verticalFrameAfter.x - verticalFrameBefore.x).toBeCloseTo(35, 1);
 });
 
 test("event text drag follows the cross axis in both layouts", async function({ page }) {

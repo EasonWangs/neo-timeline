@@ -4,6 +4,9 @@ import * as U from "./timeline-utils.js";
 const $id = function(e){
   return document.getElementById(e)
 }
+const RULER_THICKNESS = 26;
+// 标尺和时期标签占据顶部区域，item 从 64px 开始可避免首行文字贴住标尺。
+const ITEM_CROSS_START = 64;
 const state = {
   config: null,
   rh: null,
@@ -100,7 +103,7 @@ function getElapsedDateLabel(startDate, endDate) {
  */
 function drawAxisRuler(options) {
   // 标尺固定为 26px 厚；layout 只决定厚度落在宽度还是高度上。
-  const thickness = 26;
+  const thickness = RULER_THICKNESS;
   const isVertical = options.layout === "v";
   const unitPx = state.config.axes.time.px;
 
@@ -328,13 +331,60 @@ function drawRuler(w, h) {
   state.svgBg = bgGrid;
 }
 
+function collectPeriodGroupTargets(pers) {
+  const targets = new Map();
+  for (const period of pers || []) {
+    const groupName = typeof period.group === "string" ? period.group.trim() : "";
+    if (!groupName || targets.has(groupName) || !state.area[groupName]) continue;
+    const area = state.area[groupName];
+    const box = area.getBBox();
+    const crossPosition = state.config.layout === "v" ? Number(box.x) : Number(box.y);
+    const crossLength = state.config.layout === "v"
+      ? Number(box.width ?? box.w)
+      : Number(box.height ?? box.h);
+    if (!Number.isFinite(crossPosition) || !Number.isFinite(crossLength) || crossLength <= 0) continue;
+    targets.set(groupName, { area, crossPosition, crossLength });
+  }
+
+  // group 之间通常会保留 item 行距。period 色带不需要这段空白，
+  // 因此以间隙中点作为相邻色带的共同边界，既连续又不会重叠。
+  const orderedTargets = Array.from(targets.values()).sort(function(a, b) {
+    return a.crossPosition - b.crossPosition;
+  });
+  if (orderedTargets.length > 0) {
+    const first = orderedTargets[0];
+    const firstEnd = first.crossPosition + first.crossLength;
+    // 第一层从标尺外沿开始，消除标尺与首个 group 之间的顶部（竖版为左侧）空白。
+    if (first.crossPosition > RULER_THICKNESS) {
+      first.crossPosition = RULER_THICKNESS;
+      first.crossLength = firstEnd - RULER_THICKNESS;
+    }
+  }
+  for (let i = 1; i < orderedTargets.length; i++) {
+    const previous = orderedTargets[i - 1];
+    const current = orderedTargets[i];
+    const previousEnd = previous.crossPosition + previous.crossLength;
+    const currentEnd = current.crossPosition + current.crossLength;
+    const gap = current.crossPosition - previousEnd;
+    if (gap <= 0) continue;
+
+    const boundary = previousEnd + gap / 2;
+    previous.crossLength = boundary - previous.crossPosition;
+    current.crossPosition = boundary;
+    current.crossLength = currentEnd - boundary;
+  }
+  return targets;
+}
+
 // 时期范围
 function drawPeriod(pers){
 	const periodBoard = Snap("#period");
   state.period = periodBoard;
 	if(state.config.p.position) periodBoard.node.style.position = state.config.p.position;
   const unitPx = state.config.axes.time.px;
-  let p = (state.config.p.padding || 50) * unitPx;
+  const p = (state.config.p.padding || 50) * unitPx;
+  // 在绘制任何 period 前固定 group 包围盒，避免第一个 period 加入 group 后影响后续测量。
+  const groupTargets = collectPeriodGroupTargets(pers);
   
   for (var i = 0; i < pers.length; i++) {
     const startDate = U.parseDate(pers[i].start);
@@ -343,11 +393,18 @@ function drawPeriod(pers){
     const level = pers[i].level || 1;
     const timePosition = U.getDatePosition(startDate, unitPx, state.config.start);
     const endPosition = U.getDatePosition(endDate, unitPx, state.config.start);
-    const crossPosition = 25 + (level - 1) * p;
+    const groupName = typeof pers[i].group === "string" ? pers[i].group.trim() : "";
+    const groupTarget = groupTargets.get(groupName);
+    const renderBoard = groupTarget ? state.board : periodBoard;
+    const crossPosition = groupTarget
+      ? groupTarget.crossPosition
+      : 25 + (level - 1) * p;
     const timeLength = endPosition - timePosition;
-    const crossLength = state.config.p.type == "part"
-      ? p
-      : "calc(100% - "+ crossPosition +"px)";
+    const crossLength = groupTarget
+      ? groupTarget.crossLength
+      : state.config.p.type == "part"
+        ? p
+        : "calc(100% - "+ crossPosition +"px)";
     const geometry = U.orientRect(
       timePosition,
       crossPosition,
@@ -356,7 +413,9 @@ function drawPeriod(pers){
       state.config.layout
     );
     let textTime = timePosition;
-    const textCross = 38 + (level - 1) * p;
+    const textCross = groupTarget
+      ? crossPosition + Math.min(13, crossLength / 2)
+      : 38 + (level - 1) * p;
     let writingMode = "lr";
 
     switch(state.config.p.textAnchor){
@@ -380,10 +439,14 @@ function drawPeriod(pers){
     }
      
     // 创建时期组
-    var periodGroup = periodBoard.g();
+    const periodGroupAttrs = {
+      class: groupTarget ? "period-item group-period" : "period-item"
+    };
+    if (groupTarget) periodGroupAttrs["data-group"] = groupName;
+    var periodGroup = renderBoard.g().attr(periodGroupAttrs);
     
     //时期矩形
-    var rect = periodBoard.rect(
+    var rect = renderBoard.rect(
       geometry.x,
       geometry.y,
       geometry.w,
@@ -405,7 +468,7 @@ function drawPeriod(pers){
     periodGroup.add(rect);
  
     //时期文字
-    var text = periodBoard.text(textPosition.x, textPosition.y, pers[i].name).attr({
+    var text = renderBoard.text(textPosition.x, textPosition.y, pers[i].name).attr({
           class: 'text',
           writingMode: writingMode,
           textAnchor: state.config.p.textAnchor,
@@ -441,7 +504,7 @@ function drawPeriod(pers){
     var points = pers[i].keypoints;
     if(points){
       // 创建关键点组
-      var pointsGroup = periodBoard.g().attr({
+      var pointsGroup = renderBoard.g().attr({
         class: 'points'
       });
       
@@ -449,16 +512,16 @@ function drawPeriod(pers){
         const pointDate = U.parseDate(points[n].t);
         if (!pointDate) continue;
         // 为每个点创建一个组
-        let pointGroup = periodBoard.g().attr({
+        let pointGroup = renderBoard.g().attr({
           class: 'point'
         });
         
         const pointPosition = U.orientPoint(
           U.getDatePosition(pointDate, unitPx, state.config.start),
-          crossPosition + 35,
+          groupTarget ? crossPosition + crossLength / 2 : crossPosition + 35,
           state.config.layout
         );
-        let pointSVG = periodBoard.circle(pointPosition.x, pointPosition.y, 3).attr({
+        let pointSVG = renderBoard.circle(pointPosition.x, pointPosition.y, 3).attr({
           stroke: "#f00",
           strokeWidth: 1,
         });
@@ -476,6 +539,9 @@ function drawPeriod(pers){
       // 添加关键点组到时期组
       periodGroup.add(pointsGroup);
     }
+
+    // 关联 period 放到 group 内容底层，因此会随 group 拖动，同时不遮挡 item。
+    if (groupTarget) groupTarget.area.prepend(periodGroup);
   }
 }
 
@@ -1039,7 +1105,7 @@ function computeItemGeometry(item, index, itemSpacing) {
   let w;
   let h = 2;
   let x = 0;
-  let y = (index - state.offset) * itemSpacing + 45;
+  let y = (index - state.offset) * itemSpacing + ITEM_CROSS_START;
   const startDate = U.parseDate(item.start);
   const endDate = U.parseDate(item.end);
 
@@ -1253,7 +1319,7 @@ function bindItemCrossDrag(itemBox, itemIndex) {
       startOffsets[index] = startOffset;
       minDelta = Math.max(
         minDelta,
-        30 - (Number(state.itemBaseCross[index]) || 0) - startOffset
+        ITEM_CROSS_START - (Number(state.itemBaseCross[index]) || 0) - startOffset
       );
     });
     state.itemDrag = {
@@ -1334,7 +1400,7 @@ function bindGroupCrossDrag(groupBox, title, groupName) {
       startOffsets[index] = startOffset;
       minDelta = Math.max(
         minDelta,
-        30 - (Number(state.itemBaseCross[index]) || 0) - startOffset
+        ITEM_CROSS_START - (Number(state.itemBaseCross[index]) || 0) - startOffset
       );
     });
     state.itemDrag = {
@@ -1435,27 +1501,47 @@ function renderItemDesc(board, item, itemBox, geometry, name) {
     y3 = geometry.y - 3;
   }
 
+  const descLayer = board.g().attr({
+    class: "desc-layer"
+  });
   let descText = board.text(x3, y3, desc).attr({
     class: "descBox",
     fill:"#000",
   });
   let tspan = descText.selectAll('tspan').items;
   if(tspan.length > 0){
-    for(let i in tspan){
+    for(let i = 0; i < tspan.length; i++){
+      // Snap 按数组顺序生成 tspan；用反向的视觉位置，
+      // 让横版从上到下、竖版从右到左都与 desc 数组顺序一致。
+      const visualIndex = tspan.length - i - 1;
       if(state.config.layout == "v"){
         tspan[i].attr({
-          x: x3 + 16*i,
+          x: x3 + 16 * visualIndex,
           y: y3
         });
       }else{
         tspan[i].attr({
           x: x3,
-          y: geometry.y - i * 16 - 3
+          y: geometry.y - visualIndex * 16 - 3
         });
       }
     }
   }
-  itemBox.add(descText);
+  const descBounds = descText.getBBox();
+  if (descBounds.height > 0) {
+    // SVG text 不支持 CSS border，只用 getBBox() 提供几何，外观交给 CSS。
+    const descBorder = board.rect(
+      descBounds.x - 5,
+      descBounds.y - 4,
+      descBounds.width + 10,
+      descBounds.height + 5
+    ).attr({
+      class: "desc-border"
+    });
+    descLayer.add(descBorder);
+  }
+  descLayer.add(descText);
+  itemBox.add(descLayer);
 }
 
 function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
@@ -1561,9 +1647,16 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
       class: 'contGroup'
     });
 
-    let line = board.line(x4, y4, x5, y5).attr({
-      stroke:"#000",
-      strokeWidth: 2,
+    // 引导线在文字前留出小间隙，避免线头与字形粘连。
+    const guideGap = 5;
+    const guideEndX = state.config.layout == "v"
+      ? x5 + Math.sign(x4 - x5) * guideGap
+      : x5;
+    const guideEndY = state.config.layout == "h"
+      ? y5 + Math.sign(y4 - y5) * guideGap
+      : y5;
+    let line = board.line(x4, y4, guideEndX, guideEndY).attr({
+      class: "keypoint-guide"
     });
 
     let text = board.text(x5, y5, keypointText).attr({
@@ -1604,8 +1697,8 @@ function drawItem(board, item, i, color, points) {
     id: item.id || item.name,
     "data-item-index": i
   });
-  const itemTitle = [item.name, ...U.toLines(item.title)].filter(Boolean).join("\n");
-  bindItemTitleTooltip(itemBox, itemTitle);
+  const itemDescription = [item.name, ...U.toLines(item.desc)].filter(Boolean).join("\n");
+  bindItemTitleTooltip(itemBox, itemDescription);
 
   if(item.offset) {
     state.offset += item.offset;
@@ -2119,11 +2212,11 @@ export function initializeTimeline(data, options = {}) {
   }
   resetTimeline();
   const config = createTimelineConfig(data, options);
+  // 文字的 writing-mode 会影响 SVG getBBox()，必须在绘制前先切换布局类。
+  $id("wapper").className = config.layout == "v" ? "wapper vertical" : "wapper";
   drawList(data, config);
   resize();
   initDragPan();
-
-  $id("wapper").className = config.layout == "v" ? "wapper vertical" : "wapper";
 
   return Object.freeze({
     getSnapshot: function() {

@@ -17,7 +17,7 @@
 
     cfg.items = cfg.items && typeof cfg.items === "object" ? cfg.items : {};
     cfg.items.gap = Number(cfg.items.gap);
-    if (!isFinite(cfg.items.gap) || cfg.items.gap <= 0) cfg.items.gap = 20;
+    if (!isFinite(cfg.items.gap) || cfg.items.gap <= 0) cfg.items.gap = 28;
 
     cfg.p = cfg.p || {};
     cfg.e = cfg.e || {};
