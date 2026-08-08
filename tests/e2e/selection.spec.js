@@ -1,5 +1,17 @@
 import { expect, test } from "@playwright/test";
 
+async function dragBy(page, locator, deltaX, deltaY) {
+  await locator.scrollIntoViewIfNeeded();
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + deltaX, y + deltaY, { steps: 6 });
+  await page.mouse.up();
+}
+
 test("arrow navigation keeps only the current keypoint visible", async function({ page }) {
   await page.goto("/timeline.html?name=ming&title=明朝");
 
@@ -109,6 +121,92 @@ test("item exposes its configured title immediately on hover", async function({ 
   await itemRect.click({ force: true });
   await expect(item).toHaveClass(/show/);
   await expect(item.locator(".descBox")).toHaveCSS("display", "block");
+});
+
+test("item drag follows the cross axis in horizontal and vertical layouts", async function({ page }) {
+  await page.goto("/timeline.html?name=newton&title=牛顿时代");
+
+  const connection = page.locator("#content .connection").first();
+  const roleName = await connection.getAttribute("data-from-role");
+  const item = page.locator(`#content .item[id="${roleName}"]`);
+  const itemRect = item.locator(":scope > rect");
+  const horizontalBefore = await itemRect.boundingBox();
+  const connectionBefore = await connection.locator(".connection-line").getAttribute("d");
+
+  await dragBy(page, item.locator(".name"), 0, 40);
+  const horizontalAfter = await itemRect.boundingBox();
+  const connectionAfter = await connection.locator(".connection-line").getAttribute("d");
+  expect(horizontalAfter.y - horizontalBefore.y).toBeGreaterThan(30);
+  expect(Math.abs(horizontalAfter.x - horizontalBefore.x)).toBeLessThan(2);
+  expect(connectionAfter).not.toBe(connectionBefore);
+  await expect(item).not.toHaveClass(/show/);
+
+  await page.locator("#timeline-layout").click();
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
+  const verticalBefore = await itemRect.boundingBox();
+  await dragBy(page, item.locator(".name"), 35, 0);
+  const verticalAfter = await itemRect.boundingBox();
+  expect(verticalAfter.x - verticalBefore.x).toBeGreaterThan(25);
+  expect(Math.abs(verticalAfter.y - verticalBefore.y)).toBeLessThan(2);
+});
+
+test("grouped items can move alone or together from the group title", async function({ page }) {
+  await page.goto("/timeline.html?name=newton&title=牛顿时代");
+
+  const group = page.locator("#content .group").filter({
+    has: page.locator('.item[id="波义耳"]')
+  });
+  const members = group.locator(":scope > .item");
+  await expect(members).toHaveCount(3);
+  const outsiderRect = page.locator('#content .item[id="霍布斯"] > rect');
+  const groupFrame = group.locator(":scope > rect");
+  const getMemberTops = function() {
+    return members.evaluateAll(function(items) {
+      return items.map(function(item) {
+        return item.querySelector(":scope > rect").getBoundingClientRect().top;
+      });
+    });
+  };
+
+  const initialMemberTops = await getMemberTops();
+  const outsiderBefore = await outsiderRect.boundingBox();
+  await dragBy(page, members.first().locator(".name"), 0, 35);
+  const memberTopsAfterSingleDrag = await getMemberTops();
+
+  expect(memberTopsAfterSingleDrag[0] - initialMemberTops[0]).toBeGreaterThan(25);
+  expect(Math.abs(memberTopsAfterSingleDrag[1] - initialMemberTops[1])).toBeLessThan(2);
+  expect(Math.abs(memberTopsAfterSingleDrag[2] - initialMemberTops[2])).toBeLessThan(2);
+
+  const frameBeforeGroupDrag = await groupFrame.boundingBox();
+  await dragBy(page, group.locator(":scope > .title"), 0, 35);
+  const memberTopsAfterGroupDrag = await getMemberTops();
+  const outsiderAfter = await outsiderRect.boundingBox();
+  const frameAfterGroupDrag = await groupFrame.boundingBox();
+
+  memberTopsAfterGroupDrag.forEach(function(top, index) {
+    expect(top - memberTopsAfterSingleDrag[index]).toBeGreaterThan(25);
+  });
+  expect(Math.abs(outsiderAfter.y - outsiderBefore.y)).toBeLessThan(2);
+  expect(frameAfterGroupDrag.y - frameBeforeGroupDrag.y).toBeGreaterThan(25);
+});
+
+test("event text drag follows the cross axis in both layouts", async function({ page }) {
+  await page.goto("/timeline.html?name=ming&title=明朝");
+
+  const eventText = page.locator("#events .common .text").first();
+  const horizontalBefore = await eventText.boundingBox();
+  await dragBy(page, eventText, 0, 35);
+  const horizontalAfter = await eventText.boundingBox();
+  expect(horizontalAfter.y - horizontalBefore.y).toBeGreaterThan(25);
+  expect(Math.abs(horizontalAfter.x - horizontalBefore.x)).toBeLessThan(2);
+
+  await page.locator("#timeline-layout").click();
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
+  const verticalBefore = await eventText.boundingBox();
+  await dragBy(page, eventText, 35, 0);
+  const verticalAfter = await eventText.boundingBox();
+  expect(verticalAfter.x - verticalBefore.x).toBeGreaterThan(25);
+  expect(Math.abs(verticalAfter.y - verticalBefore.y)).toBeLessThan(2);
 });
 
 test("mobile controls and keypoint selection remain usable", async function({ page }) {

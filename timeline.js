@@ -20,6 +20,14 @@ const state = {
   popupMode: null,
   popupSource: null,
   itemTitlePopup: null,
+  sourceData: null,
+  itemCrossOffsets: {},
+  itemBoxes: {},
+  itemBaseCross: {},
+  itemDrag: null,
+  suppressItemClick: null,
+  eventTextOffsets: {},
+  eventTextDrag: null,
   currentSelection: {
     item: null,
     points: [],
@@ -491,12 +499,16 @@ function drawEvents(evts, roles){
       var text = eventsBoard.text(textPosition.x, textPosition.y, evts[i].name).attr({
         class: 'text',
         textAnchor: state.config.e.textAnchor,
+        "data-event-index": i,
       });
       
       // 添加标题
       let desc = evts[i].time + (evts[i].desc ? evts[i].desc : "");
       let title = Snap.parse('<title>'+ desc +'</title>');
       text.append(title);
+
+      applyEventTextCrossOffset(text, i);
+      bindEventTextCrossDrag(text, i);
       
       // 添加文本到组
       eventGroup.add(text);
@@ -507,6 +519,60 @@ function drawEvents(evts, roles){
   if (roles) {
     drawConnectionEvents(roles);
   }
+}
+
+function applyEventTextCrossOffset(text, eventIndex) {
+  const offset = Number(state.eventTextOffsets[eventIndex]) || 0;
+  const x = state.config.layout === "v" ? offset : 0;
+  const y = state.config.layout === "h" ? offset : 0;
+  text.node.setAttribute("transform", `translate(${x} ${y})`);
+}
+
+function bindEventTextCrossDrag(text, eventIndex) {
+  const node = text.node;
+
+  node.addEventListener("pointerdown", function(event) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    state.eventTextDrag = {
+      text,
+      eventIndex,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startOffset: Number(state.eventTextOffsets[eventIndex]) || 0,
+      moved: false
+    };
+    node.setPointerCapture(event.pointerId);
+  });
+
+  node.addEventListener("pointermove", function(event) {
+    const drag = state.eventTextDrag;
+    if (!drag || drag.text !== text || drag.pointerId !== event.pointerId) return;
+    const crossDelta = state.config.layout === "v"
+      ? event.clientX - drag.startX
+      : event.clientY - drag.startY;
+    if (!drag.moved && Math.abs(crossDelta) < 4) return;
+
+    drag.moved = true;
+    state.eventTextOffsets[eventIndex] = Math.round((drag.startOffset + crossDelta) * 10) / 10;
+    text.addClass("is-dragging");
+    applyEventTextCrossOffset(text, eventIndex);
+    event.preventDefault();
+  });
+
+  function finishEventTextDrag(event) {
+    const drag = state.eventTextDrag;
+    if (!drag || drag.text !== text || drag.pointerId !== event.pointerId) return;
+    state.eventTextDrag = null;
+    text.removeClass("is-dragging");
+    if (node.hasPointerCapture(event.pointerId)) {
+      node.releasePointerCapture(event.pointerId);
+    }
+    if (drag.moved) event.preventDefault();
+  }
+
+  node.addEventListener("pointerup", finishEventTextDrag);
+  node.addEventListener("pointercancel", finishEventTextDrag);
 }
 
 // 从角色的关键点中绘制关联事件
@@ -597,16 +663,17 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     return;
   }
   
-  // 获取点的坐标并确保是数值类型 - 不再添加偏移量
-  const fp = {
-    x: parseFloat(fromDot.attr('cx')) || 0,
-    y: parseFloat(fromDot.attr('cy')) || 0
+  // 关键点可能随 item 在交叉轴上移动，必须把局部坐标换算到 SVG 画布坐标。
+  const getRenderedPoint = function(dot) {
+    const point = dot.node.ownerSVGElement.createSVGPoint();
+    point.x = parseFloat(dot.attr('cx')) || 0;
+    point.y = parseFloat(dot.attr('cy')) || 0;
+    const matrix = dot.node.getCTM();
+    const rendered = matrix ? point.matrixTransform(matrix) : point;
+    return { x: rendered.x, y: rendered.y };
   };
-  
-  const tp = {
-    x: parseFloat(toDot.attr('cx')) || 0,
-    y: parseFloat(toDot.attr('cy')) || 0
-  };
+  const fp = getRenderedPoint(fromDot);
+  const tp = getRenderedPoint(toDot);
 
   // 添加偏移量
   const offset = 2; // 设置偏移距离
@@ -920,6 +987,10 @@ function handleKeyNavigation(e) {
   });
 
   currentDot.node.dispatchEvent(clickEvent);
+  // 键盘切换会改变说明节点的显隐，浏览器可能因此对鼠标下方的旧关键点
+  // 补发 mouseenter。下一帧再清一次，确保键盘导航只显示 contBox。
+  removePopup();
+  requestAnimationFrame(removePopup);
 }
 
 function computeItemGeometry(item, index, itemSpacing) {
@@ -1079,12 +1150,202 @@ function renderItemIcon(board, item, geometry) {
 }
 
 function toggleItemDetails(itemBox, event) {
+  if (state.suppressItemClick === itemBox.node) {
+    state.suppressItemClick = null;
+    event.stopPropagation();
+    return;
+  }
   if (itemBox.hasClass("show")) {
     hide(itemBox);
   } else {
     show(itemBox);
   }
   event.stopPropagation();
+}
+
+function applyItemCrossOffset(itemBox, itemIndex) {
+  const offset = Number(state.itemCrossOffsets[itemIndex]) || 0;
+  const x = state.config.layout === "v" ? offset : 0;
+  const y = state.config.layout === "h" ? offset : 0;
+  itemBox.node.setAttribute("transform", `translate(${x} ${y})`);
+}
+
+function getGroupedItemIndexes(groupName) {
+  const roles = state.sourceData && Array.isArray(state.sourceData.roles)
+    ? state.sourceData.roles
+    : [];
+  return roles.reduce(function(indexes, role, index) {
+    if (Array.isArray(role.groups) && role.groups[0] === groupName) indexes.push(index);
+    return indexes;
+  }, []);
+}
+
+function redrawCurrentTimeline() {
+  if (!state.sourceData || !state.config) return;
+  const data = state.sourceData;
+  const config = state.config;
+  resetTimeline();
+  drawList(data, config);
+  resize();
+  initDragPan();
+  $id("wapper").className = config.layout === "v" ? "wapper vertical" : "wapper";
+  syncTimelineScroll();
+}
+
+function bindItemCrossDrag(itemBox, itemIndex) {
+  const node = itemBox.node;
+
+  node.addEventListener("pointerdown", function(event) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.target.closest(".dotBox, .contBox")) return;
+
+    const itemIndexes = [itemIndex];
+    const startOffsets = {};
+    let minDelta = -Infinity;
+    itemIndexes.forEach(function(index) {
+      const startOffset = Number(state.itemCrossOffsets[index]) || 0;
+      startOffsets[index] = startOffset;
+      minDelta = Math.max(
+        minDelta,
+        30 - (Number(state.itemBaseCross[index]) || 0) - startOffset
+      );
+    });
+    state.itemDrag = {
+      itemBox,
+      itemIndex,
+      itemIndexes,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startOffsets,
+      minDelta,
+      moved: false
+    };
+    removeItemTitlePopup();
+    node.setPointerCapture(event.pointerId);
+  });
+
+  node.addEventListener("pointermove", function(event) {
+    const drag = state.itemDrag;
+    if (!drag || drag.itemBox !== itemBox || drag.pointerId !== event.pointerId) return;
+    const crossDelta = state.config.layout === "v"
+      ? event.clientX - drag.startX
+      : event.clientY - drag.startY;
+    if (!drag.moved && Math.abs(crossDelta) < 4) return;
+
+    drag.moved = true;
+    const appliedDelta = Math.max(drag.minDelta, crossDelta);
+    drag.itemIndexes.forEach(function(index) {
+      const memberBox = state.itemBoxes[index];
+      if (!memberBox) return;
+      memberBox.addClass("is-dragging");
+      const offset = drag.startOffsets[index] + appliedDelta;
+      state.itemCrossOffsets[index] = Math.round(offset * 10) / 10;
+      applyItemCrossOffset(memberBox, index);
+    });
+    event.preventDefault();
+  });
+
+  function finishItemDrag(event) {
+    const drag = state.itemDrag;
+    if (!drag || drag.itemBox !== itemBox || drag.pointerId !== event.pointerId) return;
+    const moved = drag.moved;
+    state.itemDrag = null;
+    drag.itemIndexes.forEach(function(index) {
+      const memberBox = state.itemBoxes[index];
+      if (memberBox) memberBox.removeClass("is-dragging");
+    });
+    if (node.hasPointerCapture(event.pointerId)) {
+      node.releasePointerCapture(event.pointerId);
+    }
+    if (!moved) return;
+
+    redrawCurrentTimeline();
+    state.suppressItemClick = node;
+    setTimeout(function() {
+      if (state.suppressItemClick === node) state.suppressItemClick = null;
+    }, 0);
+    event.preventDefault();
+  }
+
+  node.addEventListener("pointerup", finishItemDrag);
+  node.addEventListener("pointercancel", finishItemDrag);
+}
+
+function bindGroupCrossDrag(groupBox, title, groupName) {
+  const node = title.node;
+
+  node.addEventListener("pointerdown", function(event) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    const itemIndexes = getGroupedItemIndexes(groupName);
+    if (!itemIndexes.length) return;
+
+    const startOffsets = {};
+    let minDelta = -Infinity;
+    itemIndexes.forEach(function(index) {
+      const startOffset = Number(state.itemCrossOffsets[index]) || 0;
+      startOffsets[index] = startOffset;
+      minDelta = Math.max(
+        minDelta,
+        30 - (Number(state.itemBaseCross[index]) || 0) - startOffset
+      );
+    });
+    state.itemDrag = {
+      itemBox: groupBox,
+      itemIndexes,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startOffsets,
+      minDelta,
+      moved: false
+    };
+    removeItemTitlePopup();
+    node.setPointerCapture(event.pointerId);
+  });
+
+  node.addEventListener("pointermove", function(event) {
+    const drag = state.itemDrag;
+    if (!drag || drag.itemBox !== groupBox || drag.pointerId !== event.pointerId) return;
+    const crossDelta = state.config.layout === "v"
+      ? event.clientX - drag.startX
+      : event.clientY - drag.startY;
+    if (!drag.moved && Math.abs(crossDelta) < 4) return;
+
+    drag.moved = true;
+    const appliedDelta = Math.max(drag.minDelta, crossDelta);
+    drag.itemIndexes.forEach(function(index) {
+      const offset = drag.startOffsets[index] + appliedDelta;
+      state.itemCrossOffsets[index] = Math.round(offset * 10) / 10;
+    });
+
+    // 拖动期间先移动完整 group，保证标题、边框和成员保持一个整体；
+    // 松手后再按各成员的新偏移重绘 group 与 connection。
+    const x = state.config.layout === "v" ? appliedDelta : 0;
+    const y = state.config.layout === "h" ? appliedDelta : 0;
+    groupBox.node.setAttribute("transform", `translate(${x} ${y})`);
+    groupBox.addClass("is-dragging");
+    event.preventDefault();
+  });
+
+  function finishGroupDrag(event) {
+    const drag = state.itemDrag;
+    if (!drag || drag.itemBox !== groupBox || drag.pointerId !== event.pointerId) return;
+    const moved = drag.moved;
+    state.itemDrag = null;
+    groupBox.removeClass("is-dragging");
+    if (node.hasPointerCapture(event.pointerId)) {
+      node.releasePointerCapture(event.pointerId);
+    }
+    if (!moved) return;
+
+    redrawCurrentTimeline();
+    event.preventDefault();
+  }
+
+  node.addEventListener("pointerup", finishGroupDrag);
+  node.addEventListener("pointercancel", finishGroupDrag);
 }
 
 function renderItemHeader(board, item, itemBox, color, geometry) {
@@ -1097,9 +1358,6 @@ function renderItemHeader(board, item, itemBox, color, geometry) {
   var name = board.text(x1, y1, item.name).attr({
     class: "name",
     style: "text-shadow: 1px 1px "+ color + ", -1px -1px "+ color
-  });
-  name.click(function(e){
-    toggleItemDetails(itemBox, e);
   });
   itemBox.add(name);
 
@@ -1295,7 +1553,8 @@ function drawItem(board, item, i, color, points) {
   const itemSpacing = state.config.items.gap;
   var itemBox = board.g().attr({
     class:"item",
-    id: item.id || item.name
+    id: item.id || item.name,
+    "data-item-index": i
   });
   const itemTitle = [item.name, ...U.toLines(item.title)].filter(Boolean).join("\n");
   bindItemTitleTooltip(itemBox, itemTitle);
@@ -1306,18 +1565,23 @@ function drawItem(board, item, i, color, points) {
 
   const geometry = computeItemGeometry(item, i, itemSpacing);
   if (!geometry) return;
+  state.itemBoxes[i] = itemBox;
+  state.itemBaseCross[i] = state.config.layout === "v" ? geometry.x : geometry.y;
 
   let rect = board.rect(geometry.x, geometry.y, geometry.w, geometry.h, 2).attr({
     fill: geometry.fill
-  });
-  rect.click(function(e) {
-    toggleItemDetails(itemBox, e);
   });
   itemBox.add(rect);
 
   var name = renderItemHeader(board, item, itemBox, color, geometry);
   renderItemDesc(board, item, itemBox, geometry, name);
   renderKeypoints(board, item, itemBox, points, itemSpacing, geometry);
+  itemBox.click(function(e) {
+    if (e.target.closest(".dotBox, .contBox")) return;
+    toggleItemDetails(itemBox, e);
+  });
+  applyItemCrossOffset(itemBox, i);
+  bindItemCrossDrag(itemBox, i);
 
   if(!!item.groups){
     var gp = item.groups[0];
@@ -1375,6 +1639,7 @@ function drawItemGroup(color){
     // 使用prepend方法将元素添加到组的开头，确保它们在视觉上位于组的底层
     state.area[i].prepend(name);
     state.area[i].prepend(rect);
+    bindGroupCrossDrag(state.area[i], name, i);
   }
 }
 
@@ -1754,6 +2019,8 @@ function resetTimeline() {
   state.events = null;
   state.board = null;
   state.area = {};
+  state.itemBoxes = {};
+  state.itemBaseCross = {};
   state.offset = 0;
   state.size = null;
   state.currentSelection = {
@@ -1761,11 +2028,19 @@ function resetTimeline() {
     points: [],
     currentIndex: -1
   };
+  state.itemDrag = null;
+  state.suppressItemClick = null;
+  state.eventTextDrag = null;
   state.drag.active = false;
   state.drag.touchActive = false;
 }
 
 export function initializeTimeline(data, options = {}) {
+  if (state.sourceData !== data) {
+    state.sourceData = data;
+    state.itemCrossOffsets = {};
+    state.eventTextOffsets = {};
+  }
   resetTimeline();
   const config = createTimelineConfig(data, options);
   drawList(data, config);
