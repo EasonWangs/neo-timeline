@@ -22,6 +22,7 @@
           "sumerian": "#00ff00", //苏美尔人
           "amorite": '#0000ff', //亚摩利人
         },
+        show : false,
       },
     },
 	"periods":[
