@@ -163,62 +163,57 @@
   }
 
   export function parseDate(dateStr) {
-    if (!dateStr) return null;
+    if (dateStr === undefined || dateStr === null || dateStr === "") return null;
 
     try {
-      dateStr = String(dateStr).trim();
-      var isApprox = isApproxDate(dateStr);
+      if (typeof dateStr === "number") {
+        if (!Number.isFinite(dateStr)) return null;
+        return {
+          value: dateStr,
+          year: dateStr,
+          month: 0,
+          day: 1,
+          precision: "year",
+          isApprox: false,
+          original: String(dateStr)
+        };
+      }
+      var original = String(dateStr).trim();
+      if (!original) return null;
+      var isApprox = isApproxDate(original);
+      dateStr = original;
       if (isApprox) {
         dateStr = parseApproxDate(dateStr);
         if (!dateStr) return null;
       }
 
-      if (dateStr.includes('/')) {
-        var parts = dateStr.split('/');
-        var year = parseInt(parts[0], 10);
-        if (isNaN(year)) {
-          console.error('Invalid year:', dateStr);
-          return null;
-        }
-
-        var month = parts.length > 1 ? parseInt(parts[1], 10) : 1;
-        if (isNaN(month) || month < 1 || month > 12) {
-          console.error('Invalid month:', dateStr);
-          return null;
-        }
-
-        var day = parts.length > 2 ? parseInt(parts[2], 10) : 1;
-        if (isNaN(day) || day < 1 || day > 31) {
-          console.error('Invalid day:', dateStr);
-          return null;
-        }
-
-        var formattedDate = `${year}/${month.toString().padStart(2, '0')}`;
-        if (parts.length > 2) {
-          formattedDate += `/${day.toString().padStart(2, '0')}`;
-        }
-
-        return {
-          year: year,
-          month: month - 1,
-          day: day,
-          isApprox: isApprox,
-          original: isApprox ? '~' + formattedDate : formattedDate
-        };
+      // 自动识别 YYYY、YYYY/MM[/DD] 和 YYYY-MM[-DD]；同一日期内不能混用分隔符。
+      var match = dateStr.match(/^(-?\d+)(?:([/-])(\d{1,2})(?:\2(\d{1,2}))?)?$/);
+      if (!match) {
+        console.error('Invalid date:', original);
+        return null;
       }
 
-      var parsedYear = parseInt(dateStr, 10);
-      if (isNaN(parsedYear)) {
-        console.error('Invalid year:', dateStr);
+      var year = Number(match[1]);
+      var month = match[3] === undefined ? 1 : Number(match[3]);
+      var day = match[4] === undefined ? 1 : Number(match[4]);
+      if (!Number.isInteger(year) || month < 1 || month > 12) {
+        console.error('Invalid date:', original);
+        return null;
+      }
+      var maxDay = getDaysInMonth(year, month - 1);
+      if (!Number.isInteger(day) || day < 1 || day > maxDay) {
+        console.error('Invalid date:', original);
         return null;
       }
 
       return {
-        year: parsedYear,
-        month: 0,
-        day: 1,
+        year: year,
+        month: month - 1,
+        day: day,
+        precision: match[4] !== undefined ? "day" : match[3] !== undefined ? "month" : "year",
         isApprox: isApprox,
-        original: isApprox ? '~' + parsedYear : String(parsedYear)
+        original: original
       };
     } catch (e) {
       console.error('Date parse error:', dateStr, e);
@@ -226,19 +221,35 @@
     }
   }
 
+  function getDaysInMonth(year, month) {
+    if (month === 1) {
+      var leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+      return leap ? 29 : 28;
+    }
+    return [31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month];
+  }
+
+  export function getDateValue(date) {
+    if (!date) return NaN;
+    if (Number.isFinite(date.value)) return date.value;
+    var year = Number(date.year);
+    var month = Number(date.month);
+    var day = Number(date.day);
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return NaN;
+    var daysInMonth = getDaysInMonth(year, month);
+    if (!daysInMonth || day < 1 || day > daysInMonth) return NaN;
+    return year + month / 12 + (day - 1) / (12 * daysInMonth);
+  }
+
   export function getDatePosition(date, unitPx, start) {
     if (!date) return 0;
 
     try {
-      var year = parseInt(date.year, 10) || 0;
-      var month = parseInt(date.month, 10) || 0;
-      var day = parseInt(date.day, 10) || 1;
-      start = parseInt(start, 10) || 0;
-
-      var yearOffset = year - start;
-      var monthFraction = month / 12;
-      var dayFraction = (day - 1) / (12 * 30);
-      var position = (yearOffset + monthFraction + dayFraction) * unitPx;
+      var value = getDateValue(date);
+      var origin = Number(start);
+      var scale = Number(unitPx);
+      if (!isFinite(value) || !isFinite(origin) || !isFinite(scale)) return 0;
+      var position = (value - origin) * scale;
 
       return isFinite(position) ? position : 0;
     } catch (e) {
@@ -371,6 +382,19 @@
     }
     var quotient = numericValue / numericInterval;
     return Math.abs(quotient - Math.round(quotient)) < 1e-9;
+  }
+
+  // 返回不早于时间线起点的第一个绝对刻度值，避免从未对齐的起点逐次累加后
+  // 永远错过整十、整百等主刻度。例如 -475 配合间隔 10，应从 -470 开始。
+  export function getFirstRulerTick(start, interval) {
+    var origin = Number(start);
+    var step = Number(interval);
+    if (!isFinite(origin) || !isFinite(step) || step <= 0) return origin || 0;
+
+    var quotient = origin / step;
+    var nearestInteger = Math.round(quotient);
+    if (Math.abs(quotient - nearestInteger) < 1e-9) quotient = nearestInteger;
+    return Math.ceil(quotient) * step;
   }
 
   export function orientPoint(timePosition, crossPosition, layout) {

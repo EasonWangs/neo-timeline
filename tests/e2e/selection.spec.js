@@ -334,6 +334,18 @@ test("major ruler marks align to round absolute years", async function({ page })
   expect(tickStarts.major).toBe(0);
 });
 
+test("an unaligned automatic start still renders ruler values", async function({ page }) {
+  await page.goto("/timeline.html?name=qin2qing&title=秦至清");
+
+  const labels = page.locator("#ruler-h text");
+  await expect(labels.first()).toHaveText("-400");
+  const values = await labels.allTextContents();
+  expect(values.length).toBeGreaterThan(10);
+  expect(values.every(function(value) {
+    return Number(value) % 100 === 0;
+  })).toBe(true);
+});
+
 test("science uses 100-year major marks and unlabeled 10-year minor marks", async function({ page }) {
   await page.goto("/timeline.html?name=science&title=科学史");
 
@@ -355,6 +367,7 @@ test("science uses 100-year major marks and unlabeled 10-year minor marks", asyn
 
 test("month ruler keeps one density across layouts without clipping", async function({ page }) {
   await page.goto("/timeline.html?name=spectrum&title=光谱史");
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
   await page.evaluate(async function() {
     const timelineModule = await import("/timeline.js");
     const data = {
@@ -427,6 +440,7 @@ test("month ruler keeps one density across layouts without clipping", async func
 
 test("events-only timelines expand the scrollable time axis", async function({ page }) {
   await page.goto("/timeline.html?name=spectrum&title=光谱史");
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
   await page.evaluate(async function() {
     const timelineModule = await import("/timeline.js");
     const data = {
@@ -496,6 +510,54 @@ test("events-only timelines expand the scrollable time axis", async function({ p
     return box && box.y;
   }).toBeGreaterThanOrEqual(0);
   expect((await farEvent.boundingBox()).y).toBeLessThan(await page.evaluate(function() { return window.innerHeight; }));
+});
+
+test("nationalPolicy events use month and day precision", async function({ page }) {
+  const applicationErrors = [];
+  page.on("console", function(message) {
+    if (message.type() === "error") applicationErrors.push(message.text());
+  });
+  await page.goto("/timeline.html?name=nationalPolicy&title=国家政策");
+
+  const events = page.locator("#events .common .text");
+  await expect(events).toHaveCount(6);
+  const november12 = Number(await events.nth(0).getAttribute("x"));
+  const december6 = Number(await events.nth(5).getAttribute("x"));
+  const expectedDifference = 10 + 5 / 31 * 10 - (11 / 30 * 10);
+  expect(december6 - november12).toBeCloseTo(expectedDifference, 6);
+  await expect(events.nth(0).locator("title")).toContainText("2013/11/12");
+  expect(applicationErrors).toEqual([]);
+});
+
+test("slash and dash dates align across every rendered layer", async function({ page }) {
+  await page.goto("/timeline.html?name=spectrum&title=光谱史");
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
+  await page.evaluate(async function() {
+    const timelineModule = await import("/timeline.js");
+    timelineModule.initializeTimeline({
+      config: {
+        start: 2013,
+        axes: { time: { px: 120 } }
+      },
+      periods: [{ name: "测试时期", start: "2013-01-01", end: "2014/01/01" }],
+      events: [{ name: "测试事件", time: "2013-07-01" }],
+      roles: [{
+        name: "测试项",
+        start: "2013/01/01",
+        end: "2014-01-01",
+        keypoints: [{ t: "2013/07/01", w: "年中" }]
+      }]
+    });
+  });
+
+  const periodWidth = Number(await page.locator("#period rect").first().getAttribute("width"));
+  const itemWidth = Number(await page.locator('#content .item[id="测试项"] > rect').getAttribute("width"));
+  const eventX = Number(await page.locator("#events .common .text").getAttribute("x"));
+  const keypointX = Number(await page.locator('#content .item[id="测试项"] .dotBox circle[data-index]').getAttribute("cx"));
+  expect(periodWidth).toBeCloseTo(120, 8);
+  expect(itemWidth).toBeCloseTo(120, 8);
+  expect(eventX).toBeCloseTo(60, 8);
+  expect(keypointX).toBeCloseTo(60, 8);
 });
 
 test("a period-only dataset starts at the exact period boundary", async function({ page }) {

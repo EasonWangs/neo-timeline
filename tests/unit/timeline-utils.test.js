@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   getDatePosition,
+  getDateValue,
+  getFirstRulerTick,
   getMonthRulerSteps,
   getNextSelectionIndex,
   getRulerInterval,
@@ -107,13 +109,42 @@ describe("configuration normalization", function() {
 });
 
 describe("date coordinates", function() {
+  it("auto-detects slash and dash date formats", function() {
+    expect(parseDate("2013/11/12")).toMatchObject({
+      year: 2013,
+      month: 10,
+      day: 12,
+      precision: "day",
+      original: "2013/11/12"
+    });
+    expect(parseDate("2013-11-12")).toMatchObject({
+      year: 2013,
+      month: 10,
+      day: 12,
+      precision: "day",
+      original: "2013-11-12"
+    });
+    expect(parseDate("2018/07")).toMatchObject({ month: 6, day: 1, precision: "month" });
+  });
+
+  it("rejects unsupported or impossible string dates", function() {
+    expect(parseDate("2013年11月12日")).toBeNull();
+    expect(parseDate("2013/11-12")).toBeNull();
+    expect(parseDate("2023-02-29")).toBeNull();
+  });
+
+  it("keeps decimal numeric timeline values", function() {
+    expect(getDateValue(parseDate(-485.4))).toBe(-485.4);
+  });
+
   it("places the first day of the start year at zero", function() {
     expect(getDatePosition(parseDate("2024"), 120, 2024)).toBe(0);
   });
 
   it("includes month and day fractions", function() {
     expect(getDatePosition(parseDate("2024/07/01"), 120, 2024)).toBe(60);
-    expect(getDatePosition(parseDate("2024/01/16"), 120, 2024)).toBe(5);
+    expect(getDatePosition(parseDate("2024-07-01"), 120, 2024)).toBe(60);
+    expect(getDatePosition(parseDate("2024/01/16"), 120, 2024)).toBeCloseTo(15 / 31 * 10, 8);
   });
 
   it("supports years before the configured start", function() {
@@ -197,6 +228,13 @@ describe("ruler intervals", function() {
     expect(isRulerMajor(1295, 20)).toBe(false);
     expect(isRulerMajor(1300, 20)).toBe(true);
     expect(isRulerMajor(-70000, 1000)).toBe(true);
+  });
+
+  it("starts ruler ticks at the next aligned absolute value", function() {
+    expect(getFirstRulerTick(-475, 10)).toBe(-470);
+    expect(getFirstRulerTick(1295, 10)).toBe(1300);
+    expect(getFirstRulerTick(-488.3, 20)).toBe(-480);
+    expect(getFirstRulerTick(-400, 100)).toBe(-400);
   });
 });
 

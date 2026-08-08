@@ -31,16 +31,26 @@ function parseRangeValue(value) {
   if (Number.isFinite(value)) return value;
   if (typeof value !== "string") return NaN;
 
-  const normalized = value.trim();
+  const normalized = value.trim().replace(/^~/, "");
   if (!normalized || normalized === "~") return null;
-  const parts = normalized.replace(/^~/, "").split("/");
-  if (!parts.every((part) => /^-?\d+$/.test(part))) return NaN;
+  const match = normalized.match(/^(-?\d+)(?:([/-])(\d{1,2})(?:\2(\d{1,2}))?)?$/);
+  if (!match) return NaN;
 
-  const year = Number(parts[0]);
-  const month = parts.length > 1 ? Number(parts[1]) : 1;
-  const day = parts.length > 2 ? Number(parts[2]) : 1;
-  if (month < 1 || month > 12 || day < 1 || day > 31) return NaN;
-  return year + (month - 1) / 12 + (day - 1) / (12 * 31);
+  const year = Number(match[1]);
+  const month = match[3] === undefined ? 1 : Number(match[3]);
+  const day = match[4] === undefined ? 1 : Number(match[4]);
+  if (!Number.isInteger(year) || month < 1 || month > 12) return NaN;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  if (!Number.isInteger(day) || day < 1 || day > daysInMonth) return NaN;
+  return year + (month - 1) / 12 + (day - 1) / (12 * daysInMonth);
+}
+
+function validateTimeValue(file, value, pathLabel) {
+  const parsed = parseRangeValue(value);
+  if (!Number.isFinite(parsed)) {
+    report(file, `${pathLabel} 日期格式无效，请使用年份、YYYY/MM[/DD] 或 YYYY-MM[-DD]`);
+  }
 }
 
 function validateRange(file, item, type, index) {
@@ -102,6 +112,17 @@ for (const file of files) {
   } else {
     for (const [index, period] of (data.periods || []).entries()) {
       validateRange(file, period, "时期", index);
+      for (const [pointIndex, point] of (period.keypoints || []).entries()) {
+        validateTimeValue(file, point.t, `时期“${period.name || index + 1}”的 keypoints[${pointIndex}].t`);
+      }
+    }
+  }
+
+  if (data.events != null && !Array.isArray(data.events)) {
+    report(file, "events 必须为数组");
+  } else {
+    for (const [index, event] of (data.events || []).entries()) {
+      validateTimeValue(file, event.time, `events[${index}].time`);
     }
   }
 
@@ -122,6 +143,7 @@ for (const file of files) {
       continue;
     }
     for (const point of role.keypoints || []) {
+      validateTimeValue(file, point.t, `${role.name || "未命名角色"} 的关键点 t`);
       if (point.id) {
         if (ids.has(point.id)) report(file, `关键点 id 重复：${point.id}`);
         ids.add(point.id);

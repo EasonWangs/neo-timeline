@@ -56,19 +56,29 @@ function restoreTimelinePosition(position) {
   const crossOffset = position.layout === axis.layout ? position.crossOffset : 0;
   const left = isVertical ? crossOffset : timeOffset;
   const top = isVertical ? timeOffset : crossOffset;
+  let stableFrames = 0;
+  let attempts = 0;
   const applyPosition = function() {
     window.scrollTo(left, top);
     syncTimelineScroll();
+
+    const reachedTarget = Math.abs(window.scrollX - left) < 1 &&
+      Math.abs(window.scrollY - top) < 1;
+    stableFrames = reachedTarget ? stableFrames + 1 : 0;
+    attempts += 1;
+
+    // 重建 SVG 时，浏览器可能先按临时的 100% 画布钳制滚动位置，随后才应用
+    // resize() 写入的最终尺寸。连续两帧到达目标才算稳定，并用上限避免循环。
+    if (stableFrames >= 2 || attempts >= 8) {
+      restoreScrollFrame = null;
+      return;
+    }
+    restoreScrollFrame = window.requestAnimationFrame(applyPosition);
   };
 
-  // 首次设置覆盖正常浏览器；下一帧再按新 SVG 的最终尺寸校正一次，
-  // 避免大画布重建时 scrollTo 在布局扩展前执行而被钳制到 0。
+  // 立即恢复一次，后续帧由 applyPosition 按布局稳定情况继续校正。
   if (restoreScrollFrame != null) window.cancelAnimationFrame(restoreScrollFrame);
   applyPosition();
-  restoreScrollFrame = window.requestAnimationFrame(function() {
-    restoreScrollFrame = null;
-    applyPosition();
-  });
 }
 
 function rebuildTimeline(layout, density) {

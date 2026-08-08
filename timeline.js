@@ -71,6 +71,18 @@ function drawOrientedLine(board, timePosition, crossStart, crossEnd, layout) {
   return board.line(start.x, start.y, end.x, end.y);
 }
 
+function getTimePosition(value, unitPx) {
+  const date = U.parseDate(value);
+  if (!date) return null;
+  return U.getDatePosition(date, unitPx, state.config.start);
+}
+
+function getElapsedDateLabel(startDate, endDate) {
+  const elapsed = U.getDateValue(endDate) - U.getDateValue(startDate);
+  if (!isFinite(elapsed)) return "";
+  return String(Math.round(elapsed * 100) / 100);
+}
+
 /**
  * 绘制单个方向的时间标尺。
  *
@@ -145,13 +157,15 @@ function drawAxisRuler(options) {
     });
   }
 
-  // i 是相对于 config.start 的时间偏移，每次按最终次刻度间隔向前推进。
-  for (let i = 0; i < options.length / unitPx; i += minor) {
-    // 将时间偏移换算成时间轴上的像素位置。
-    const timePosition = i * unitPx;
+  // 先把第一个刻度对齐到绝对时间值，再换算成相对起点的像素位置。
+  // 例如起点为 -475、次刻度为 10 时，应绘制 -470、-460……，从而经过 -400 主刻度。
+  const firstTick = U.getFirstRulerTick(state.config.start, minor);
+  for (let tickIndex = 0; ; tickIndex += 1) {
+    const timeValue = firstTick + tickIndex * minor;
+    const timePosition = (timeValue - state.config.start) * unitPx;
+    if (timePosition >= options.length) break;
 
     // 能被 major 整除的是主刻度：主刻度贯穿标尺，次刻度只画末端 12px。
-    const timeValue = state.config.start + i;
     // 按绝对年份而不是相对起点判断，确保 1300、1320 这类整值成为主刻度。
     const isMajor = U.isRulerMajor(timeValue, options.major);
     const tickStart = isMajor ? 0 : 18;
@@ -282,6 +296,8 @@ function drawRuler(w, h) {
   const gridMajor = timeAxis.major;
   const gridMinor = timeAxis.minor;
   const unitPx = timeAxis.px;
+  const firstTimeGridOffset = U.getFirstRulerTick(state.config.start, gridMinor) -
+    state.config.start;
 
   // 时间轴方向的粗网格按绝对年份对齐；交叉轴仍从画布原点按相对距离对齐。
   const isMajorGridLine = function(offset, isTimeAxis) {
@@ -289,14 +305,16 @@ function drawRuler(w, h) {
     return U.isRulerMajor(value, gridMajor);
   };
 
-  for (let i = 0; i < w / unitPx; i += gridMinor) {
+  const horizontalGridStart = layout === "h" ? firstTimeGridOffset : 0;
+  for (let i = horizontalGridStart; i < w / unitPx; i += gridMinor) {
     const isMajor = isMajorGridLine(i, layout === "h");
     drawOrientedLine(bgGrid, i * unitPx, 0, "100%", "h").attr({
       stroke: isMajor ? "#f0ebdc" : "#f5f0e0",
       class: isMajor ? "thickLine" : "thinLine"
     });
   }
-  for (let i = 0; i < h / unitPx; i += gridMinor) {
+  const verticalGridStart = layout === "v" ? firstTimeGridOffset : 0;
+  for (let i = verticalGridStart; i < h / unitPx; i += gridMinor) {
     const isMajor = isMajorGridLine(i, layout === "v");
     drawOrientedLine(bgGrid, i * unitPx, 0, "100%", "v").attr({
       stroke: isMajor ? "#f0ebdc" : "#f5f0e0",
@@ -319,10 +337,14 @@ function drawPeriod(pers){
   let p = (state.config.p.padding || 50) * unitPx;
   
   for (var i = 0; i < pers.length; i++) {
+    const startDate = U.parseDate(pers[i].start);
+    const endDate = U.parseDate(pers[i].end);
+    if (!startDate || !endDate) continue;
     const level = pers[i].level || 1;
-    const timePosition = (pers[i].start - state.config.start) * unitPx;
+    const timePosition = U.getDatePosition(startDate, unitPx, state.config.start);
+    const endPosition = U.getDatePosition(endDate, unitPx, state.config.start);
     const crossPosition = 25 + (level - 1) * p;
-    const timeLength = (pers[i].end - pers[i].start) * unitPx;
+    const timeLength = endPosition - timePosition;
     const crossLength = state.config.p.type == "part"
       ? p
       : "calc(100% - "+ crossPosition +"px)";
@@ -402,10 +424,6 @@ function drawPeriod(pers){
         text.transform(matrix);
 
     let desc = "";
-    // 解析日期
-    const startDate = U.parseDate(pers[i].start);
-    const endDate = U.parseDate(pers[i].end);
-    
     // 使用原始日期字符串显示
     desc = U.buildRangeDesc(startDate, endDate);
 
@@ -428,13 +446,15 @@ function drawPeriod(pers){
       });
       
       for(var n = 0; n < points.length; n++){
+        const pointDate = U.parseDate(points[n].t);
+        if (!pointDate) continue;
         // 为每个点创建一个组
         let pointGroup = periodBoard.g().attr({
           class: 'point'
         });
         
         const pointPosition = U.orientPoint(
-          (points[n].t - state.config.start) * unitPx,
+          U.getDatePosition(pointDate, unitPx, state.config.start),
           crossPosition + 35,
           state.config.layout
         );
@@ -475,13 +495,14 @@ function drawEvents(evts, roles){
   // 只处理普通事件
   for (var i = 0; i < evts.length; i++) {
     // 处理普通事件
-    if (evts[i].time) {
+    if (evts[i].time !== undefined && evts[i].time !== null && evts[i].time !== "") {
+      const timePosition = getTimePosition(evts[i].time, unitPx);
+      if (timePosition === null) continue;
       // 为每个事件创建一个组
       var eventGroup = eventsBoard.g().attr({
         class: 'events common'
       });
       
-      const timePosition = (evts[i].time - state.config.start) * unitPx;
       let textCross = 40;
 
       switch(state.config.e.textAnchor){
@@ -1017,7 +1038,7 @@ function computeItemGeometry(item, index, itemSpacing) {
   const unitPx = state.config.axes.time.px;
   let w;
   let h = 2;
-  let x = (item.start - state.config.start) * unitPx;
+  let x = 0;
   let y = (index - state.offset) * itemSpacing + 45;
   const startDate = U.parseDate(item.start);
   const endDate = U.parseDate(item.end);
@@ -1435,6 +1456,7 @@ function renderItemDesc(board, item, itemBox, geometry, name) {
 function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
   if(!points) return;
   const unitPx = state.config.axes.time.px;
+  const itemStartDate = U.parseDate(item.start);
 
   let dotBox = board.g().attr({
     class:'dotBox'
@@ -1446,7 +1468,9 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
   let [x4,y4,x5,y5] = [geometry.x,geometry.y,geometry.x,geometry.y];
   for(let i = points.length - 1; i >= 0; i--){
     let point = points[i];
-    const timePosition = (point.t - state.config.start) * unitPx;
+    const pointDate = U.parseDate(point.t);
+    if (!pointDate) continue;
+    const timePosition = U.getDatePosition(pointDate, unitPx, state.config.start);
     const dotCross = state.config.layout == "v" ? geometry.x : geometry.y;
     const textCross = state.config.layout == "v" ? x5 : y5;
     const dotPosition = U.orientPoint(timePosition, dotCross, state.config.layout);
@@ -1457,8 +1481,9 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
     y5 = textPosition.y;
 
     let desc = String(point.t);
-    if (item.start !== undefined && item.start !== null) {
-      desc += "[" + (point.t - item.start)+ "]";
+    const elapsedLabel = getElapsedDateLabel(itemStartDate, pointDate);
+    if (elapsedLabel) {
+      desc += "[" + elapsedLabel + "]";
     }
     let keypointText = point.w ? U.prependLabelToValue(desc, point.w) : desc;
     let displayLines = point.w ? U.toLines(point.w) : [];
@@ -1477,9 +1502,7 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
       'aria-label': U.toPlainText(keypointText)
     });
 
-    const pointTitle = item.start !== undefined && item.start !== null
-      ? `${point.t}[${point.t - item.start}]`
-      : String(point.t);
+    const pointTitle = elapsedLabel ? `${point.t}[${elapsedLabel}]` : String(point.t);
     const popupContent = U.buildPopupContent({
       title: pointTitle,
       lines: displayLines,
