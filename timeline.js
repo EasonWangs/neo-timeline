@@ -17,6 +17,9 @@ const state = {
   size: null,
   hideAllBound: false,
   popupCloseHandler: null,
+  popupMode: null,
+  popupSource: null,
+  itemTitlePopup: null,
   currentSelection: {
     item: null,
     points: [],
@@ -39,6 +42,13 @@ function removePopup() {
     document.removeEventListener('click', state.popupCloseHandler);
     state.popupCloseHandler = null;
   }
+  state.popupMode = null;
+  state.popupSource = null;
+}
+
+function removeHoverPopup(source) {
+  if (state.popupMode !== 'hover' || state.popupSource !== source) return;
+  removePopup();
 }
 
 function bindHideAllListener() {
@@ -69,8 +79,8 @@ function drawOrientedLine(board, timePosition, crossStart, crossEnd, layout) {
  * 返回创建好的 Snap.svg 标尺对象，以及最终采用的次刻度间隔。
  */
 function drawAxisRuler(options) {
-  // 标尺固定为 30px 厚；layout 只决定厚度落在宽度还是高度上。
-  const thickness = 30;
+  // 标尺固定为 26px 厚；layout 只决定厚度落在宽度还是高度上。
+  const thickness = 26;
   const isVertical = options.layout === "v";
   const unitPx = state.config.axes.time.px;
 
@@ -769,6 +779,10 @@ function drawConnection(board, fromPoint, toPoint, index, name) {
     if (wasActive) return;
 
     g.addClass('active');
+    state.board.addClass('focus');
+    state.board.addClass('focus-item');
+    showConnectionEndpoint(fromDot);
+    showConnectionEndpoint(toDot);
   });
 }
 
@@ -987,6 +1001,41 @@ function appendSvgTitle(element, label) {
   element.node.appendChild(title);
 }
 
+function removeItemTitlePopup() {
+  if (!state.itemTitlePopup) return;
+  state.itemTitlePopup.remove();
+  state.itemTitlePopup = null;
+}
+
+function positionItemTitlePopup(event) {
+  const popup = state.itemTitlePopup;
+  if (!popup) return;
+  const inset = 8;
+  const gap = 10;
+  const rect = popup.getBoundingClientRect();
+  const maxLeft = Math.max(inset, window.innerWidth - rect.width - inset);
+  const maxTop = Math.max(inset, window.innerHeight - rect.height - inset);
+  popup.style.left = `${Math.min(maxLeft, Math.max(inset, event.clientX + gap))}px`;
+  popup.style.top = `${Math.min(maxTop, Math.max(inset, event.clientY + gap))}px`;
+}
+
+function bindItemTitleTooltip(itemBox, label) {
+  if (!itemBox || !itemBox.node || !label) return;
+  itemBox.node.addEventListener('mouseenter', function(event) {
+    removeItemTitlePopup();
+    const popup = document.createElement('div');
+    popup.className = 'item-title-popup';
+    popup.textContent = label;
+    document.body.appendChild(popup);
+    state.itemTitlePopup = popup;
+    positionItemTitlePopup(event);
+  });
+  itemBox.node.addEventListener('mousemove', positionItemTitlePopup);
+  itemBox.node.addEventListener('mouseleave', removeItemTitlePopup);
+  // 捕获阶段先关闭提示，避免子元素 stopPropagation 后提示仍停留在画面上。
+  itemBox.node.addEventListener('click', removeItemTitlePopup, true);
+}
+
 function renderItemIcon(board, item, geometry) {
   const legacyIcon = item.icon === undefined || item.icon === null
     ? ""
@@ -1029,6 +1078,15 @@ function renderItemIcon(board, item, geometry) {
   return null;
 }
 
+function toggleItemDetails(itemBox, event) {
+  if (itemBox.hasClass("show")) {
+    hide(itemBox);
+  } else {
+    show(itemBox);
+  }
+  event.stopPropagation();
+}
+
 function renderItemHeader(board, item, itemBox, color, geometry) {
   let x1 = geometry.x;
   let y1 = geometry.y - 3;
@@ -1041,13 +1099,7 @@ function renderItemHeader(board, item, itemBox, color, geometry) {
     style: "text-shadow: 1px 1px "+ color + ", -1px -1px "+ color
   });
   name.click(function(e){
-    let parent = this.parent();
-    if(parent.hasClass("show")){
-      hide(parent);
-    }else{
-      show(parent);
-    }
-    e.stopPropagation();
+    toggleItemDetails(itemBox, e);
   });
   itemBox.add(name);
 
@@ -1133,7 +1185,6 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
     let keypointText = point.w ? U.prependLabelToValue(desc, point.w) : desc;
     let displayLines = point.w ? U.toLines(point.w) : [];
 
-    let title = Snap.parse('<title>'+U.toPlainText(keypointText)+'</title>');
     // 关键点本身保持 4px 大小，用透明圆将触控命中区扩展到 20px。
     let hitDot = board.circle(x4, y4, 10).attr({
       class: "keypoint-hit"
@@ -1144,31 +1195,52 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
       strokeWidth: 1,
       id: point.id || '',
       'data-index': i,
-      'data-time': point.t
+      'data-time': point.t,
+      'aria-label': U.toPlainText(keypointText)
     });
-    dot.append(title);
 
-    function selectKeypoint(e) {
-      show(dot.parent().parent(), i);
+    const pointTitle = item.start !== undefined && item.start !== null
+      ? `${point.t}[${point.t - item.start}]`
+      : String(point.t);
+    const popupContent = U.buildPopupContent({
+      title: pointTitle,
+      lines: displayLines,
+      meta: point.id ? `ID: ${point.id}` : ""
+    });
 
+    function showKeypointPopup(mode) {
+      removeItemTitlePopup();
       const pt = dot.node.ownerSVGElement.createSVGPoint();
       pt.x = dot.attr('cx');
       pt.y = dot.attr('cy');
       const ctm = dot.node.getScreenCTM();
       const globalPt = pt.matrixTransform(ctm);
+      createPopup(globalPt.x, globalPt.y, popupContent, {
+        mode,
+        source: dot.node
+      });
+    }
 
-      const pointTitle = item.start !== undefined && item.start !== null
-        ? `${point.t}[${point.t - item.start}]`
-        : String(point.t);
-      createPopup(globalPt.x, globalPt.y, U.buildPopupContent({
-        title: pointTitle,
-        lines: displayLines,
-        meta: point.id ? `ID: ${point.id}` : ""
-      }));
+    function hoverKeypoint() {
+      showKeypointPopup('hover');
+    }
+
+    function leaveKeypoint(event) {
+      if (event.relatedTarget === hitDot.node || event.relatedTarget === dot.node) return;
+      removeHoverPopup(dot.node);
+    }
+
+    function selectKeypoint(e) {
+      show(dot.parent().parent(), i);
+      removePopup();
 
       e.stopPropagation();
     }
 
+    [hitDot.node, dot.node].forEach(function(node) {
+      node.addEventListener('mouseenter', hoverKeypoint);
+      node.addEventListener('mouseleave', leaveKeypoint);
+    });
     hitDot.click(selectKeypoint);
     dot.click(selectKeypoint);
     dotBox.add(hitDot);
@@ -1225,6 +1297,8 @@ function drawItem(board, item, i, color, points) {
     class:"item",
     id: item.id || item.name
   });
+  const itemTitle = [item.name, ...U.toLines(item.title)].filter(Boolean).join("\n");
+  bindItemTitleTooltip(itemBox, itemTitle);
 
   if(item.offset) {
     state.offset += item.offset;
@@ -1235,6 +1309,9 @@ function drawItem(board, item, i, color, points) {
 
   let rect = board.rect(geometry.x, geometry.y, geometry.w, geometry.h, 2).attr({
     fill: geometry.fill
+  });
+  rect.click(function(e) {
+    toggleItemDetails(itemBox, e);
   });
   itemBox.add(rect);
 
@@ -1333,7 +1410,7 @@ function resize(){
 }
 
 // 悬浮窗渲染
-function createPopup(x, y, content) {
+function createPopup(x, y, content, options = {}) {
   // 输入: 鼠标坐标与结构化文本内容
   // 处理: 构建安全文本节点并绑定关闭行为
   // 输出: 页面上一个可关闭的悬浮窗
@@ -1341,7 +1418,12 @@ function createPopup(x, y, content) {
 
   // 创建悬浮窗元素
   const popup = document.createElement('div');
-  popup.className = 'connection-popup';
+  const mode = options.mode === 'hover' ? 'hover' : 'pinned';
+  popup.className = mode === 'hover'
+    ? 'connection-popup is-hover'
+    : 'connection-popup';
+  state.popupMode = mode;
+  state.popupSource = options.source || null;
   
   popup.style.left = `${x + 5}px`;
   popup.style.top = `${y + 5}px`;
@@ -1376,29 +1458,32 @@ function createPopup(x, y, content) {
     popup.appendChild(textNode);
   }
 
-  // 添加关闭按钮
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'connection-popup__close';
-  closeBtn.setAttribute('aria-label', '关闭说明');
-  closeBtn.textContent = '×';
-  closeBtn.onclick = () => removePopup();
-  popup.appendChild(closeBtn);
+  if (mode === 'pinned') {
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'connection-popup__close';
+    closeBtn.setAttribute('aria-label', '关闭说明');
+    closeBtn.textContent = '×';
+    closeBtn.onclick = () => removePopup();
+    popup.appendChild(closeBtn);
+  }
 
   // 添加到文档中
   document.body.appendChild(popup);
 
-  popup.addEventListener('click', function(e) {
-    e.stopPropagation();
-  });
+  if (mode === 'pinned') {
+    popup.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
 
-  // 点击空白处关闭悬浮窗
-  state.popupCloseHandler = function closePopup(e) {
-    if (!popup.contains(e.target) && !e.target.closest('.connection')) {
-      removePopup();
-    }
-  };
-  document.addEventListener('click', state.popupCloseHandler);
+    // 点击空白处关闭固定悬浮窗；临时悬浮窗由关键点 mouseleave 关闭。
+    state.popupCloseHandler = function closePopup(e) {
+      if (!popup.contains(e.target) && !e.target.closest('.connection')) {
+        removePopup();
+      }
+    };
+    document.addEventListener('click', state.popupCloseHandler);
+  }
 
   // 同时限制四个方向，避免手机窄屏或长说明把弹窗推出可视区域。
   const rect = popup.getBoundingClientRect();
@@ -1414,6 +1499,19 @@ function createPopup(x, y, content) {
 
 
 // 修改 show 函数，记录选中状态
+function showConnectionEndpoint(dot) {
+  if (!dot) return;
+  const item = dot.parent().parent();
+  const pointIndex = Number(dot.attr('data-index'));
+  const pointNodes = item.selectAll('.contGroup').items;
+  const pointNode = Number.isInteger(pointIndex)
+    ? pointNodes[pointNodes.length - pointIndex - 1]
+    : null;
+
+  item.addClass('show');
+  if (pointNode) pointNode.addClass('connection-point');
+}
+
 function show(that, i) {
   const pointIndex = i === undefined || i === null || i === "" ? -1 : Number(i);
   let pointNode = that.selectAll(".contGroup").items,
@@ -1453,6 +1551,9 @@ function hide(node) {
   node.selectAll(".currPoint").forEach(function(activePoint) {
     activePoint.removeClass('currPoint');
   });
+  node.selectAll(".connection-point").forEach(function(activePoint) {
+    activePoint.removeClass('connection-point');
+  });
   removePopup();
 
   if (!state.board || state.board.selectAll(".show").items.length > 0) return;
@@ -1474,6 +1575,9 @@ function hideAll() {
   });
   state.board.selectAll(".currPoint").forEach(function(activeConn) {
     activeConn.removeClass('currPoint');
+  });
+  state.board.selectAll(".connection-point").forEach(function(activeConn) {
+    activeConn.removeClass('connection-point');
   });
   state.board.selectAll('.connection.active').forEach(function(activeConn) {
     activeConn.removeClass('active');
@@ -1611,6 +1715,7 @@ function createTimelineConfig(data, options = {}) {
 
 function resetTimeline() {
   removePopup();
+  removeItemTitlePopup();
   document.removeEventListener('keydown', handleKeyNavigation);
 
   const wrapper = $id("wapper");

@@ -8,10 +8,14 @@ test("arrow navigation keeps only the current keypoint visible", async function(
   }).first();
   await item.locator('.dotBox circle[data-index="0"]').click({ force: true });
   await expect(page.locator("#content .currPoint")).toHaveCount(1);
+  await expect(page.locator("#content .currPoint")).toHaveCSS("display", "block");
+  await expect(page.locator(".connection-popup")).toHaveCount(0);
 
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
   await expect(page.locator("#content .currPoint")).toHaveCount(1);
+  await expect(page.locator("#content .currPoint")).toHaveCSS("display", "block");
+  await expect(page.locator(".connection-popup")).toHaveCount(0);
 });
 
 test("arrow navigation wraps back to the first keypoint", async function({ page }) {
@@ -24,17 +28,90 @@ test("arrow navigation wraps back to the first keypoint", async function({ page 
   const pointCount = await dots.count();
 
   await item.locator('.dotBox circle[data-index="0"]').click({ force: true });
-  const firstPopupText = await page.locator(".connection-popup").textContent();
+  const firstDetailText = await page.locator("#content .currPoint").textContent();
 
   for (let index = 0; index < pointCount; index += 1) {
     await page.keyboard.press("ArrowRight");
   }
 
-  await expect(page.locator(".connection-popup")).toHaveText(firstPopupText);
+  await expect(page.locator("#content .currPoint")).toHaveText(firstDetailText);
   await expect(page.locator("#content .currPoint")).toHaveCount(1);
+  await expect(page.locator(".connection-popup")).toHaveCount(0);
 });
 
-test("mobile controls and keypoint details stay inside the viewport", async function({ page }) {
+test("keypoint shows a temporary popup immediately on hover", async function({ page }) {
+  await page.goto("/timeline.html?name=ming&title=明朝");
+
+  const keypoint = page.locator("#content .keypoint-hit").first();
+  await keypoint.hover({ force: true });
+  await expect(page.locator(".connection-popup.is-hover")).toBeVisible();
+  await expect(page.locator("#content .currPoint")).toHaveCount(0);
+
+  await page.mouse.move(0, 0);
+  await expect(page.locator(".connection-popup")).toHaveCount(0);
+
+  await keypoint.click({ force: true });
+  await expect(page.locator(".connection-popup")).toHaveCount(0);
+  await expect(page.locator("#content .currPoint")).toHaveCSS("display", "block");
+});
+
+test("connection reveals both endpoint items and their point details", async function({ page }) {
+  await page.goto("/timeline.html?name=newton&title=牛顿时代");
+
+  const connection = page.locator("#content .connection").first();
+  const fromRole = await connection.getAttribute("data-from-role");
+  const toRole = await connection.getAttribute("data-to-role");
+  const clickConnection = async function() {
+    const point = await connection.locator(".connection-hit").evaluate(function(path) {
+      const localPoint = path.getPointAtLength(path.getTotalLength() / 2);
+      const screenPoint = localPoint.matrixTransform(path.getScreenCTM());
+      return { x: screenPoint.x, y: screenPoint.y };
+    });
+    await page.mouse.click(point.x, point.y);
+  };
+  await clickConnection();
+
+  await expect(connection).toHaveClass(/active/);
+  await expect(page.locator("#content .item.show")).toHaveCount(2);
+  await expect(page.locator("#content .connection-point")).toHaveCount(2);
+  const visibleRoles = await page.locator("#content .item.show").evaluateAll(function(items) {
+    return items.map(function(item) { return item.id; });
+  });
+  expect(visibleRoles).toEqual(expect.arrayContaining([fromRole, toRole]));
+  for (const detail of await page.locator("#content .connection-point").all()) {
+    await expect(detail).toHaveCSS("display", "block");
+  }
+
+  await clickConnection();
+  await expect(connection).not.toHaveClass(/active/);
+  await expect(page.locator("#content .item.show")).toHaveCount(0);
+  await expect(page.locator("#content .connection-point")).toHaveCount(0);
+});
+
+test("item exposes its configured title immediately on hover", async function({ page }) {
+  await page.goto("/timeline.html?name=zhou&title=周朝");
+
+  const item = page.locator('#content .item[id="秦国"]');
+  await item.locator(".name").hover({ force: true });
+  const tooltip = page.locator(".item-title-popup");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("秦国");
+  await expect(tooltip).toContainText("王（前325年起自称）");
+
+  await item.locator(".name").click({ force: true });
+  await expect(tooltip).toHaveCount(0);
+  await expect(item.locator(".descBox")).toHaveCSS("display", "block");
+  await expect(item.locator(".descBox")).not.toContainText("王（前325年起自称）");
+
+  const itemRect = item.locator(":scope > rect");
+  await itemRect.click({ force: true });
+  await expect(item).not.toHaveClass(/show/);
+  await itemRect.click({ force: true });
+  await expect(item).toHaveClass(/show/);
+  await expect(item.locator(".descBox")).toHaveCSS("display", "block");
+});
+
+test("mobile controls and keypoint selection remain usable", async function({ page }) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/timeline.html?name=ming&title=明朝");
 
@@ -58,17 +135,11 @@ test("mobile controls and keypoint details stay inside the viewport", async func
   await keypointHit.scrollIntoViewIfNeeded();
   await keypointHit.click({ force: true, position: { x: 18, y: 10 } });
 
-  const popup = page.locator(".connection-popup");
-  await expect(popup).toBeVisible();
-  const popupBox = await popup.boundingBox();
-  expect(popupBox).not.toBeNull();
-  expect(popupBox.x).toBeGreaterThanOrEqual(0);
-  expect(popupBox.y).toBeGreaterThanOrEqual(0);
-  expect(popupBox.x + popupBox.width).toBeLessThanOrEqual(390);
-  expect(popupBox.y + popupBox.height).toBeLessThanOrEqual(844);
+  await expect(page.locator(".connection-popup")).toHaveCount(0);
+  await expect(page.locator("#content .currPoint")).toHaveCSS("display", "block");
 });
 
-test("zoom always rerenders time density around the same centered year", async function({ page }) {
+test("zoom rerenders time density from the left edge", async function({ page }) {
   await page.goto("/timeline.html?name=ming&title=明朝");
   await expect(page.locator("#zoom-value")).toHaveText("100%");
 
@@ -76,7 +147,7 @@ test("zoom always rerenders time density around the same centered year", async f
   await page.evaluate(function() { window.scrollTo(600, 0); });
   await expect.poll(function() { return page.evaluate(function() { return window.scrollX; }); }).toBe(600);
 
-  const getCenteredYear = function() {
+  const getLeftEdgeYear = function() {
     return page.locator("#ruler-h").evaluate(function(ruler) {
       const labels = Array.from(ruler.querySelectorAll("text"), function(text) {
         return {
@@ -88,7 +159,7 @@ test("zoom always rerenders time density around the same centered year", async f
       });
       const first = labels[0];
       const last = labels[labels.length - 1];
-      return first.year + (window.innerWidth / 2 - first.x) *
+      return first.year + (0 - first.x) *
         (last.year - first.year) / (last.x - first.x);
     });
   };
@@ -101,17 +172,17 @@ test("zoom always rerenders time density around the same centered year", async f
     });
   };
 
-  const centeredYearBefore = await getCenteredYear();
+  const leftEdgeYearBefore = await getLeftEdgeYear();
   const majorSpacingAt100 = await getMajorSpacing();
   await page.locator("#zoom-in").click();
   await expect(page.locator("#zoom-value")).toHaveText("125%");
   const boardWidthAfter = Number(await page.locator("#content").getAttribute("width"));
-  const centeredYearAfter = await getCenteredYear();
+  const leftEdgeYearAfter = await getLeftEdgeYear();
   const majorSpacingAt125 = await getMajorSpacing();
 
   expect(boardWidthAfter).toBeGreaterThan(boardWidthAt100 * 1.1);
   expect(majorSpacingAt125).toBeCloseTo(majorSpacingAt100 * 1.25, 5);
-  expect(Math.abs(centeredYearAfter - centeredYearBefore)).toBeLessThan(1);
+  expect(Math.abs(leftEdgeYearAfter - leftEdgeYearBefore)).toBeLessThan(1);
 
   await page.locator("#zoom-in").click();
   await expect(page.locator("#zoom-value")).toHaveText("150%");
@@ -124,7 +195,7 @@ test("resize keeps only the ruler for the active layout", async function({ page 
   await page.goto("/timeline.html?name=ming&title=明朝");
   await expect(page.locator("#ruler-h text").first()).toHaveText("1300");
   await expect(page.locator("#ruler-h")).toHaveCount(1);
-  await expect(page.locator("#ruler-h")).toHaveAttribute("height", "30");
+  await expect(page.locator("#ruler-h")).toHaveAttribute("height", "26");
   await expect(page.locator("#ruler-v")).toHaveCount(0);
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -134,7 +205,7 @@ test("resize keeps only the ruler for the active layout", async function({ page 
   await page.locator("#timeline-layout").click();
   await expect(page.locator("#ruler-h")).toHaveCount(0);
   await expect(page.locator("#ruler-v")).toHaveCount(1);
-  await expect(page.locator("#ruler-v")).toHaveAttribute("width", "30");
+  await expect(page.locator("#ruler-v")).toHaveAttribute("width", "26");
 
   await page.setViewportSize({ width: 844, height: 390 });
   await expect(page.locator("#ruler-h")).toHaveCount(0);

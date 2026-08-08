@@ -247,30 +247,26 @@
     }
   }
 
-  // 将当前滚动位置换算为视口中心对应的时间值，供重绘前保存阅读位置。
-  export function getViewportCenterTime(start, unitPx, scrollOffset, viewportSize) {
+  // 将当前滚动位置换算为视口起始边缘对应的时间值，供重绘前保存阅读位置。
+  export function getViewportStartTime(start, unitPx, scrollOffset) {
     var origin = Number(start);
     var pixels = Number(unitPx);
     var scroll = Number(scrollOffset);
-    var viewport = Number(viewportSize);
     if (!isFinite(origin)) origin = 0;
     if (!isFinite(pixels) || pixels <= 0) pixels = 1;
     if (!isFinite(scroll) || scroll < 0) scroll = 0;
-    if (!isFinite(viewport) || viewport < 0) viewport = 0;
-    return origin + (scroll + viewport / 2) / pixels;
+    return origin + scroll / pixels;
   }
 
-  // 根据目标时间值计算重绘后的滚动位置，使同一年份继续位于视口中心。
-  export function getScrollOffsetForTime(time, start, unitPx, viewportSize) {
+  // 根据目标时间值计算重绘后的滚动位置，使同一年份继续贴住视口起始边缘。
+  export function getScrollOffsetForTime(time, start, unitPx) {
     var target = Number(time);
     var origin = Number(start);
     var pixels = Number(unitPx);
-    var viewport = Number(viewportSize);
     if (!isFinite(target)) target = 0;
     if (!isFinite(origin)) origin = 0;
     if (!isFinite(pixels) || pixels <= 0) pixels = 1;
-    if (!isFinite(viewport) || viewport < 0) viewport = 0;
-    return Math.max(0, (target - origin) * pixels - viewport / 2);
+    return Math.max(0, (target - origin) * pixels);
   }
 
   export function getRulerInterval(mainInterval, unitPx, minSpace, configuredInterval) {

@@ -2,7 +2,7 @@ import JSON5 from "json5";
 import { exportTimelinePng } from "./timeline-actions.js";
 import { createTimelineToolbar } from "./timeline-toolbar.js";
 import { initializeTimeline, syncTimelineScroll } from "./timeline.js";
-import { getScrollOffsetForTime, getViewportCenterTime } from "./timeline-utils.js";
+import { getScrollOffsetForTime, getViewportStartTime } from "./timeline-utils.js";
 import "./timeline.css";
 
 const datasetLoaders = import.meta.glob("./data/*.json5", {
@@ -30,15 +30,13 @@ function captureTimelinePosition() {
   const axis = snapshot.timeAxis;
   const isVertical = axis.layout === "v";
   const scrollOffset = isVertical ? window.scrollY : window.scrollX;
-  const viewportSize = isVertical ? window.innerHeight : window.innerWidth;
   return {
     layout: axis.layout,
     crossOffset: isVertical ? window.scrollX : window.scrollY,
-    time: getViewportCenterTime(
+    time: getViewportStartTime(
       axis.start,
       axis.px,
-      scrollOffset,
-      viewportSize
+      scrollOffset
     )
   };
 }
@@ -48,12 +46,10 @@ function restoreTimelinePosition(position) {
   const snapshot = timeline.getSnapshot();
   const axis = snapshot.timeAxis;
   const isVertical = axis.layout === "v";
-  const viewportSize = isVertical ? window.innerHeight : window.innerWidth;
   const timeOffset = getScrollOffsetForTime(
     position.time,
     axis.start,
-    axis.px,
-    viewportSize
+    axis.px
   );
   // 同方向重绘时保留交叉轴位置；横纵切换时交叉轴从起点开始，避免沿用旧时间滚动值。
   const crossOffset = position.layout === axis.layout ? position.crossOffset : 0;

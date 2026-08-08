@@ -5,7 +5,7 @@ import {
   getRulerInterval,
   getRulerIntervals,
   getScrollOffsetForTime,
-  getViewportCenterTime,
+  getViewportStartTime,
   inferTimelineStart,
   isRulerMajor,
   normalizeConfig,
@@ -126,15 +126,15 @@ describe("date coordinates", function() {
 });
 
 describe("time-density viewport position", function() {
-  it("keeps the same time value centered after density changes", function() {
-    const centeredTime = getViewportCenterTime(100, 5, 500, 1000);
-    expect(centeredTime).toBe(300);
-    expect(getScrollOffsetForTime(centeredTime, 90, 10, 1000)).toBe(1600);
+  it("keeps the same time value at the viewport start after density changes", function() {
+    const startTime = getViewportStartTime(100, 5, 500);
+    expect(startTime).toBe(200);
+    expect(getScrollOffsetForTime(startTime, 90, 10)).toBe(1100);
   });
 
   it("falls back safely for invalid dimensions", function() {
-    expect(getViewportCenterTime(100, 0, -1, -1)).toBe(100);
-    expect(getScrollOffsetForTime(100, 100, 0, -1)).toBe(0);
+    expect(getViewportStartTime(100, 0, -1)).toBe(100);
+    expect(getScrollOffsetForTime(100, 100, 0)).toBe(0);
   });
 });
 
