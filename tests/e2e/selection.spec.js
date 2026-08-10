@@ -12,22 +12,25 @@ async function dragBy(page, locator, deltaX, deltaY) {
   await page.mouse.up();
 }
 
-test("arrow navigation keeps only the current keypoint visible", async function({ page }) {
+test("arrow navigation switches the keypoint tooltip without showing contGroup", async function({ page }) {
   await page.goto("/timeline.html?name=ming&title=明朝");
 
   const item = page.locator("#content .item").filter({
     has: page.locator('.dotBox circle[data-index="2"]')
   }).first();
   await item.locator('.dotBox circle[data-index="0"]').click({ force: true });
-  await expect(page.locator("#content .currPoint")).toHaveCount(1);
-  await expect(page.locator("#content .currPoint")).toHaveCSS("display", "block");
-  await expect(page.locator(".connection-popup")).toHaveCount(0);
+  const popup = page.locator(".connection-popup");
+  await expect(popup).toBeVisible();
+  const firstTooltipText = await popup.textContent();
+  await expect(page.locator("#content .currPoint")).toHaveCount(0);
+  for (const detail of await item.locator(".contGroup").all()) {
+    await expect(detail).toHaveCSS("display", "none");
+  }
 
   await page.keyboard.press("ArrowRight");
-  await page.keyboard.press("ArrowRight");
-  await expect(page.locator("#content .currPoint")).toHaveCount(1);
-  await expect(page.locator("#content .currPoint")).toHaveCSS("display", "block");
-  await expect(page.locator(".connection-popup")).toHaveCount(0);
+  await expect(popup).toBeVisible();
+  await expect(popup).not.toHaveText(firstTooltipText);
+  await expect(page.locator("#content .currPoint")).toHaveCount(0);
 });
 
 test("arrow navigation wraps back to the first keypoint", async function({ page }) {
@@ -40,15 +43,15 @@ test("arrow navigation wraps back to the first keypoint", async function({ page 
   const pointCount = await dots.count();
 
   await item.locator('.dotBox circle[data-index="0"]').click({ force: true });
-  const firstDetailText = await page.locator("#content .currPoint").textContent();
+  const popup = page.locator(".connection-popup");
+  const firstTooltipText = await popup.textContent();
 
   for (let index = 0; index < pointCount; index += 1) {
     await page.keyboard.press("ArrowRight");
   }
 
-  await expect(page.locator("#content .currPoint")).toHaveText(firstDetailText);
-  await expect(page.locator("#content .currPoint")).toHaveCount(1);
-  await expect(page.locator(".connection-popup")).toHaveCount(0);
+  await expect(popup).toHaveText(firstTooltipText);
+  await expect(page.locator("#content .currPoint")).toHaveCount(0);
 });
 
 test("keypoint shows a temporary popup immediately on hover", async function({ page }) {
@@ -63,8 +66,26 @@ test("keypoint shows a temporary popup immediately on hover", async function({ p
   await expect(page.locator(".connection-popup")).toHaveCount(0);
 
   await keypoint.click({ force: true });
+  const pinnedPopup = page.locator(".connection-popup:not(.is-hover)");
+  await expect(pinnedPopup).toBeVisible();
+  const pinnedText = await pinnedPopup.textContent();
+  await expect(page.locator("#content .currPoint")).toHaveCount(0);
+  const item = keypoint.locator("xpath=ancestor::*[contains(@class, 'item')]");
+  for (const detail of await item.locator(".contGroup").all()) {
+    await expect(detail).toHaveCSS("display", "none");
+  }
+
+  // 固定 tooltip 不应被随后经过的关键点替换，移出后仍保持显示。
+  await page.locator("#content .keypoint-hit").nth(1).hover({ force: true });
+  await page.mouse.move(0, 0);
+  await expect(pinnedPopup).toBeVisible();
+  await expect(pinnedPopup).toHaveText(pinnedText);
+
+  await item.locator(".name").click({ force: true });
   await expect(page.locator(".connection-popup")).toHaveCount(0);
-  await expect(page.locator("#content .currPoint")).toHaveCSS("display", "block");
+  for (const detail of await item.locator(".contGroup").all()) {
+    await expect(detail).toHaveCSS("display", "block");
+  }
 });
 
 test("connection reveals both endpoint items and their point details", async function({ page }) {
@@ -116,6 +137,9 @@ test("item exposes its description immediately on hover", async function({ page 
   const descBox = item.locator(".descBox");
   const descBorder = item.locator(".desc-border");
   await expect(descBox).toHaveCSS("display", "block");
+  for (const detail of await item.locator(".contGroup").all()) {
+    await expect(detail).toHaveCSS("display", "block");
+  }
   await expect(descBox).toContainText("王（前325年起自称）");
   await expect(descBorder).toHaveCSS("display", "block");
   const borderGeometry = await item.evaluate(function(node) {
@@ -418,8 +442,8 @@ test("mobile controls and keypoint selection remain usable", async function({ pa
   await keypointHit.scrollIntoViewIfNeeded();
   await keypointHit.click({ force: true, position: { x: 18, y: 10 } });
 
-  await expect(page.locator(".connection-popup")).toHaveCount(0);
-  await expect(page.locator("#content .currPoint")).toHaveCSS("display", "block");
+  await expect(page.locator(".connection-popup:not(.is-hover)")).toBeVisible();
+  await expect(page.locator("#content .currPoint")).toHaveCount(0);
 });
 
 test("zoom rerenders time density from the left edge", async function({ page }) {
@@ -761,16 +785,15 @@ test("automatic start leaves room for the earliest visible group", async functio
   expect(Math.min(...groupStarts)).toBeGreaterThanOrEqual(0);
 });
 
-test("an absolute period layer stays aligned with the ruler while scrolling", async function({ page }) {
+test("a group-bound period stays aligned with the ruler while scrolling", async function({ page }) {
   await page.goto("/timeline.html?name=civilization&title=文明史");
-  const period = page.locator("#period");
-  await expect(period).toHaveCSS("position", "absolute");
+  await expect(page.locator("#content .group-period").first()).toBeVisible();
 
   const getPositions = function() {
     return page.evaluate(function() {
       return {
         scrollX: window.scrollX,
-        period: document.querySelector("#period rect").getBoundingClientRect().left,
+        period: document.querySelector("#content .group-period rect").getBoundingClientRect().left,
         ruler: document.querySelector("#ruler-h text").getBoundingClientRect().left
       };
     });

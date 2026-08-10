@@ -1073,8 +1073,6 @@ function handleKeyNavigation(e) {
   const currentDot = points.find(dot => Number(dot.attr('data-index')) === newIndex);
   if (!currentDot) return;
 
-  state.currentSelection.currentIndex = newIndex;
-
   // 创建并触发点击事件
   const pt = currentDot.node.ownerSVGElement.createSVGPoint();
   pt.x = currentDot.attr('cx');
@@ -1094,10 +1092,6 @@ function handleKeyNavigation(e) {
   });
 
   currentDot.node.dispatchEvent(clickEvent);
-  // 键盘切换会改变说明节点的显隐，浏览器可能因此对鼠标下方的旧关键点
-  // 补发 mouseenter。下一帧再清一次，确保键盘导航只显示 contBox。
-  removePopup();
-  requestAnimationFrame(removePopup);
 }
 
 function computeItemGeometry(item, index, itemSpacing) {
@@ -1262,11 +1256,10 @@ function toggleItemDetails(itemBox, event) {
     event.stopPropagation();
     return;
   }
-  if (itemBox.hasClass("show")) {
-    hide(itemBox);
-  } else {
-    show(itemBox);
-  }
+  const wasShown = itemBox.hasClass("show");
+  // item 展开与关键点 tooltip 是互斥模式，切换前先清理旧选择和弹窗。
+  hideAll();
+  if (!wasShown) showItemDetails(itemBox);
   event.stopPropagation();
 }
 
@@ -1614,6 +1607,9 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
     }
 
     function hoverKeypoint() {
+      // 点击产生的固定 tooltip 优先级更高；鼠标经过其他关键点时不能将其
+      // 替换成临时 tooltip，否则移出关键点后固定内容也会一起消失。
+      if (state.popupMode === 'pinned') return;
       showKeypointPopup('hover');
     }
 
@@ -1623,9 +1619,16 @@ function renderKeypoints(board, item, itemBox, points, itemSpacing, geometry) {
     }
 
     function selectKeypoint(e) {
-      show(dot.parent().parent(), i);
-      removePopup();
-
+      // 关键点只负责 tooltip 与键盘导航，不展开 item 内的 contGroup。
+      hideAll();
+      const dots = itemBox.selectAll(".dotBox circle[data-index]").items;
+      state.currentSelection = {
+        item: itemBox,
+        points: dots,
+        currentIndex: i
+      };
+      document.addEventListener('keydown', handleKeyNavigation);
+      showKeypointPopup('pinned');
       e.stopPropagation();
     }
 
@@ -1932,7 +1935,7 @@ function createPopup(x, y, content, options = {}) {
 
 
 
-// 修改 show 函数，记录选中状态
+// 关联线只显示两个端点对应的说明，不展开其余关键点。
 function showConnectionEndpoint(dot) {
   if (!dot) return;
   const item = dot.parent().parent();
@@ -1946,58 +1949,11 @@ function showConnectionEndpoint(dot) {
   if (pointNode) pointNode.addClass('connection-point');
 }
 
-function show(that, i) {
-  const pointIndex = i === undefined || i === null || i === "" ? -1 : Number(i);
-  let pointNode = that.selectAll(".contGroup").items,
-      len = pointNode.length;
-  const hasPoint = Number.isInteger(pointIndex) && pointIndex >= 0 && pointIndex < len;
-  const currPoint = hasPoint ? pointNode[len - pointIndex - 1] : null;
-
-  state.board.selectAll(".currPoint").forEach(function(activePoint) {
-    activePoint.removeClass("currPoint");
-  });
-
+// item 点击展开全部 contGroup；关键点交互不再经过这里。
+function showItemDetails(that) {
   state.board.addClass("focus");
-  if(hasPoint) { // 显示指定关键点
-    state.board.addClass("focus-item");
-    if(currPoint) currPoint.addClass('currPoint');
-  }else{
-    state.board.removeClass("focus-item");
-  }
+  state.board.removeClass("focus-item");
   that.addClass("show");
-
-  // 记录当前选中的 item 和它的关键点
-  // 透明的 keypoint-hit 只负责扩大点击区域，不应计入键盘导航的关键点数量。
-  const dots = that.selectAll(".dotBox circle[data-index]").items;
-  if (dots && dots.length > 0) {
-    state.currentSelection.item = that;
-    state.currentSelection.points = dots;
-    state.currentSelection.currentIndex = hasPoint ? pointIndex : -1;
-    
-    // 添加键盘事件监听器
-    document.addEventListener('keydown', handleKeyNavigation);
-  }
-}
-
-function hide(node) {
-  if (!node) return;
-  node.removeClass("show");
-  node.selectAll(".currPoint").forEach(function(activePoint) {
-    activePoint.removeClass('currPoint');
-  });
-  node.selectAll(".connection-point").forEach(function(activePoint) {
-    activePoint.removeClass('connection-point');
-  });
-  removePopup();
-
-  if (!state.board || state.board.selectAll(".show").items.length > 0) return;
-  state.board.removeClass("focus focus-item");
-  state.currentSelection = {
-    item: null,
-    points: [],
-    currentIndex: -1
-  };
-  document.removeEventListener('keydown', handleKeyNavigation);
 }
 
 // 修改 hideAll 函数，清除选中状态
@@ -2006,9 +1962,6 @@ function hideAll() {
   state.board.removeClass("focus focus-item");
   state.board.selectAll(".show").forEach(function(activeConn) {
     activeConn.removeClass('show');
-  });
-  state.board.selectAll(".currPoint").forEach(function(activeConn) {
-    activeConn.removeClass('currPoint');
   });
   state.board.selectAll(".connection-point").forEach(function(activeConn) {
     activeConn.removeClass('connection-point');

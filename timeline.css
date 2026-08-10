@@ -192,7 +192,6 @@ height:100%;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
-.item .currPoint .keypoint-guide,
 .item .connection-point .keypoint-guide{
   stroke: #c55743;
   stroke-width: 1;
@@ -231,10 +230,6 @@ height:100%;
 }
 
 .content.focus-item .item .connection-point{
-  display: block;
-}
-
-.content.focus-item .item .currPoint{
   display: block;
 }
 

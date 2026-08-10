@@ -68,8 +68,9 @@ function restoreTimelinePosition(position) {
     attempts += 1;
 
     // 重建 SVG 时，浏览器可能先按临时的 100% 画布钳制滚动位置，随后才应用
-    // resize() 写入的最终尺寸。连续两帧到达目标才算稳定，并用上限避免循环。
-    if (stableFrames >= 2 || attempts >= 8) {
+    // resize() 写入的最终尺寸。完整浏览器回归较忙时可能超过 8 帧才完成布局，
+    // 连续两帧到达目标才算稳定，同时保留 30 帧上限避免无休止校正。
+    if (stableFrames >= 2 || attempts >= 30) {
       restoreScrollFrame = null;
       return;
     }
