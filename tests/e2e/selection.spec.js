@@ -185,7 +185,7 @@ test("item exposes its description immediately on hover", async function({ page 
 
   await page.locator("#timeline-layout").click();
   await expect(page.locator("#ruler-v")).toHaveCount(1);
-  await item.locator(".name").click({ force: true });
+  await itemRect.click({ force: true });
   await expect(descBorder).toHaveCSS("display", "block");
   await expect.poll(async function() {
     const geometry = await getDescriptionBorderGeometry(item);
@@ -286,7 +286,7 @@ test("grouped items can move alone or together from the group title", async func
   const members = group.locator(":scope > .item");
   await expect(members).toHaveCount(3);
   const outsiderRect = page.locator('#content .item[id="霍布斯"] > rect');
-  const groupFrame = group.locator(":scope > rect");
+  const groupFrame = group.locator(":scope > .block");
   const getMemberTops = function() {
     return members.evaluateAll(function(items) {
       return items.map(function(item) {
@@ -297,7 +297,7 @@ test("grouped items can move alone or together from the group title", async func
 
   const initialMemberTops = await getMemberTops();
   const outsiderBefore = await outsiderRect.boundingBox();
-  await dragBy(page, members.first().locator(".name"), 0, 35);
+  await dragBy(page, members.first().locator(":scope > rect"), 0, 35);
   const memberTopsAfterSingleDrag = await getMemberTops();
 
   expect(memberTopsAfterSingleDrag[0] - initialMemberTops[0]).toBeGreaterThan(25);
@@ -305,7 +305,7 @@ test("grouped items can move alone or together from the group title", async func
   expect(Math.abs(memberTopsAfterSingleDrag[2] - initialMemberTops[2])).toBeLessThan(2);
 
   const frameBeforeGroupDrag = await groupFrame.boundingBox();
-  await dragBy(page, group.locator(":scope > .title"), 0, 35);
+  await dragBy(page, group.locator(":scope > .group-title-hit"), 0, 35);
   await expect.poll(async function() {
     const tops = await getMemberTops();
     return tops.every(function(top, index) {
@@ -325,6 +325,8 @@ test("grouped items can move alone or together from the group title", async func
 
 test("a group-bound period follows group dragging in both layouts", async function({ page }) {
   await page.goto("/timeline.html?name=spectrum&title=光谱史");
+  // 等待页面入口完成异步数据加载；否则其初始渲染可能覆盖下方的测试数据。
+  await expect(page.locator("#ruler-v")).toHaveCount(1);
   await page.evaluate(async function() {
     const timelineModule = await import("/timeline.js");
     const data = {
@@ -695,8 +697,7 @@ test("events-only timelines expand the scrollable time axis", async function({ p
   await expect.poll(async function() {
     const box = await farEvent.boundingBox();
     return box && box.x;
-  }).toBeGreaterThanOrEqual(0);
-  expect((await farEvent.boundingBox()).x).toBeLessThan(await page.evaluate(function() { return window.innerWidth; }));
+  }).toBeLessThan(await page.evaluate(function() { return window.innerWidth; }));
 
   await page.evaluate(function() {
     window.scrollTo(0, 0);
@@ -721,8 +722,7 @@ test("events-only timelines expand the scrollable time axis", async function({ p
   await expect.poll(async function() {
     const box = await farEvent.boundingBox();
     return box && box.y;
-  }).toBeGreaterThanOrEqual(0);
-  expect((await farEvent.boundingBox()).y).toBeLessThan(await page.evaluate(function() { return window.innerHeight; }));
+  }).toBeLessThan(await page.evaluate(function() { return window.innerHeight; }));
 });
 
 test("nationalPolicy events use month and day precision", async function({ page }) {

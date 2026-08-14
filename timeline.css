@@ -139,6 +139,15 @@ height:100%;
 {
   cursor: grabbing;
 }
+.group-title-hit{
+  fill: transparent;
+  pointer-events: all;
+  cursor: grab;
+  touch-action: none;
+}
+.group.is-dragging .group-title-hit{
+  cursor: grabbing;
+}
 .content .item
 {
  position: relative;

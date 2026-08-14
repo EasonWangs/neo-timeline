@@ -1289,10 +1289,11 @@ function redrawCurrentTimeline() {
   const scrollLeft = getScrollLeft();
   const scrollTop = getScrollTop();
   resetTimeline();
+  // 竖排文字的 getBBox() 依赖布局类，必须先更新类名再重建 SVG。
+  $id("wapper").className = config.layout === "v" ? "wapper vertical" : "wapper";
   drawList(data, config);
   resize();
   initDragPan();
-  $id("wapper").className = config.layout === "v" ? "wapper vertical" : "wapper";
   setScroll(scrollLeft, scrollTop);
   syncTimelineScroll();
 }
@@ -1324,13 +1325,15 @@ function bindItemCrossDrag(itemBox, itemIndex) {
       startY: event.clientY,
       startOffsets,
       minDelta,
-      moved: false
+      moved: false,
+      onMove: moveItemDrag,
+      onEnd: finishItemDrag
     };
     removeItemTitlePopup();
-    node.setPointerCapture(event.pointerId);
+    event.preventDefault();
   });
 
-  node.addEventListener("pointermove", function(event) {
+  function moveItemDrag(event) {
     const drag = state.itemDrag;
     if (!drag || drag.itemBox !== itemBox || drag.pointerId !== event.pointerId) return;
     const crossDelta = state.config.layout === "v"
@@ -1349,7 +1352,7 @@ function bindItemCrossDrag(itemBox, itemIndex) {
       applyItemCrossOffset(memberBox, index);
     });
     event.preventDefault();
-  });
+  }
 
   function finishItemDrag(event) {
     const drag = state.itemDrag;
@@ -1360,9 +1363,6 @@ function bindItemCrossDrag(itemBox, itemIndex) {
       const memberBox = state.itemBoxes[index];
       if (memberBox) memberBox.removeClass("is-dragging");
     });
-    if (node.hasPointerCapture(event.pointerId)) {
-      node.releasePointerCapture(event.pointerId);
-    }
     if (!moved) return;
 
     redrawCurrentTimeline();
@@ -1372,9 +1372,6 @@ function bindItemCrossDrag(itemBox, itemIndex) {
     }, 0);
     event.preventDefault();
   }
-
-  node.addEventListener("pointerup", finishItemDrag);
-  node.addEventListener("pointercancel", finishItemDrag);
 }
 
 function bindGroupCrossDrag(groupBox, title, groupName) {
@@ -1404,13 +1401,15 @@ function bindGroupCrossDrag(groupBox, title, groupName) {
       startY: event.clientY,
       startOffsets,
       minDelta,
-      moved: false
+      moved: false,
+      onMove: moveGroupDrag,
+      onEnd: finishGroupDrag
     };
     removeItemTitlePopup();
-    node.setPointerCapture(event.pointerId);
+    event.preventDefault();
   });
 
-  node.addEventListener("pointermove", function(event) {
+  function moveGroupDrag(event) {
     const drag = state.itemDrag;
     if (!drag || drag.itemBox !== groupBox || drag.pointerId !== event.pointerId) return;
     const crossDelta = state.config.layout === "v"
@@ -1432,7 +1431,7 @@ function bindGroupCrossDrag(groupBox, title, groupName) {
     groupBox.node.setAttribute("transform", `translate(${x} ${y})`);
     groupBox.addClass("is-dragging");
     event.preventDefault();
-  });
+  }
 
   function finishGroupDrag(event) {
     const drag = state.itemDrag;
@@ -1440,17 +1439,11 @@ function bindGroupCrossDrag(groupBox, title, groupName) {
     const moved = drag.moved;
     state.itemDrag = null;
     groupBox.removeClass("is-dragging");
-    if (node.hasPointerCapture(event.pointerId)) {
-      node.releasePointerCapture(event.pointerId);
-    }
     if (!moved) return;
 
     redrawCurrentTimeline();
     event.preventDefault();
   }
-
-  node.addEventListener("pointerup", finishGroupDrag);
-  node.addEventListener("pointercancel", finishGroupDrag);
 }
 
 function renderItemHeader(board, item, itemBox, color, geometry) {
@@ -1755,15 +1748,8 @@ function drawItemGroup(color){
         stroke: "#fff",
         fill: color[i],
         strokeWidth: 0.8,
-        fillOpacity: 0.2
-    }).hover(function() {
-        this.animate({
-           fillOpacity: 0.5    
-        }, 300); 
-    }, function() {
-        this.animate({
-            fillOpacity: 0.2    
-        }, 300); 
+        fillOpacity: 0.2,
+        "pointer-events": "none"
     });
 
     // 分组title
@@ -1779,11 +1765,19 @@ function drawItemGroup(color){
       fill: "#000",
       style: "text-shadow: 1px 1px "+ color[i] + ", -1px -1px "+ color[i]
     });
+
+    // SVG 竖排文本的实际命中框在不同 Chromium 平台上并不一致。
+    // 标题旁使用固定的透明区域承接拖动，保留文字外观且让交互不依赖字形布局。
+    const titleHit = state.config.layout === "v"
+      ? state.board.rect(x - 6, y - 22, w + 12, 22)
+      : state.board.rect(x - 26, y - 6, 26, h + 12);
+    titleHit.attr({ class: "group-title-hit" });
     
     // 使用prepend方法将元素添加到组的开头，确保它们在视觉上位于组的底层
     state.area[i].prepend(name);
     state.area[i].prepend(rect);
-    bindGroupCrossDrag(state.area[i], name, i);
+    state.area[i].add(titleHit);
+    bindGroupCrossDrag(state.area[i], titleHit, i);
   }
 }
 
@@ -2058,6 +2052,15 @@ function initDragPan() {
   document.addEventListener('mouseup', stopDrag);
   document.addEventListener('mouseleave', stopDrag);
   document.addEventListener('mousemove', dragScroll);
+  document.addEventListener('pointermove', function(event) {
+    if (state.itemDrag && state.itemDrag.onMove) state.itemDrag.onMove(event);
+  });
+  document.addEventListener('pointerup', function(event) {
+    if (state.itemDrag && state.itemDrag.onEnd) state.itemDrag.onEnd(event);
+  });
+  document.addEventListener('pointercancel', function(event) {
+    if (state.itemDrag && state.itemDrag.onEnd) state.itemDrag.onEnd(event);
+  });
   document.addEventListener('touchstart', startTouchDrag, { passive: true });
   document.addEventListener('touchmove', dragTouchScroll, { passive: false });
   document.addEventListener('touchend', stopTouchDrag, { passive: true });
