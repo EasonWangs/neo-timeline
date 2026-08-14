@@ -12,6 +12,25 @@ async function dragBy(page, locator, deltaX, deltaY) {
   await page.mouse.up();
 }
 
+async function getDescriptionBorderGeometry(item) {
+  return item.evaluate(function(node) {
+    const desc = node.querySelector(".descBox").getBBox();
+    const border = node.querySelector(".desc-border").getBBox();
+    return {
+      descX: desc.x,
+      descRight: desc.x + desc.width,
+      descY: desc.y,
+      descBottom: desc.y + desc.height,
+      descHeight: desc.height,
+      borderX: border.x,
+      borderRight: border.x + border.width,
+      borderY: border.y,
+      borderBottom: border.y + border.height,
+      borderHeight: border.height
+    };
+  });
+}
+
 test("arrow navigation switches the keypoint tooltip without showing contGroup", async function({ page }) {
   await page.goto("/timeline.html?name=ming&title=明朝");
 
@@ -142,22 +161,7 @@ test("item exposes its description immediately on hover", async function({ page 
   }
   await expect(descBox).toContainText("王（前325年起自称）");
   await expect(descBorder).toHaveCSS("display", "block");
-  const borderGeometry = await item.evaluate(function(node) {
-    const desc = node.querySelector(".descBox").getBBox();
-    const border = node.querySelector(".desc-border").getBBox();
-    return {
-      descX: desc.x,
-      descRight: desc.x + desc.width,
-      descY: desc.y,
-      descBottom: desc.y + desc.height,
-      descHeight: desc.height,
-      borderX: border.x,
-      borderRight: border.x + border.width,
-      borderY: border.y,
-      borderBottom: border.y + border.height,
-      borderHeight: border.height
-    };
-  });
+  const borderGeometry = await getDescriptionBorderGeometry(item);
   expect(borderGeometry.borderX).toBeLessThan(borderGeometry.descX);
   expect(borderGeometry.borderRight).toBeGreaterThan(borderGeometry.descRight);
   expect(borderGeometry.borderY).toBeLessThan(borderGeometry.descY);
@@ -182,22 +186,12 @@ test("item exposes its description immediately on hover", async function({ page 
   await page.locator("#timeline-layout").click();
   await expect(page.locator("#ruler-v")).toHaveCount(1);
   await item.locator(".name").click({ force: true });
-  const verticalBorderGeometry = await item.evaluate(function(node) {
-    const desc = node.querySelector(".descBox").getBBox();
-    const border = node.querySelector(".desc-border").getBBox();
-    return {
-      descX: desc.x,
-      descRight: desc.x + desc.width,
-      descY: desc.y,
-      descBottom: desc.y + desc.height,
-      descHeight: desc.height,
-      borderX: border.x,
-      borderRight: border.x + border.width,
-      borderY: border.y,
-      borderBottom: border.y + border.height,
-      borderHeight: border.height
-    };
-  });
+  await expect(descBorder).toHaveCSS("display", "block");
+  await expect.poll(async function() {
+    const geometry = await getDescriptionBorderGeometry(item);
+    return geometry.borderX < geometry.descX;
+  }).toBe(true);
+  const verticalBorderGeometry = await getDescriptionBorderGeometry(item);
   expect(verticalBorderGeometry.borderX).toBeLessThan(verticalBorderGeometry.descX);
   expect(verticalBorderGeometry.borderRight).toBeGreaterThan(verticalBorderGeometry.descRight);
   expect(verticalBorderGeometry.borderY).toBeLessThan(verticalBorderGeometry.descY);
@@ -252,6 +246,10 @@ test("item drag follows the cross axis in horizontal and vertical layouts", asyn
   await expect(page.locator("#ruler-v")).toHaveCount(1);
   const verticalBefore = await itemRect.boundingBox();
   await dragBy(page, item.locator(".name"), 35, 0);
+  await expect.poll(async function() {
+    const box = await itemRect.boundingBox();
+    return box ? box.x - verticalBefore.x : 0;
+  }).toBeGreaterThan(25);
   const verticalAfter = await itemRect.boundingBox();
   expect(verticalAfter.x - verticalBefore.x).toBeGreaterThan(25);
   expect(Math.abs(verticalAfter.y - verticalBefore.y)).toBeLessThan(2);
@@ -308,6 +306,12 @@ test("grouped items can move alone or together from the group title", async func
 
   const frameBeforeGroupDrag = await groupFrame.boundingBox();
   await dragBy(page, group.locator(":scope > .title"), 0, 35);
+  await expect.poll(async function() {
+    const tops = await getMemberTops();
+    return tops.every(function(top, index) {
+      return top - memberTopsAfterSingleDrag[index] > 25;
+    });
+  }).toBe(true);
   const memberTopsAfterGroupDrag = await getMemberTops();
   const outsiderAfter = await outsiderRect.boundingBox();
   const frameAfterGroupDrag = await groupFrame.boundingBox();
