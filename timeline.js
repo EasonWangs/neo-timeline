@@ -1774,9 +1774,10 @@ function drawItemGroup(color){
     titleHit.attr({ class: "group-title-hit" });
     
     // 使用prepend方法将元素添加到组的开头，确保它们在视觉上位于组的底层
+    // 命中区必须在成员元素下方；否则竖排时会覆盖位于 group 起点的成员名称。
+    state.area[i].prepend(titleHit);
     state.area[i].prepend(name);
     state.area[i].prepend(rect);
-    state.area[i].add(titleHit);
     bindGroupCrossDrag(state.area[i], titleHit, i);
   }
 }

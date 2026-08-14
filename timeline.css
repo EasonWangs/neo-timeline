@@ -124,20 +124,13 @@ height:100%;
   position: relative;
   pointer-events: auto;
 }
- .group .title
+.group .title
 {
   position: absolute;
   writing-mode: vertical-rl;
   /*text-shadow: 1px 1px #eee;*/
-  pointer-events: auto ;
+  pointer-events: none;
   text-anchor : middle;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-}
-.group.is-dragging .title
-{
-  cursor: grabbing;
 }
 .group-title-hit{
   fill: transparent;
