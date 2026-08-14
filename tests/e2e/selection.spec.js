@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-async function dragBy(page, locator, deltaX, deltaY) {
-  await locator.scrollIntoViewIfNeeded();
+async function dragBy(page, locator, deltaX, deltaY, scrollIntoView = true) {
+  if (scrollIntoView) await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
   const x = box.x + box.width / 2;
@@ -245,7 +245,9 @@ test("item drag follows the cross axis in horizontal and vertical layouts", asyn
   await page.locator("#timeline-layout").click();
   await expect(page.locator("#ruler-v")).toHaveCount(1);
   const verticalBefore = await itemRect.boundingBox();
-  await dragBy(page, item.locator(".name"), 35, 0);
+  // 竖排 SVG 文字的包围盒中心可能落在字形间隙；使用填充矩形确保命中成员本身。
+  // 此处元素已在当前视口中，避免 scrollIntoView 改变交叉轴坐标。
+  await dragBy(page, itemRect, 35, 0, false);
   await expect.poll(async function() {
     const box = await itemRect.boundingBox();
     return box ? box.x - verticalBefore.x : 0;
