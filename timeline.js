@@ -1302,7 +1302,18 @@ function bindItemCrossDrag(itemBox, itemIndex) {
   const node = itemBox.node;
 
   node.addEventListener("pointerdown", function(event) {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
+    // 鼠标交互由下方的 Mouse Events 处理。Playwright 在 Linux SVG 上对
+    // Pointer Events 的 move 分发并不稳定，触控输入仍使用 Pointer Events。
+    if (event.pointerType === "mouse") return;
+    startItemDrag(event, "pointer");
+  });
+
+  node.addEventListener("mousedown", function(event) {
+    startItemDrag(event, "mouse");
+  });
+
+  function startItemDrag(event, input) {
+    if (event.button !== undefined && event.button !== 0) return;
     if (event.target.closest(".dotBox, .contBox")) return;
 
     const itemIndexes = [itemIndex];
@@ -1320,7 +1331,8 @@ function bindItemCrossDrag(itemBox, itemIndex) {
       itemBox,
       itemIndex,
       itemIndexes,
-      pointerId: event.pointerId,
+      input,
+      pointerId: input === "pointer" ? event.pointerId : null,
       startX: event.clientX,
       startY: event.clientY,
       startOffsets,
@@ -1331,11 +1343,12 @@ function bindItemCrossDrag(itemBox, itemIndex) {
     };
     removeItemTitlePopup();
     event.preventDefault();
-  });
+  }
 
   function moveItemDrag(event) {
     const drag = state.itemDrag;
-    if (!drag || drag.itemBox !== itemBox || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.itemBox !== itemBox ||
+      (drag.input === "pointer" && drag.pointerId !== event.pointerId)) return;
     const crossDelta = state.config.layout === "v"
       ? event.clientX - drag.startX
       : event.clientY - drag.startY;
@@ -1356,7 +1369,8 @@ function bindItemCrossDrag(itemBox, itemIndex) {
 
   function finishItemDrag(event) {
     const drag = state.itemDrag;
-    if (!drag || drag.itemBox !== itemBox || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.itemBox !== itemBox ||
+      (drag.input === "pointer" && drag.pointerId !== event.pointerId)) return;
     const moved = drag.moved;
     state.itemDrag = null;
     drag.itemIndexes.forEach(function(index) {
@@ -1378,7 +1392,16 @@ function bindGroupCrossDrag(groupBox, title, groupName) {
   const node = title.node;
 
   node.addEventListener("pointerdown", function(event) {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.pointerType === "mouse") return;
+    startGroupDrag(event, "pointer");
+  });
+
+  node.addEventListener("mousedown", function(event) {
+    startGroupDrag(event, "mouse");
+  });
+
+  function startGroupDrag(event, input) {
+    if (event.button !== undefined && event.button !== 0) return;
 
     const itemIndexes = getGroupedItemIndexes(groupName);
     if (!itemIndexes.length) return;
@@ -1396,7 +1419,8 @@ function bindGroupCrossDrag(groupBox, title, groupName) {
     state.itemDrag = {
       itemBox: groupBox,
       itemIndexes,
-      pointerId: event.pointerId,
+      input,
+      pointerId: input === "pointer" ? event.pointerId : null,
       startX: event.clientX,
       startY: event.clientY,
       startOffsets,
@@ -1407,11 +1431,12 @@ function bindGroupCrossDrag(groupBox, title, groupName) {
     };
     removeItemTitlePopup();
     event.preventDefault();
-  });
+  }
 
   function moveGroupDrag(event) {
     const drag = state.itemDrag;
-    if (!drag || drag.itemBox !== groupBox || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.itemBox !== groupBox ||
+      (drag.input === "pointer" && drag.pointerId !== event.pointerId)) return;
     const crossDelta = state.config.layout === "v"
       ? event.clientX - drag.startX
       : event.clientY - drag.startY;
@@ -1435,7 +1460,8 @@ function bindGroupCrossDrag(groupBox, title, groupName) {
 
   function finishGroupDrag(event) {
     const drag = state.itemDrag;
-    if (!drag || drag.itemBox !== groupBox || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.itemBox !== groupBox ||
+      (drag.input === "pointer" && drag.pointerId !== event.pointerId)) return;
     const moved = drag.moved;
     state.itemDrag = null;
     groupBox.removeClass("is-dragging");
@@ -2050,17 +2076,33 @@ function initDragPan() {
   if (state.drag.bound) return;
   state.drag.bound = true;
   document.addEventListener('mousedown', startDrag);
-  document.addEventListener('mouseup', stopDrag);
+  document.addEventListener('mouseup', function(event) {
+    if (state.itemDrag && state.itemDrag.input === "mouse" && state.itemDrag.onEnd) {
+      state.itemDrag.onEnd(event);
+    }
+    stopDrag();
+  });
   document.addEventListener('mouseleave', stopDrag);
-  document.addEventListener('mousemove', dragScroll);
+  document.addEventListener('mousemove', function(event) {
+    if (state.itemDrag && state.itemDrag.input === "mouse" && state.itemDrag.onMove) {
+      state.itemDrag.onMove(event);
+    }
+    dragScroll(event);
+  });
   document.addEventListener('pointermove', function(event) {
-    if (state.itemDrag && state.itemDrag.onMove) state.itemDrag.onMove(event);
+    if (state.itemDrag && state.itemDrag.input === "pointer" && state.itemDrag.onMove) {
+      state.itemDrag.onMove(event);
+    }
   });
   document.addEventListener('pointerup', function(event) {
-    if (state.itemDrag && state.itemDrag.onEnd) state.itemDrag.onEnd(event);
+    if (state.itemDrag && state.itemDrag.input === "pointer" && state.itemDrag.onEnd) {
+      state.itemDrag.onEnd(event);
+    }
   });
   document.addEventListener('pointercancel', function(event) {
-    if (state.itemDrag && state.itemDrag.onEnd) state.itemDrag.onEnd(event);
+    if (state.itemDrag && state.itemDrag.input === "pointer" && state.itemDrag.onEnd) {
+      state.itemDrag.onEnd(event);
+    }
   });
   document.addEventListener('touchstart', startTouchDrag, { passive: true });
   document.addEventListener('touchmove', dragTouchScroll, { passive: false });
