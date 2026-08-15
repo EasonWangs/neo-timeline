@@ -33,6 +33,17 @@
     return cfg;
   }
 
+  // 第一项仍用于决定 item 的布局分组；颜色可由后续的标签分组提供。
+  export function getGroupColor(groups, colors) {
+    if (!Array.isArray(groups) || !colors || typeof colors !== "object") return null;
+    for (const group of groups) {
+      if (typeof group !== "string") continue;
+      const color = colors[group];
+      if (color) return color;
+    }
+    return null;
+  }
+
   function getTimelineYear(value) {
     if (Number.isFinite(value)) return value;
     if (typeof value !== "string") return null;

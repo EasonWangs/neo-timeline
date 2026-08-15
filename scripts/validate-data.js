@@ -144,11 +144,11 @@ for (const file of files) {
 
   const ids = new Set();
   const references = [];
-  const groups = new Set();
+  const layoutGroups = new Set();
   for (const [index, role] of data.roles.entries()) {
     validateRange(file, role, "角色", index);
     if (role.groups != null && !Array.isArray(role.groups)) report(file, `${role.name || "未命名角色"} 的 groups 必须为数组`);
-    for (const group of role.groups || []) groups.add(group);
+    if (Array.isArray(role.groups) && role.groups.length > 0) layoutGroups.add(role.groups[0]);
     if (role.keypoints != null && !Array.isArray(role.keypoints)) {
       report(file, `${role.name || "未命名角色"} 的 keypoints 必须为数组`);
       continue;
@@ -168,13 +168,20 @@ for (const file of files) {
 
   for (const target of references) if (!ids.has(target)) report(file, `to 引用了不存在的关键点：${target}`);
   for (const reference of periodGroupReferences) {
-    if (!groups.has(reference.group)) {
+    if (!layoutGroups.has(reference.group)) {
       report(file, `时期“${reference.period}”引用了不存在的分组：${reference.group}`);
     }
   }
   const colors = data.config && data.config.g && data.config.g.colors || {};
-  for (const group of groups) {
-    if (!Object.prototype.hasOwnProperty.call(colors, group)) report(file, `分组缺少颜色配置：${group}`);
+  const groupConfig = data.config && data.config.g || {};
+  const showGroups = typeof groupConfig.show === "boolean"
+    ? groupConfig.show
+    : Object.keys(colors).length > 0;
+  // 分组框可见时，主分组需要颜色；后续数组成员只是角色颜色标签，可选。
+  if (showGroups) {
+    for (const group of layoutGroups) {
+      if (!Object.prototype.hasOwnProperty.call(colors, group)) report(file, `可见布局分组缺少颜色配置：${group}`);
+    }
   }
 }
 

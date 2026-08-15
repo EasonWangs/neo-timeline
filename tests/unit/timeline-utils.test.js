@@ -3,6 +3,7 @@ import {
   getDatePosition,
   getDateValue,
   getFirstRulerTick,
+  getGroupColor,
   getMonthRulerSteps,
   getNextSelectionIndex,
   getRulerInterval,
@@ -105,6 +106,22 @@ describe("configuration normalization", function() {
     const config = normalizeConfig({});
     expect(config.axes.time.px).toBe(1);
     expect(config.items.gap).toBe(28);
+  });
+});
+
+describe("role group colors", function() {
+  it("uses the first configured color without changing the primary layout group", function() {
+    expect(getGroupColor(["两河文明", "assyrian"], {
+      assyrian: "#ff0000"
+    })).toBe("#ff0000");
+  });
+
+  it("prefers an earlier configured group and ignores invalid groups", function() {
+    expect(getGroupColor([null, "primary", "secondary"], {
+      primary: "#00ff00",
+      secondary: "#ff0000"
+    })).toBe("#00ff00");
+    expect(getGroupColor(["unconfigured"], {})).toBeNull();
   });
 });
 

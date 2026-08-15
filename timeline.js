@@ -1037,10 +1037,7 @@ function drawList(data, config){
   var roles = Array.isArray(data.roles) ? data.roles : [];
   for (var i = 0; i < roles.length; i++) {
     let item = roles[i],
-        color = "#fff";
-    if(!!item.groups && state.config.g.colors[item.groups[0]]){
-      color = state.config.g.colors[item.groups[0]];
-    }
+        color = U.getGroupColor(item.groups, state.config.g.colors) || "#fff";
     drawItem(board, item, i, color, item.keypoints)
   }
 
