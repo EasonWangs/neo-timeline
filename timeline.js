@@ -1716,8 +1716,6 @@ function drawItem(board, item, i, color, points) {
     id: item.id || item.name,
     "data-item-index": i
   });
-  const itemDescription = [item.name, ...U.toLines(item.desc)].filter(Boolean).join("\n");
-  bindItemTitleTooltip(itemBox, itemDescription);
 
   if(item.offset) {
     state.offset += item.offset;
@@ -1725,6 +1723,11 @@ function drawItem(board, item, i, color, points) {
 
   const geometry = computeItemGeometry(item, i, itemSpacing);
   if (!geometry) return;
+  const timeRange = U.buildRangeDesc(geometry.startDate, geometry.endDate);
+  const itemDescription = [[item.name, timeRange].filter(Boolean).join(" "), ...U.toLines(item.desc)]
+    .filter(Boolean)
+    .join("\n");
+  bindItemTitleTooltip(itemBox, itemDescription);
   state.itemBoxes[i] = itemBox;
   state.itemBaseCross[i] = state.config.layout === "v" ? geometry.x : geometry.y;
 

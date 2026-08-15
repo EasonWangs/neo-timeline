@@ -148,6 +148,7 @@ test("item exposes its description immediately on hover", async function({ page 
   const tooltip = page.locator(".item-title-popup");
   await expect(tooltip).toBeVisible();
   await expect(tooltip).toContainText("秦国");
+  await expect(tooltip).toContainText("秦国 (-900--206)");
   await expect(tooltip).toContainText("嬴姓赵氏");
   await expect(tooltip).toContainText("王（前325年起自称）");
 
